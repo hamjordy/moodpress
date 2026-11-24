@@ -686,6 +686,270 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
+
+  Future<Uint8List> createBackupBytes(String password) async {
+    final allActivities = <DayActivity>[
+      for (final items in _plansByDate.values) ...items,
+      for (final template in templates) ...template.activities,
+      for (final template in weeklyRoutine.days.values) ...template.activities,
+    ];
+    final photoIds = <String, String>{};
+    final photos = <String, dynamic>{};
+    var totalPhotoBytes = 0;
+
+    for (final path in allActivities
+        .map((item) => item.photoPath)
+        .where((path) => path.isNotEmpty)
+        .toSet()) {
+      final file = File(path);
+      if (!await file.exists()) continue;
+      final bytes = await file.readAsBytes();
+      totalPhotoBytes += bytes.length;
+      if (totalPhotoBytes > _maxBackupPhotoBytes) {
+        throw FormatException(
+          'De foto’s zijn samen te groot voor één back-up. Verwijder eerst een paar grote foto’s.',
+        );
+      }
+      final id = 'photo_' + (photoIds.length + 1).toString();
+      photoIds[path] = id;
+      final parts = path.split('.');
+      final candidate = parts.length > 1 ? parts.last.toLowerCase() : 'jpg';
+      final extension = const {'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'}
+              .contains(candidate)
+          ? candidate
+          : 'jpg';
+      photos[id] = {
+        'extension': extension,
+        'data': base64Encode(bytes),
+      };
+    }
+
+    Map<String, dynamic> activityJson(DayActivity activity) {
+      final values = Map<String, dynamic>.from(activity.toJson())
+        ..remove('photoPath');
+      final photoId = photoIds[activity.photoPath];
+      if (photoId != null) values['photoId'] = photoId;
+      return values;
+    }
+
+    Map<String, dynamic> templateJson(DayTemplate template) => {
+          'id': template.id,
+          'name': template.name,
+          'activities': template.activities.map(activityJson).toList(),
+        };
+
+    final document = <String, dynamic>{
+      'app': 'MoodPress',
+      'dataVersion': 1,
+      'createdAt': DateTime.now().toIso8601String(),
+      'dayPlans': {
+        for (final entry in _plansByDate.entries)
+          entry.key: entry.value.map(activityJson).toList(),
+      },
+      'support': Map<String, String>.from(support),
+      'preferences': preferences.toJson(),
+      'templates': templates.map(templateJson).toList(),
+      'weeklyRoutine': {
+        for (final entry in weeklyRoutine.days.entries)
+          entry.key.toString(): templateJson(entry.value),
+      },
+      'photos': photos,
+    };
+
+    return encryptMoodPressBackup(document, password);
+  }
+
+  Future<void> restoreBackupBytes(
+    Uint8List fileBytes,
+    String password,
+  ) async {
+    final document = await decryptMoodPressBackup(fileBytes, password);
+    final savedPhotoFiles = <File>[];
+
+    try {
+      final rawPhotos = document['photos'];
+      if (rawPhotos is! Map<String, dynamic>) {
+        throw FormatException('De foto’s in deze back-up zijn niet geldig.');
+      }
+
+      final photoPaths = <String, String>{};
+      var totalPhotoBytes = 0;
+      var photoIndex = 0;
+      if (rawPhotos.isNotEmpty) {
+        final directory = await getApplicationSupportDirectory();
+        final imageDirectory = Directory(
+          directory.path + Platform.pathSeparator + 'activity_images',
+        );
+        await imageDirectory.create(recursive: true);
+
+        for (final entry in rawPhotos.entries) {
+          if (!RegExp(r'^photo_[0-9]+$').hasMatch(entry.key) ||
+              entry.value is! Map<String, dynamic>) {
+            throw FormatException('Een foto in deze back-up is niet geldig.');
+          }
+          final photo = entry.value as Map<String, dynamic>;
+          final extension = photo['extension'];
+          if (extension is! String ||
+              !const {'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp'}
+                  .contains(extension)) {
+            throw FormatException('Een fotoformaat in deze back-up wordt niet ondersteund.');
+          }
+          final encoded = photo['data'];
+          if (encoded is! String) {
+            throw FormatException('Een foto in deze back-up is niet compleet.');
+          }
+          final imageBytes = base64Decode(encoded);
+          totalPhotoBytes += imageBytes.length;
+          if (totalPhotoBytes > _maxBackupPhotoBytes) {
+            throw FormatException('De foto’s in deze back-up zijn te groot.');
+          }
+
+          photoIndex += 1;
+          final file = File(
+            imageDirectory.path + Platform.pathSeparator +
+            'restored_' + DateTime.now().microsecondsSinceEpoch.toString() +
+            '_' + photoIndex.toString() + '.' + extension,
+          );
+          await file.writeAsBytes(imageBytes, flush: true);
+          savedPhotoFiles.add(file);
+          photoPaths[entry.key] = file.path;
+        }
+      }
+
+      List<DayActivity> restoreActivities(dynamic rawActivities) {
+        if (rawActivities is! List) {
+          throw FormatException('Een activiteitenlijst in de back-up is niet geldig.');
+        }
+        return rawActivities.map((raw) {
+          if (raw is! Map<String, dynamic>) {
+            throw FormatException('Een activiteit in de back-up is niet geldig.');
+          }
+          final values = Map<String, dynamic>.from(raw);
+          final photoId = values.remove('photoId');
+          values['photoPath'] = photoId is String
+              ? (photoPaths[photoId] ?? '')
+              : '';
+          return DayActivity.fromJson(values);
+        }).toList();
+      }
+
+      DayTemplate restoreTemplate(dynamic raw) {
+        if (raw is! Map<String, dynamic>) {
+          throw FormatException('Een dagindeling in de back-up is niet geldig.');
+        }
+        return DayTemplate(
+          id: raw['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
+          name: raw['name'] as String? ?? 'Dagindeling',
+          activities: restoreActivities(raw['activities']),
+        );
+      }
+
+      final rawPlans = document['dayPlans'];
+      if (rawPlans is! Map<String, dynamic>) {
+        throw FormatException('De dagplanning in deze back-up is niet geldig.');
+      }
+      final restoredPlans = <String, List<DayActivity>>{};
+      for (final entry in rawPlans.entries) {
+        final date = DateTime.tryParse(entry.key);
+        if (date == null || _dateKey(date) != entry.key) {
+          throw FormatException('Een datum in de dagplanning is niet geldig.');
+        }
+        restoredPlans[entry.key] = restoreActivities(entry.value);
+      }
+
+      final rawTemplates = document['templates'];
+      if (rawTemplates is! List) {
+        throw FormatException('De dagindelingen in deze back-up zijn niet geldig.');
+      }
+      final restoredTemplates = rawTemplates.map(restoreTemplate).toList();
+
+      final rawRoutine = document['weeklyRoutine'];
+      if (rawRoutine is! Map<String, dynamic>) {
+        throw FormatException('Het vaste weekritme in deze back-up is niet geldig.');
+      }
+      final routineDays = <int, DayTemplate>{};
+      for (final entry in rawRoutine.entries) {
+        final weekday = int.tryParse(entry.key);
+        if (weekday == null || weekday < 1 || weekday > 7) {
+          throw FormatException('Een weekdag in de back-up is niet geldig.');
+        }
+        routineDays[weekday] = restoreTemplate(entry.value);
+      }
+      final restoredRoutine = WeeklyRoutine(days: routineDays);
+
+      final rawSupport = document['support'];
+      if (rawSupport is! Map<String, dynamic>) {
+        throw FormatException('Het steunplan in deze back-up is niet geldig.');
+      }
+      final restoredSupport = <String, String>{
+        'help': rawSupport['help']?.toString() ?? '',
+        'place': rawSupport['place']?.toString() ?? '',
+        'person': rawSupport['person']?.toString() ?? '',
+      };
+
+      final rawPreferences = document['preferences'];
+      if (rawPreferences is! Map<String, dynamic>) {
+        throw FormatException('De instellingen in deze back-up zijn niet geldig.');
+      }
+      final restoredPreferences = MoodPressPreferences.fromJson(rawPreferences);
+
+      final nextStorage = <String, String>{
+        _dayPlansKey: jsonEncode({
+          for (final entry in restoredPlans.entries)
+            entry.key: entry.value.map((item) => item.toJson()).toList(),
+        }),
+        _supportKey: jsonEncode(restoredSupport),
+        _preferencesKey: jsonEncode(restoredPreferences.toJson()),
+        _templatesKey: jsonEncode(
+          restoredTemplates.map((item) => item.toJson()).toList(),
+        ),
+        _weeklyRoutineKey: jsonEncode(restoredRoutine.toJson()),
+      };
+      final previousStorage = <String, String?>{};
+      for (final key in nextStorage.keys) {
+        previousStorage[key] = await _storage.read(key: key);
+      }
+
+      try {
+        for (final entry in nextStorage.entries) {
+          await _storage.write(key: entry.key, value: entry.value);
+        }
+      } catch (_) {
+        for (final entry in previousStorage.entries) {
+          try {
+            if (entry.value == null) {
+              await _storage.delete(key: entry.key);
+            } else {
+              await _storage.write(key: entry.key, value: entry.value!);
+            }
+          } catch (_) {
+            // Best-effort rollback; the original storage error is reported below.
+          }
+        }
+        rethrow;
+      }
+
+      _plansByDate
+        ..clear()
+        ..addAll(restoredPlans);
+      support = restoredSupport;
+      preferences = restoredPreferences;
+      templates = restoredTemplates;
+      weeklyRoutine = restoredRoutine;
+      storageNotice = null;
+      notifyListeners();
+    } catch (_) {
+      for (final file in savedPhotoFiles) {
+        try {
+          if (await file.exists()) await file.delete();
+        } catch (_) {
+          // Ignore cleanup failures and keep the original import error.
+        }
+      }
+      rethrow;
+    }
+  }
+
   Future<void> setTextScale(double value) async {
     preferences = MoodPressPreferences(
       textScale: value.clamp(1.0, 1.4).toDouble(),
