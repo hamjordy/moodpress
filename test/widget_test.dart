@@ -12,6 +12,8 @@ void main() {
       where: 'De supermarkt',
       how: 'Eerst jas pakken, dan samen lopen',
       note: 'Rustig tempo',
+      symbol: '🛒',
+      photoPath: '/local/moodpress/winkel.jpg',
       done: true,
     );
 
@@ -24,6 +26,8 @@ void main() {
     expect(restored.what, original.what);
     expect(restored.where, original.where);
     expect(restored.how, original.how);
+    expect(restored.symbol, '🛒');
+    expect(restored.photoPath, '/local/moodpress/winkel.jpg');
     expect(restored.done, isTrue);
   });
   
@@ -164,3 +168,15 @@ void main() {
     expect(dates.map((date) => date.weekday).toList(), [DateTime.monday]);
   });
 }
+
+
+test('older activities without image fields remain compatible', () {
+  final restored = DayActivity.fromJson({
+    'id': 'old',
+    'title': 'Ontbijten',
+    'time': '08:00',
+  });
+
+  expect(restored.symbol, '📌');
+  expect(restored.photoPath, isEmpty);
+});
