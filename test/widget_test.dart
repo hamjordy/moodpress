@@ -32,11 +32,12 @@ void main() {
   });
   
   test('accessibility preferences can be saved and restored', () {
-    const original = MoodPressPreferences(textScale: 1.3, speechRate: 0.5);
+    const original = MoodPressPreferences(textScale: 1.3, speechRate: 0.5, reduceMotion: true);
     final restored = MoodPressPreferences.fromJson(original.toJson());
 
     expect(restored.textScale, 1.3);
     expect(restored.speechRate, 0.5);
+    expect(restored.reduceMotion, isTrue);
   });
 
   test('accessibility preferences stay within supported limits', () {
@@ -47,6 +48,7 @@ void main() {
 
     expect(restored.textScale, 1.4);
     expect(restored.speechRate, 0.3);
+    expect(restored.reduceMotion, isFalse);
   });
 
   test('day templates can be saved and restored', () {
