@@ -551,6 +551,16 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setReduceMotion(bool value) async {
+    preferences = MoodPressPreferences(
+      textScale: preferences.textScale,
+      speechRate: preferences.speechRate,
+      reduceMotion: value,
+    );
+    await _savePreferences();
+    notifyListeners();
+  }
+
   Future<void> resetPreferences() async {
     preferences = const MoodPressPreferences();
     await _savePreferences();
@@ -1668,22 +1678,19 @@ class _ActivityEditorState extends State<ActivityEditor> {
 
   Future<void> choosePhoto() async {
     try {
-      final picked = await FilePicker.pickFiles(
-        type: FileType.image,
-        allowMultiple: false,
-        withData: true,
-      );
-      if (picked == null || picked.files.isEmpty) return;
-      final file = picked.files.single;
-      final bytes = file.bytes;
-      if (bytes == null || bytes.isEmpty) return;
+      final picked = await FilePicker.pickFiles(type: FileType.image);
+      if (picked.isEmpty) return;
+      final file = picked.first;
+      final sourcePath = file.path;
+      if (sourcePath == null || sourcePath.isEmpty) return;
       final directory = await getApplicationSupportDirectory();
       final imageDirectory = Directory('${directory.path}${Platform.pathSeparator}activity_images');
       await imageDirectory.create(recursive: true);
       final extension = (file.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
       final safeName = '${DateTime.now().microsecondsSinceEpoch}.$extension';
-      final saved = File('${imageDirectory.path}${Platform.pathSeparator}$safeName');
-      await saved.writeAsBytes(bytes, flush: true);
+      final saved = await File(sourcePath).copy(
+        '${imageDirectory.path}${Platform.pathSeparator}$safeName',
+      );
       if (!mounted) return;
       setState(() => photoPath = saved.path);
     } catch (_) {
