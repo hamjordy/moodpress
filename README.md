@@ -10,7 +10,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Vast weekritme** — bewaar een vaste indeling per weekdag en vul daarmee lege dagen in.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
-- **Instellingen** — kies normale, grotere of extra grote tekst.
+- **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan en schakel animaties uit voor een rustigere weergave.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
 - **Mijn steun** — een persoonlijk plan met wat helpt, een fijne plek en een vertrouwd persoon.
 - **Offline uitgangspunt** — geen account, advertenties, analytics, cloudbackend of externe AI-dienst.
@@ -32,6 +32,7 @@ MoodPress is een zelfstandig product en is **niet** de officiële app van *Geef 
 - `flutter_secure_storage` voor platformgebonden beveiligde opslag
 - `flutter_tts` voor voorlezen
 - Geen servercomponent of telemetrie in deze prototypeversie
+- Eigen activiteitfoto's worden lokaal opgeslagen in de app-map; deel het apparaat alleen met mensen die deze afbeeldingen mogen zien
 
 ## Starten
 
