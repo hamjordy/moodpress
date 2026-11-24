@@ -5,7 +5,7 @@
 MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te plannen. De eerste versie bevat:
 
 - **Vandaag** — eerstvolgende stap, voortgang en een vrijwillige check-in.
-- **Planning** — weekoverzicht, een apart dagplan per datum en activiteiten afronden.
+- **Planning** — weekoverzicht, een apart dagplan per datum, activiteiten afronden en de volgorde zelf verslepen.
 - **Dagindelingen** — bewaar een dag als sjabloon en gebruik die opnieuw op een andere datum.
 - **Vast weekritme** — bewaar een vaste indeling per weekdag en vul daarmee lege dagen in.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
