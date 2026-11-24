@@ -200,14 +200,20 @@ class WeeklyRoutine {
 }
 
 class MoodPressPreferences {
-  const MoodPressPreferences({this.textScale = 1.0, this.speechRate = 0.42});
+  const MoodPressPreferences({
+    this.textScale = 1.0,
+    this.speechRate = 0.42,
+    this.reduceMotion = false,
+  });
 
   final double textScale;
   final double speechRate;
+  final bool reduceMotion;
 
   Map<String, dynamic> toJson() => {
         'textScale': textScale,
         'speechRate': speechRate,
+        'reduceMotion': reduceMotion,
       };
 
   factory MoodPressPreferences.fromJson(Map<String, dynamic> json) {
@@ -220,6 +226,7 @@ class MoodPressPreferences {
       speechRate: rawSpeechRate is num
           ? rawSpeechRate.toDouble().clamp(0.3, 0.6).toDouble()
           : 0.42,
+      reduceMotion: json['reduceMotion'] as bool? ?? false,
     );
   }
 }
@@ -537,6 +544,7 @@ class MoodPressController extends ChangeNotifier {
     preferences = MoodPressPreferences(
       textScale: preferences.textScale,
       speechRate: value.clamp(0.3, 0.6).toDouble(),
+      reduceMotion: preferences.reduceMotion,
     );
     await _savePreferences();
     notifyListeners();
@@ -584,6 +592,7 @@ class MoodPressApp extends StatelessWidget {
           return MediaQuery(
             data: MediaQuery.of(context).copyWith(
               textScaler: TextScaler.linear(systemScale * controller.preferences.textScale),
+              disableAnimations: controller.preferences.reduceMotion,
             ),
             child: child!,
           );
@@ -1882,6 +1891,28 @@ class SettingsPage extends StatelessWidget {
                   ],
                   selected: {controller.preferences.textScale},
                   onSelectionChanged: (values) => controller.setTextScale(values.first),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.motion_photos_off_outlined, color: _green),
+                  SizedBox(width: 10),
+                  Expanded(child: Text('Minder beweging', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
+                ]),
+                const SizedBox(height: 5),
+                const Text('Schakel bewegende overgangen en animaties zoveel mogelijk uit als dat rustiger voelt.', style: TextStyle(color: _muted)),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Rustige weergave'),
+                  subtitle: const Text('Minder animaties in de app'),
+                  value: controller.preferences.reduceMotion,
+                  onChanged: controller.setReduceMotion,
                 ),
               ]),
             ),
