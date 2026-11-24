@@ -2117,6 +2117,202 @@ class SupportPage extends StatelessWidget {
       );
 }
 
+
+Future<String?> _askBackupPassword(
+  BuildContext context, {
+  required bool confirm,
+}) =>
+    showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => _BackupPasswordDialog(confirm: confirm),
+    );
+
+class _BackupPasswordDialog extends StatefulWidget {
+  const _BackupPasswordDialog({required this.confirm});
+
+  final bool confirm;
+
+  @override
+  State<_BackupPasswordDialog> createState() => _BackupPasswordDialogState();
+}
+
+class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
+  final _password = TextEditingController();
+  final _confirmation = TextEditingController();
+  bool _obscure = true;
+  String? _error;
+
+  @override
+  void dispose() {
+    _password.dispose();
+    _confirmation.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    if (_password.text.trim().length < 8) {
+      setState(() => _error = 'Kies een wachtwoord van minimaal 8 tekens.');
+      return;
+    }
+    if (widget.confirm && _password.text != _confirmation.text) {
+      setState(() => _error = 'De wachtwoorden zijn niet hetzelfde.');
+      return;
+    }
+    Navigator.of(context).pop(_password.text);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: Text(widget.confirm ? 'Beveilig je back-up' : 'Open je back-up'),
+        content: SizedBox(
+          width: 430,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                widget.confirm
+                    ? 'Kies een wachtwoord dat je kunt onthouden. Je hebt dit nodig om de back-up later te openen. MoodPress kan het niet voor je terughalen.'
+                    : 'Vul het wachtwoord in dat je hebt gebruikt toen je deze back-up maakte.',
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: _password,
+                obscureText: _obscure,
+                autofocus: true,
+                textInputAction: widget.confirm ? TextInputAction.next : TextInputAction.done,
+                onSubmitted: (_) {
+                  if (!widget.confirm) _submit();
+                },
+                decoration: InputDecoration(
+                  labelText: 'Wachtwoord',
+                  suffixIcon: IconButton(
+                    tooltip: _obscure ? 'Wachtwoord tonen' : 'Wachtwoord verbergen',
+                    onPressed: () => setState(() => _obscure = !_obscure),
+                    icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                  ),
+                ),
+              ),
+              if (widget.confirm) ...[
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _confirmation,
+                  obscureText: _obscure,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _submit(),
+                  decoration: const InputDecoration(labelText: 'Herhaal wachtwoord'),
+                ),
+              ],
+              if (_error != null) ...[
+                const SizedBox(height: 10),
+                Text(_error!, style: const TextStyle(color: Colors.red)),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Annuleren'),
+          ),
+          FilledButton(
+            onPressed: _submit,
+            child: Text(widget.confirm ? 'Maak back-up' : 'Verder'),
+          ),
+        ],
+      );
+
+String _backupErrorMessage(Object error, {required bool importing}) {
+  if (error is FormatException) return error.message.toString();
+  if (error is ArgumentError) return error.message.toString();
+  return importing
+      ? 'De back-up kon niet worden teruggezet. Je bestaande gegevens zijn niet bewust gewist.'
+      : 'De back-up kon niet worden gemaakt of bewaard.';
+}
+
+Future<void> _exportMoodPressBackup(
+  BuildContext context,
+  MoodPressController controller,
+) async {
+  final password = await _askBackupPassword(context, confirm: true);
+  if (password == null || !context.mounted) return;
+
+  try {
+    final bytes = await controller.createBackupBytes(password);
+    final saved = await FilePicker.saveFile(
+      dialogTitle: 'Bewaar je MoodPress-back-up',
+      fileName: 'moodpress-back-up.mpb',
+      mimeType: 'application/octet-stream',
+      type: FileType.custom,
+      allowedExtensions: ['mpb'],
+      bytes: bytes,
+    );
+    if (!context.mounted || saved == null) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Je beveiligde back-up is bewaard.')),
+    );
+  } catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_backupErrorMessage(error, importing: false))),
+    );
+  }
+}
+
+Future<void> _importMoodPressBackup(
+  BuildContext context,
+  MoodPressController controller,
+) async {
+  try {
+    final picked = await FilePicker.pickFile(
+      type: FileType.custom,
+      allowedExtensions: ['mpb'],
+    );
+    if (picked == null || !context.mounted) return;
+    final length = await picked.length();
+    if (length != null && length > _maxBackupFileBytes) {
+      throw FormatException('Dit back-upbestand is te groot om veilig te openen.');
+    }
+
+    final password = await _askBackupPassword(context, confirm: false);
+    if (password == null || !context.mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Back-up terugzetten?'),
+        content: const Text(
+          'De huidige dagplannen, dagindelingen, het weekritme, je steunplan en instellingen worden vervangen door de gegevens uit deze back-up. Dit kun je niet automatisch ongedaan maken.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuleren'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Terugzetten'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final bytes = await picked.readAsBytes();
+    await controller.restoreBackupBytes(bytes, password);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Je MoodPress-back-up is teruggezet.')),
+    );
+  } catch (error) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_backupErrorMessage(error, importing: true))),
+    );
+  }
+}
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, required this.controller});
   final MoodPressController controller;
@@ -2191,6 +2387,42 @@ class SettingsPage extends StatelessWidget {
                   subtitle: const Text('Staat standaard uit'),
                   value: controller.preferences.inAppRemindersEnabled,
                   onChanged: controller.setInAppRemindersEnabled,
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.backup_outlined, color: _green),
+                  SizedBox(width: 10),
+                  Text('Back-up en terugzetten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 5),
+                const Text(
+                  'Bewaar je planning, dagindelingen, weekritme, steunplan, instellingen en activiteitfoto’s op een plek die jij kiest. De back-up wordt met een wachtwoord versleuteld.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+                const SizedBox(height: 12),
+                Wrap(spacing: 10, runSpacing: 8, children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _exportMoodPressBackup(context, controller),
+                    icon: const Icon(Icons.save_alt_rounded),
+                    label: const Text('Maak back-up'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _importMoodPressBackup(context, controller),
+                    icon: const Icon(Icons.restore_rounded),
+                    label: const Text('Zet back-up terug'),
+                  ),
+                ]),
+                const SizedBox(height: 8),
+                const Text(
+                  'Je wachtwoord is niet te herstellen. Bewaar het goed. Een back-up kan persoonlijke informatie bevatten.',
+                  style: TextStyle(color: _muted, fontSize: 12, height: 1.4),
                 ),
               ]),
             ),
