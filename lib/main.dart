@@ -313,7 +313,7 @@ class MoodPressController extends ChangeNotifier {
           _plansByDate[todayKey] = decoded
               .whereType<Map<String, dynamic>>()
               .map(DayActivity.fromJson)
-              .toList()
+              .toList();
         } else {
           _plansByDate[todayKey] = _starterPlan();
         }
