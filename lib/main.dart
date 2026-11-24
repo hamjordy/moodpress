@@ -150,6 +150,14 @@ String _formatDutchDate(DateTime date) =>
 
 String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
+void reorderDayActivities(List<DayActivity> activities, int oldIndex, int newIndex) {
+  if (oldIndex < 0 || oldIndex >= activities.length ||
+      newIndex < 0 || newIndex > activities.length) return;
+  if (newIndex > oldIndex) newIndex -= 1;
+  final activity = activities.removeAt(oldIndex);
+  activities.insert(newIndex, activity);
+}
+
 class WeeklyRoutine {
   const WeeklyRoutine({this.days = const <int, DayTemplate>{}});
 
@@ -295,7 +303,6 @@ class MoodPressController extends ChangeNotifier {
                 .whereType<Map<String, dynamic>>()
                 .map(DayActivity.fromJson)
                 .toList()
-              ..sort((a, b) => a.time.compareTo(b.time));
           }
         }
       } else {
@@ -307,7 +314,6 @@ class MoodPressController extends ChangeNotifier {
               .whereType<Map<String, dynamic>>()
               .map(DayActivity.fromJson)
               .toList()
-            ..sort((a, b) => a.time.compareTo(b.time));
         } else {
           _plansByDate[todayKey] = _starterPlan();
         }
@@ -443,7 +449,6 @@ class MoodPressController extends ChangeNotifier {
     for (final date in dates) {
       final routine = weeklyRoutine.forWeekday(date.weekday)!;
       _plansByDate[_dateKey(date)] = routine.createActivities()
-        ..sort((a, b) => a.time.compareTo(b.time));
     }
     if (dates.isNotEmpty) {
       await _saveDayPlans();
@@ -466,6 +471,12 @@ class MoodPressController extends ChangeNotifier {
       dayActivities[index] = activity;
     }
     dayActivities.sort((a, b) => a.time.compareTo(b.time));
+    await _saveDayPlans();
+    notifyListeners();
+  }
+
+  Future<void> reorderActivities(int oldIndex, int newIndex) async {
+    reorderDayActivities(_mutableActivitiesFor(selectedDate), oldIndex, newIndex);
     await _saveDayPlans();
     notifyListeners();
   }
@@ -509,7 +520,6 @@ class MoodPressController extends ChangeNotifier {
     if (selected == null) return false;
 
     _plansByDate[_dateKey(date)] = selected.createActivities()
-      ..sort((a, b) => a.time.compareTo(b.time));
     await _saveDayPlans();
     notifyListeners();
     return true;
@@ -740,7 +750,6 @@ class TodayPage extends StatelessWidget {
     final greeting = now.hour < 12 ? 'Goedemorgen' : now.hour < 18 ? 'Goedemiddag' : 'Goedenavond';
     final todayActivities = controller.activitiesFor(now);
     final upcoming = todayActivities.where((item) => !item.done).toList()
-      ..sort((a, b) => a.time.compareTo(b.time));
     final next = upcoming.isEmpty ? null : upcoming.first;
     final completedToday = todayActivities.where((item) => item.done).length;
     final progressToday = todayActivities.isEmpty ? 0.0 : completedToday / todayActivities.length;
@@ -1198,16 +1207,34 @@ class _PlanningPageState extends State<PlanningPage> {
           ),
         ),
         const SizedBox(height: 15),
-        for (final item in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 11),
-            child: ActivityCard(
-              activity: item,
-              speechRate: widget.controller.preferences.speechRate,
-              toggle: () => widget.controller.toggleActivity(item.id),
-              edit: () => editActivity(context, widget.controller, existing: item),
-              delete: () => confirmDelete(context, widget.controller, item),
-            ),
+        if (items.isNotEmpty)
+          ReorderableListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            buildDefaultDragHandles: false,
+            itemCount: items.length,
+            onReorder: widget.controller.reorderActivities,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              return Padding(
+                key: ValueKey(item.id),
+                padding: const EdgeInsets.only(bottom: 11),
+                child: ActivityCard(
+                  activity: item,
+                  speechRate: widget.controller.preferences.speechRate,
+                  toggle: () => widget.controller.toggleActivity(item.id),
+                  edit: () => editActivity(context, widget.controller, existing: item),
+                  delete: () => confirmDelete(context, widget.controller, item),
+                  reorderHandle: ReorderableDragStartListener(
+                    index: index,
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 12),
+                      child: Icon(Icons.drag_handle_rounded, color: _muted),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
         if (items.isEmpty)
           const Card(
@@ -1561,12 +1588,13 @@ class _PlanningPageState extends State<PlanningPage> {
   }
 }
 class ActivityCard extends StatelessWidget {
-  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete});
+  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete, required this.reorderHandle});
   final DayActivity activity;
   final double speechRate;
   final VoidCallback toggle;
   final VoidCallback edit;
   final VoidCallback delete;
+  final Widget reorderHandle;
 
   @override
   Widget build(BuildContext context) => Card(
@@ -1592,6 +1620,7 @@ class ActivityCard extends StatelessWidget {
                 const Text('Tik om de vijf vragen te bekijken', style: TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w600)),
               ]),
             )),
+            reorderHandle,
             SpeakButton(text: activity.title + '. ' + activity.time + '. Wie: ' + activity.who + '. Wat: ' + activity.what + '. Waar: ' + activity.where + '. Hoe: ' + activity.how + '.', speechRate: speechRate),
             IconButton(tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond', onPressed: toggle, icon: Icon(activity.done ? Icons.check_circle : Icons.circle_outlined, color: activity.done ? _green : _muted)),
             PopupMenuButton<String>(
