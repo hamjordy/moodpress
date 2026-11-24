@@ -3,7 +3,7 @@ import 'package:moodpress/main.dart';
 
 void main() {
   test('activity data can be saved and restored', () {
-    final original = DayTask(
+    final original = DayActivity(
       id: 'activity-1',
       title: 'Naar de winkel',
       time: '10:30',
@@ -15,7 +15,7 @@ void main() {
       done: true,
     );
 
-    final restored = DayTask.fromJson(original.toJson());
+    final restored = DayActivity.fromJson(original.toJson());
 
     expect(restored.id, original.id);
     expect(restored.title, original.title);
