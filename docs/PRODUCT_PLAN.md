@@ -41,6 +41,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
 - [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
 - [x] Rustige herinneringen die volledig uit te zetten zijn (in-app, zolang MoodPress open is; standaard uit).
+- [x] Volledige lokale back-up en terugzetten van planning, sjablonen, weekritme, steunplan, voorkeuren en activiteitfoto’s, versleuteld met een eigen wachtwoord.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
@@ -56,7 +57,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 
 ## Bewuste productgrens
 
-MoodPress blijft een zelfstandige app voor Android en Windows. Er komt geen begeleidersportaal, online begeleidersomgeving, account, server of betaalde hosting. Plannen en persoonlijke instellingen blijven op het eigen apparaat. Ontwikkeling richt zich op functies die zonder terugkerende hostingkosten werken.
+MoodPress blijft een zelfstandige app voor Android en Windows. Er komt geen begeleidersportaal, online begeleidersomgeving, account, server of betaalde hosting. Plannen en persoonlijke instellingen blijven op het eigen apparaat. Een gebruiker kan zelf een versleutelde back-up opslaan en handmatig meenemen naar een ander apparaat. Ontwikkeling richt zich op functies die zonder terugkerende hostingkosten werken.
 
 ## Buiten scope van het prototype
 
