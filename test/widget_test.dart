@@ -131,4 +131,36 @@ void main() {
     expect(updated.forWeekday(DateTime.monday), isNull);
     expect(updated.forWeekday(DateTime.friday)?.name, 'Vrijdag');
   });
+
+  test('weekly routine only fills dates without an existing plan', () {
+    final routine = WeeklyRoutine()
+        .withDay(
+          DateTime.monday,
+          DayTemplate(
+            id: 'monday',
+            name: 'Maandag',
+            activities: [
+              DayActivity(id: 'a', title: 'Ontbijt', time: '08:00'),
+            ],
+          ),
+        )
+        .withDay(
+          DateTime.wednesday,
+          DayTemplate(
+            id: 'wednesday',
+            name: 'Woensdag',
+            activities: [
+              DayActivity(id: 'b', title: 'Wandelen', time: '10:00'),
+            ],
+          ),
+        );
+
+    // Monday 23 November 2026. Wednesday already has its own plan.
+    final dates = routine.datesToFill(
+      DateTime(2026, 11, 23),
+      existingDateKeys: {'2026-11-25'},
+    );
+
+    expect(dates.map((date) => date.weekday).toList(), [DateTime.monday]);
+  });
 }

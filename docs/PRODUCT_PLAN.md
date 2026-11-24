@@ -34,7 +34,6 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Weekoverzicht met een apart dagplan per datum.
 - Herbruikbare dagindelingen bewaren, toepassen en verwijderen.
 - Vast weekritme per weekdag bewaren en toepassen op lege dagen.
-- Vast weekritme per weekdag bewaren en toepassen op lege dagen.
 - Gebruikertesten van tekstgrootte, voorleessnelheid en planning.
 - Activiteiten met eigen foto's/pictogrammen die de gebruiker of begeleider toevoegt.
 - Rustige herinneringen die volledig uit te zetten zijn.

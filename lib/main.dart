@@ -156,6 +156,21 @@ class WeeklyRoutine {
           entry.key.toString(): entry.value.toJson(),
       };
 
+  List<DateTime> datesToFill(
+    DateTime monday, {
+    required Set<String> existingDateKeys,
+  }) {
+    final dates = <DateTime>[];
+    for (var offset = 0; offset < 7; offset++) {
+      final date = monday.add(Duration(days: offset));
+      if (forWeekday(date.weekday) != null &&
+          !existingDateKeys.contains(_dateKey(date))) {
+        dates.add(date);
+      }
+    }
+    return dates;
+  }
+
   factory WeeklyRoutine.fromJson(Map<String, dynamic> json) {
     final result = <int, DayTemplate>{};
     for (final entry in json.entries) {
@@ -371,17 +386,10 @@ class MoodPressController extends ChangeNotifier {
 
   bool hasPlanFor(DateTime date) => _plansByDate.containsKey(_dateKey(date));
 
-  int routinesInWeek(DateTime monday) {
-    var count = 0;
-    for (var offset = 0; offset < 7; offset++) {
-      final date = monday.add(Duration(days: offset));
-      if (weeklyRoutine.forWeekday(date.weekday) != null &&
-          !hasPlanFor(date)) {
-        count++;
-      }
-    }
-    return count;
-  }
+  int routinesInWeek(DateTime monday) =>
+      weeklyRoutine
+          .datesToFill(monday, existingDateKeys: _plansByDate.keys.toSet())
+          .length;
 
   Future<void> saveWeeklyRoutineFromDate(DateTime date) async {
     final source = activitiesFor(date);
@@ -407,23 +415,20 @@ class MoodPressController extends ChangeNotifier {
   }
 
   Future<int> applyWeeklyRoutineToWeek(DateTime monday) async {
-    var added = 0;
-    for (var offset = 0; offset < 7; offset++) {
-      final date = monday.add(Duration(days: offset));
-      final key = _dateKey(date);
-      final routine = weeklyRoutine.forWeekday(date.weekday);
-      // Existing plans are always left untouched by the bulk action.
-      if (routine != null && !_plansByDate.containsKey(key)) {
-        _plansByDate[key] = routine.createActivities()
-          ..sort((a, b) => a.time.compareTo(b.time));
-        added++;
-      }
+    final dates = weeklyRoutine.datesToFill(
+      monday,
+      existingDateKeys: _plansByDate.keys.toSet(),
+    );
+    for (final date in dates) {
+      final routine = weeklyRoutine.forWeekday(date.weekday)!;
+      _plansByDate[_dateKey(date)] = routine.createActivities()
+        ..sort((a, b) => a.time.compareTo(b.time));
     }
-    if (added > 0) {
+    if (dates.isNotEmpty) {
       await _saveDayPlans();
       notifyListeners();
     }
-    return added;
+    return dates.length;
   }
 
   void selectDate(DateTime date) {
