@@ -2460,6 +2460,7 @@ class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
           ),
         ],
       );
+}
 
 String _backupErrorMessage(Object error, {required bool importing}) {
   if (error is FormatException) return error.message.toString();
