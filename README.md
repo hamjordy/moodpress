@@ -12,6 +12,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
 - **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan, schakel animaties uit en zet optionele herinneringen aan of uit.
 - **Rustige herinneringen** — een melding op het geplande tijdstip zolang MoodPress open is; standaard uit en altijd uit te zetten.
+- **Back-up en terugzetten** — bewaar al je dagplannen, sjablonen, weekritme, steunplan, instellingen en activiteitfoto’s in één wachtwoord-beveiligd bestand. Je kunt dit lokaal bewaren of naar een ander toestel meenemen.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
 - **Mijn steun** — een persoonlijk plan met wat helpt, een fijne plek en een vertrouwd persoon.
 - **Volledig zelfstandig** — geen account, advertenties, analytics, cloudbackend, begeleidersportaal, server of betaalde hosting. Persoonlijke informatie blijft lokaal op het apparaat.
@@ -32,6 +33,7 @@ MoodPress is een zelfstandig product en is **niet** de officiële app van *Geef 
 - Android en Windows desktop
 - `flutter_secure_storage` voor platformgebonden beveiligde opslag
 - `flutter_tts` voor voorlezen
+- `cryptography` voor wachtwoord-beveiligde back-ups
 - Geen servercomponent, portaal, betaalde hosting of telemetrie in deze prototypeversie
 - Eigen activiteitfoto's worden lokaal opgeslagen in de app-map; deel het apparaat alleen met mensen die deze afbeeldingen mogen zien
 
@@ -63,10 +65,10 @@ De platformmappen `android/` en `windows/` worden door `flutter create` gegenere
 
 ## Privacy en veiligheid
 
-De prototypecode bewaart dagplannen per datum, herbruikbare dagindelingen, vaste weekritmes, het steunplan en toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. Bestaande dagplannen uit versie 0.2.0 worden bij de eerste start gemigreerd. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
+De prototypecode bewaart dagplannen per datum, herbruikbare dagindelingen, vaste weekritmes, het steunplan en toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. Een export-back-up wordt met AES-256-GCM versleuteld; het wachtwoord wordt via PBKDF2 omgezet naar een sleutel. MoodPress bewaart het back-upwachtwoord niet. Wie het wachtwoord kwijtraakt, kan die back-up niet meer openen. Bewaar het bestand en wachtwoord daarom zorgvuldig. Bestaande dagplannen uit versie 0.2.0 worden bij de eerste start gemigreerd. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
 
 Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor een pilot zijn onder meer een privacy- en beveiligingsbeoordeling, beoordeling van de gegevensverwerking (waaronder een DPIA indien vereist), toegangs- en verwijderbeleid, gebruikerstesten en professionele toetsing nodig. Lees [veiligheid en privacy](docs/SAFETY_AND_PRIVACY.md).
 
 ## Ontwikkelstatus
 
-**Versie 0.7.0 — optionele herinneringen in de app zijn toegevoegd; ze staan standaard uit en werken zolang MoodPress open is.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.8.0 — wachtwoord-beveiligde back-ups en terugzetten zijn toegevoegd; er is geen account, server of hosting nodig.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
