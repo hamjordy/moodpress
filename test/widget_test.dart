@@ -1,7 +1,45 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+
+  test('backup files encrypt data and require the correct password', () async {
+    final source = <String, dynamic>{
+      'app': 'MoodPress',
+      'dataVersion': 1,
+      'privateNote': 'Dit is een persoonlijke notitie.',
+    };
+
+    final bytes = await encryptMoodPressBackup(source, 'mijn-veilig-wachtwoord');
+
+    expect(utf8.decode(bytes), isNot(contains('persoonlijke notitie')));
+
+    final restored = await decryptMoodPressBackup(
+      bytes,
+      'mijn-veilig-wachtwoord',
+    );
+    expect(restored['app'], 'MoodPress');
+    expect(restored['dataVersion'], 1);
+    expect(restored['privateNote'], 'Dit is een persoonlijke notitie.');
+
+    await expectLater(
+      decryptMoodPressBackup(bytes, 'een-andere-wachtwoordzin'),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('backup encryption rejects passwords that are too short', () async {
+    await expectLater(
+      encryptMoodPressBackup(
+        {'app': 'MoodPress', 'dataVersion': 1},
+        'kort',
+      ),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
+
   test('activity data can be saved and restored', () {
     final original = DayActivity(
       id: 'activity-1',
