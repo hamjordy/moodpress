@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -212,16 +213,19 @@ class MoodPressPreferences {
     this.textScale = 1.0,
     this.speechRate = 0.42,
     this.reduceMotion = false,
+    this.inAppRemindersEnabled = false,
   });
 
   final double textScale;
   final double speechRate;
   final bool reduceMotion;
+  final bool inAppRemindersEnabled;
 
   Map<String, dynamic> toJson() => {
         'textScale': textScale,
         'speechRate': speechRate,
         'reduceMotion': reduceMotion,
+        'inAppRemindersEnabled': inAppRemindersEnabled,
       };
 
   factory MoodPressPreferences.fromJson(Map<String, dynamic> json) {
@@ -235,6 +239,7 @@ class MoodPressPreferences {
           ? rawSpeechRate.toDouble().clamp(0.3, 0.6).toDouble()
           : 0.42,
       reduceMotion: json['reduceMotion'] as bool? ?? false,
+      inAppRemindersEnabled: json['inAppRemindersEnabled'] as bool? ?? false,
     );
   }
 }
@@ -546,6 +551,7 @@ class MoodPressController extends ChangeNotifier {
       textScale: value.clamp(1.0, 1.4).toDouble(),
       speechRate: preferences.speechRate,
       reduceMotion: preferences.reduceMotion,
+      inAppRemindersEnabled: preferences.inAppRemindersEnabled,
     );
     await _savePreferences();
     notifyListeners();
@@ -556,6 +562,7 @@ class MoodPressController extends ChangeNotifier {
       textScale: preferences.textScale,
       speechRate: value.clamp(0.3, 0.6).toDouble(),
       reduceMotion: preferences.reduceMotion,
+      inAppRemindersEnabled: preferences.inAppRemindersEnabled,
     );
     await _savePreferences();
     notifyListeners();
@@ -566,6 +573,18 @@ class MoodPressController extends ChangeNotifier {
       textScale: preferences.textScale,
       speechRate: preferences.speechRate,
       reduceMotion: value,
+      inAppRemindersEnabled: preferences.inAppRemindersEnabled,
+    );
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> setInAppRemindersEnabled(bool value) async {
+    preferences = MoodPressPreferences(
+      textScale: preferences.textScale,
+      speechRate: preferences.speechRate,
+      reduceMotion: preferences.reduceMotion,
+      inAppRemindersEnabled: value,
     );
     await _savePreferences();
     notifyListeners();
@@ -654,6 +673,45 @@ class MoodPressShell extends StatefulWidget {
 
 class _MoodPressShellState extends State<MoodPressShell> {
   int selected = 0;
+  Timer? _reminderTimer;
+  final Set<String> _shownReminders = <String>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _reminderTimer = Timer.periodic(
+      const Duration(seconds: 20),
+      (_) => _checkInAppReminders(),
+    );
+  }
+
+  void _checkInAppReminders() {
+    if (!mounted || !widget.controller.preferences.inAppRemindersEnabled) return;
+    final now = DateTime.now();
+    final dateKey = _dateKey(now);
+    for (final activity in widget.controller.activitiesFor(now)) {
+      if (activity.done) continue;
+      final parts = activity.time.split(':');
+      if (parts.length != 2) continue;
+      final hour = int.tryParse(parts[0]);
+      final minute = int.tryParse(parts[1]);
+      if (hour == null || minute == null || hour != now.hour || minute != now.minute) continue;
+      final reminderKey = '$dateKey-${activity.id}';
+      if (!_shownReminders.add(reminderKey)) continue;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(
+          content: Text('Rustige herinnering: ${activity.title}. Als het nu niet uitkomt, mag je het overslaan.'),
+          duration: const Duration(seconds: 8),
+        ));
+    }
+  }
+
+  @override
+  void dispose() {
+    _reminderTimer?.cancel();
+    super.dispose();
+  }
   static const labels = ['Vandaag', 'Planning', 'Even rust', 'Mijn steun', 'Instellingen'];
   static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded];
 
@@ -1950,6 +2008,28 @@ class SettingsPage extends StatelessWidget {
                   subtitle: const Text('Minder animaties in de app'),
                   value: controller.preferences.reduceMotion,
                   onChanged: controller.setReduceMotion,
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.notifications_none_rounded, color: _green),
+                  SizedBox(width: 10),
+                  Text('Herinneringen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 5),
+                const Text('Krijg op het geplande tijdstip een rustige melding zolang MoodPress open is. Je kunt dit altijd uitzetten.', style: TextStyle(color: _muted)),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Herinneringen in de app'),
+                  subtitle: const Text('Staat standaard uit'),
+                  value: controller.preferences.inAppRemindersEnabled,
+                  onChanged: controller.setInAppRemindersEnabled,
                 ),
               ]),
             ),
