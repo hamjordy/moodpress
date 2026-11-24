@@ -1,7 +1,7 @@
 name: moodpress
 description: Een rustige, persoonlijke dagstructuur-app voor meer overzicht en houvast.
 publish_to: 'none'
-version: 0.4.0+4
+version: 0.5.0+5
 
 environment:
   sdk: '>=3.8.0 <4.0.0'
@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   flutter_secure_storage: ^11.2.0
   flutter_tts: ^4.2.5
+  file_picker: ^10.3.3
+  path_provider: ^2.1.5
 
 dev_dependencies:
   flutter_test:
