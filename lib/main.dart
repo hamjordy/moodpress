@@ -66,7 +66,75 @@ class DayActivity {
         note: json['note'] as String? ?? '',
         done: json['done'] as bool? ?? false,
       );
+
+  DayActivity copyWith({String? id, bool? done}) => DayActivity(
+        id: id ?? this.id,
+        title: title,
+        time: time,
+        who: who,
+        what: what,
+        where: where,
+        how: how,
+        note: note,
+        done: done ?? this.done,
+      );
 }
+
+class DayTemplate {
+  DayTemplate({required this.id, required this.name, required this.activities});
+
+  final String id;
+  final String name;
+  final List<DayActivity> activities;
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'activities': activities.map((item) => item.toJson()).toList(),
+      };
+
+  factory DayTemplate.fromJson(Map<String, dynamic> json) {
+    final rawActivities = json['activities'];
+    return DayTemplate(
+      id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
+      name: json['name'] as String? ?? 'Dagindeling',
+      activities: rawActivities is List
+          ? rawActivities.whereType<Map<String, dynamic>>().map(DayActivity.fromJson).toList()
+          : <DayActivity>[],
+    );
+  }
+
+  List<DayActivity> createActivities() {
+    final prefix = DateTime.now().microsecondsSinceEpoch.toString();
+    return List<DayActivity>.generate(
+      activities.length,
+      (index) => activities[index].copyWith(
+        id: prefix + '-' + index.toString(),
+        done: false,
+      ),
+    );
+  }
+}
+
+String _dateKey(DateTime date) =>
+    date.year.toString().padLeft(4, '0') + '-' +
+    date.month.toString().padLeft(2, '0') + '-' +
+    date.day.toString().padLeft(2, '0');
+
+const _dutchWeekdays = [
+  'maandag', 'dinsdag', 'woensdag', 'donderdag',
+  'vrijdag', 'zaterdag', 'zondag',
+];
+
+const _dutchMonths = [
+  'januari', 'februari', 'maart', 'april', 'mei', 'juni',
+  'juli', 'augustus', 'september', 'oktober', 'november', 'december',
+];
+
+String _formatDutchDate(DateTime date) =>
+    date.day.toString() + ' ' + _dutchMonths[date.month - 1];
+
+String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
 class MoodPressPreferences {
   const MoodPressPreferences({this.textScale = 1.0, this.speechRate = 0.42});
@@ -94,12 +162,17 @@ class MoodPressPreferences {
 }
 
 class MoodPressController extends ChangeNotifier {
-  static const _dayKey = 'moodpress.day.v1';
+  static const _dayPlansKey = 'moodpress.dayplans.v1';
+  static const _legacyDayKey = 'moodpress.day.v1';
   static const _supportKey = 'moodpress.support.v1';
   static const _preferencesKey = 'moodpress.preferences.v1';
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  static const _templatesKey = 'moodpress.templates.v1';
 
-  List<DayActivity> activities = [];
+  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final Map<String, List<DayActivity>> _plansByDate = {};
+  DateTime selectedDate = DateTime.now();
+
+  List<DayTemplate> templates = [];
   Map<String, String> support = {
     'help': 'Ik wil even rust en één ding tegelijk doen.',
     'place': 'Een rustige plek waar ik mij prettig voel.',
@@ -110,8 +183,23 @@ class MoodPressController extends ChangeNotifier {
   String? storageNotice;
   bool ready = false;
 
-  int get completed => activities.where((item) => item.done).length;
-  double get progress => activities.isEmpty ? 0 : completed / activities.length;
+  List<DayActivity> get activities => activitiesFor(selectedDate);
+  int get completed => completedOn(selectedDate);
+  double get progress => progressOn(selectedDate);
+
+  List<DayActivity> activitiesFor(DateTime date) =>
+      _plansByDate[_dateKey(date)] ?? const <DayActivity>[];
+
+  int completedOn(DateTime date) =>
+      activitiesFor(date).where((item) => item.done).length;
+
+  double progressOn(DateTime date) {
+    final items = activitiesFor(date);
+    return items.isEmpty ? 0 : items.where((item) => item.done).length / items.length;
+  }
+
+  List<DayActivity> _mutableActivitiesFor(DateTime date) =>
+      _plansByDate.putIfAbsent(_dateKey(date), () => <DayActivity>[]);
 
   List<DayActivity> _starterPlan() => [
         DayActivity(id: '1', title: 'Rustig opstarten', time: '08:00', what: 'Opstaan en aankleden', where: 'Thuis', how: 'Stap voor stap', note: 'Neem de tijd om wakker te worden.'),
@@ -123,25 +211,51 @@ class MoodPressController extends ChangeNotifier {
       ];
 
   Future<void> load() async {
+    final todayKey = _dateKey(selectedDate);
     try {
-      final savedDay = await _storage.read(key: _dayKey);
-      if (savedDay == null) {
-        activities = _starterPlan();
-        await _saveDay();
+      final savedPlans = await _storage.read(key: _dayPlansKey);
+      if (savedPlans != null) {
+        final decoded = jsonDecode(savedPlans) as Map<String, dynamic>;
+        for (final entry in decoded.entries) {
+          final rawItems = entry.value;
+          if (rawItems is List) {
+            _plansByDate[entry.key] = rawItems
+                .whereType<Map<String, dynamic>>()
+                .map(DayActivity.fromJson)
+                .toList()
+              ..sort((a, b) => a.time.compareTo(b.time));
+          }
+        }
       } else {
-        final values = jsonDecode(savedDay) as List<dynamic>;
-        activities = values.whereType<Map<String, dynamic>>().map(DayActivity.fromJson).toList()
-          ..sort((a, b) => a.time.compareTo(b.time));
+        // Migrate an existing single-day plan without losing the user's data.
+        final legacyPlan = await _storage.read(key: _legacyDayKey);
+        if (legacyPlan != null) {
+          final decoded = jsonDecode(legacyPlan) as List<dynamic>;
+          _plansByDate[todayKey] = decoded
+              .whereType<Map<String, dynamic>>()
+              .map(DayActivity.fromJson)
+              .toList()
+            ..sort((a, b) => a.time.compareTo(b.time));
+        } else {
+          _plansByDate[todayKey] = _starterPlan();
+        }
+        await _saveDayPlans();
       }
+    } catch (_) {
+      _plansByDate.putIfAbsent(todayKey, _starterPlan);
+      storageNotice = 'Een planning kon niet worden gelezen of opgeslagen. Gebruik nog geen echte cliëntgegevens.';
+    }
+
+    try {
       final savedSupport = await _storage.read(key: _supportKey);
       if (savedSupport != null) {
         final values = jsonDecode(savedSupport) as Map<String, dynamic>;
         support = values.map((key, value) => MapEntry(key, value.toString()));
       }
     } catch (_) {
-      activities = _starterPlan();
-      storageNotice = 'Opslaan is op dit apparaat niet beschikbaar. Gebruik nog geen echte cliëntgegevens.';
+      storageNotice ??= 'Je steunplan kon niet worden gelezen.';
     }
+
     try {
       final savedPreferences = await _storage.read(key: _preferencesKey);
       if (savedPreferences != null) {
@@ -152,57 +266,126 @@ class MoodPressController extends ChangeNotifier {
     } catch (_) {
       preferences = const MoodPressPreferences();
     }
+
+    try {
+      final savedTemplates = await _storage.read(key: _templatesKey);
+      if (savedTemplates != null) {
+        final values = jsonDecode(savedTemplates) as List<dynamic>;
+        templates = values
+            .whereType<Map<String, dynamic>>()
+            .map(DayTemplate.fromJson)
+            .toList();
+      }
+    } catch (_) {
+      templates = [];
+      storageNotice ??= 'Je dagindelingen konden niet worden gelezen.';
+    }
+
     ready = true;
     notifyListeners();
   }
 
-  Future<void> _saveDay() async {
+  Future<void> _saveDayPlans() async {
     try {
-      await _storage.write(
-        key: _dayKey,
-        value: jsonEncode(activities.map((item) => item.toJson()).toList()),
+      final values = _plansByDate.map(
+        (key, items) => MapEntry(
+          key,
+          items.map((item) => item.toJson()).toList(),
+        ),
       );
+      await _storage.write(key: _dayPlansKey, value: jsonEncode(values));
     } catch (_) {
-      storageNotice = 'Je dagplan kon niet veilig worden opgeslagen.';
+      storageNotice = 'Je weekplanning kon niet veilig worden opgeslagen.';
     }
   }
 
-  Future<void> _saveSupport() async {
+  Future<void> _saveTemplates() async {
     try {
-      await _storage.write(key: _supportKey, value: jsonEncode(support));
+      await _storage.write(
+        key: _templatesKey,
+        value: jsonEncode(templates.map((item) => item.toJson()).toList()),
+      );
     } catch (_) {
-      storageNotice = 'Je steunplan kon niet veilig worden opgeslagen.';
+      storageNotice = 'Je dagindelingen konden niet veilig worden opgeslagen.';
     }
+  }
+
+  void selectDate(DateTime date) {
+    selectedDate = DateTime(date.year, date.month, date.day);
+    notifyListeners();
   }
 
   Future<void> saveActivity(DayActivity activity) async {
-    final index = activities.indexWhere((item) => item.id == activity.id);
+    final dayActivities = _mutableActivitiesFor(selectedDate);
+    final index = dayActivities.indexWhere((item) => item.id == activity.id);
     if (index == -1) {
-      activities.add(activity);
+      dayActivities.add(activity);
     } else {
-      activities[index] = activity;
+      dayActivities[index] = activity;
     }
-    activities.sort((a, b) => a.time.compareTo(b.time));
-    await _saveDay();
+    dayActivities.sort((a, b) => a.time.compareTo(b.time));
+    await _saveDayPlans();
     notifyListeners();
   }
 
   Future<void> toggleActivity(String id) async {
-    final item = activities.firstWhere((activity) => activity.id == id);
+    final item = _mutableActivitiesFor(selectedDate)
+        .firstWhere((activity) => activity.id == id);
     item.done = !item.done;
-    await _saveDay();
+    await _saveDayPlans();
     notifyListeners();
   }
 
   Future<void> deleteActivity(String id) async {
-    activities.removeWhere((activity) => activity.id == id);
-    await _saveDay();
+    _mutableActivitiesFor(selectedDate)
+        .removeWhere((activity) => activity.id == id);
+    await _saveDayPlans();
+    notifyListeners();
+  }
+
+  Future<void> saveTemplateFromDate(String name, DateTime date) async {
+    final source = activitiesFor(date);
+    if (source.isEmpty || name.trim().isEmpty) return;
+
+    templates.add(DayTemplate(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: name.trim(),
+      activities: source.map((item) => item.copyWith(done: false)).toList(),
+    ));
+    await _saveTemplates();
+    notifyListeners();
+  }
+
+  Future<bool> applyTemplateToDate(String templateId, DateTime date) async {
+    DayTemplate? selected;
+    for (final template in templates) {
+      if (template.id == templateId) {
+        selected = template;
+        break;
+      }
+    }
+    if (selected == null) return false;
+
+    _plansByDate[_dateKey(date)] = selected.createActivities()
+      ..sort((a, b) => a.time.compareTo(b.time));
+    await _saveDayPlans();
+    notifyListeners();
+    return true;
+  }
+
+  Future<void> deleteTemplate(String templateId) async {
+    templates.removeWhere((item) => item.id == templateId);
+    await _saveTemplates();
     notifyListeners();
   }
 
   Future<void> saveSupport(String key, String value) async {
     support[key] = value;
-    await _saveSupport();
+    try {
+      await _storage.write(key: _supportKey, value: jsonEncode(support));
+    } catch (_) {
+      storageNotice = 'Je steunplan kon niet veilig worden opgeslagen.';
+    }
     notifyListeners();
   }
 
@@ -306,7 +489,7 @@ class MoodPressShell extends StatefulWidget {
 
 class _MoodPressShellState extends State<MoodPressShell> {
   int selected = 0;
-  static const labels = ['Vandaag', 'Mijn dag', 'Even rust', 'Mijn steun', 'Instellingen'];
+  static const labels = ['Vandaag', 'Planning', 'Even rust', 'Mijn steun', 'Instellingen'];
   static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded];
 
   @override
@@ -314,7 +497,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
         final desktop = constraints.maxWidth >= 850;
         final pages = [
           TodayPage(controller: widget.controller, openPlan: () => setState(() => selected = 1)),
-          PlanPage(controller: widget.controller),
+          PlanningPage(controller: widget.controller),
           const CalmPage(),
           SupportPage(controller: widget.controller),
           SettingsPage(controller: widget.controller),
@@ -400,8 +583,12 @@ class TodayPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final greeting = now.hour < 12 ? 'Goedemorgen' : now.hour < 18 ? 'Goedemiddag' : 'Goedenavond';
-    final upcoming = controller.activities.where((item) => !item.done).toList()..sort((a, b) => a.time.compareTo(b.time));
+    final todayActivities = controller.activitiesFor(now);
+    final upcoming = todayActivities.where((item) => !item.done).toList()
+      ..sort((a, b) => a.time.compareTo(b.time));
     final next = upcoming.isEmpty ? null : upcoming.first;
+    final completedToday = todayActivities.where((item) => item.done).length;
+    final progressToday = todayActivities.isEmpty ? 0.0 : completedToday / todayActivities.length;
 
     return PageFrame(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const BrandMark(),
@@ -412,7 +599,7 @@ class TodayPage extends StatelessWidget {
       const SizedBox(height: 24),
       LayoutBuilder(builder: (context, constraints) {
         final nextCard = NextStepCard(activity: next, openPlan: openPlan);
-        final progressCard = ProgressCard(done: controller.completed, total: controller.activities.length, progress: controller.progress, openPlan: openPlan);
+        final progressCard = ProgressCard(done: completedToday, total: todayActivities.length, progress: progressToday, openPlan: openPlan);
         if (constraints.maxWidth > 650) return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(flex: 6, child: nextCard), const SizedBox(width: 14), Expanded(flex: 4, child: progressCard)]);
         return Column(children: [nextCard, const SizedBox(height: 14), progressCard]);
       }),
@@ -450,7 +637,7 @@ class NextStepCard extends StatelessWidget {
           const SizedBox(height: 7),
           Text(activity == null ? 'Goed gedaan. Neem de tijd voor jezelf.' : activity!.time + ' uur · ' + (activity!.note.isEmpty ? 'Je kunt dit stap voor stap doen.' : activity!.note), style: const TextStyle(color: Color(0xFFE9F0EB), height: 1.45)),
           const SizedBox(height: 21),
-          FilledButton.icon(onPressed: openPlan, style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: _green), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Bekijk mijn dag')),
+          FilledButton.icon(onPressed: openPlan, style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: _green), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Bekijk mijn planning')),
         ]),
       );
 }
@@ -482,7 +669,7 @@ class ProgressCard extends StatelessWidget {
               ])),
             ]),
             const SizedBox(height: 12),
-            TextButton.icon(onPressed: openPlan, icon: const Icon(Icons.list_alt_outlined), label: const Text('Mijn dagplan')),
+            TextButton.icon(onPressed: openPlan, icon: const Icon(Icons.list_alt_outlined), label: const Text('Mijn weekplanning')),
           ]),
         ),
       );
@@ -511,35 +698,484 @@ class FeelingChoice extends StatelessWidget {
       );
 }
 
-class PlanPage extends StatelessWidget {
-  const PlanPage({super.key, required this.controller});
+class PlanningPage extends StatefulWidget {
+  const PlanningPage({super.key, required this.controller});
   final MoodPressController controller;
 
   @override
-  Widget build(BuildContext context) => PageFrame(
-        title: 'Mijn dag',
-        subtitle: 'Een duidelijk overzicht. Je mag je planning altijd aanpassen.',
-        action: FilledButton.icon(onPressed: () => editActivity(context, controller), icon: const Icon(Icons.add), label: const Text('Activiteit toevoegen')),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(width: double.infinity, padding: const EdgeInsets.all(17), decoration: BoxDecoration(color: _sand, borderRadius: BorderRadius.circular(17)), child: const Text('Kijk alleen naar de eerstvolgende activiteit. De rest komt later.', style: TextStyle(color: _ink, fontWeight: FontWeight.w600))),
-          const SizedBox(height: 18),
-          for (final item in controller.activities)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 11),
-              child: ActivityCard(
-                activity: item,
-                speechRate: controller.preferences.speechRate,
-                toggle: () => controller.toggleActivity(item.id),
-                edit: () => editActivity(context, controller, existing: item),
-                delete: () => confirmDelete(context, controller, item),
-              ),
-            ),
-          if (controller.activities.isEmpty) const Card(child: Padding(padding: EdgeInsets.all(25), child: Text('Je dagplan is nog leeg. Voeg een activiteit toe.'))),
-          if (controller.storageNotice != null) StorageNotice(message: controller.storageNotice!),
-        ]),
-      );
+  State<PlanningPage> createState() => _PlanningPageState();
 }
 
+class _PlanningPageState extends State<PlanningPage> {
+  bool _showWeek = true;
+  late DateTime _weekStart;
+
+  @override
+  void initState() {
+    super.initState();
+    _weekStart = _mondayFor(DateTime.now());
+  }
+
+  DateTime _mondayFor(DateTime date) =>
+      DateTime(date.year, date.month, date.day - date.weekday + 1);
+
+  String _rangeLabel() {
+    final lastDay = _weekStart.add(const Duration(days: 6));
+    return _formatDutchDate(_weekStart) + ' - ' +
+        _formatDutchDate(lastDay) + ' ' + lastDay.year.toString();
+  }
+
+  void _openDay(DateTime date) {
+    widget.controller.selectDate(date);
+    setState(() => _showWeek = false);
+  }
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Mijn planning',
+        subtitle: _showWeek
+            ? 'Een rustig overzicht van maandag tot en met zondag.'
+            : 'Bekijk één dag tegelijk. Je kunt alles aanpassen.',
+        action: _showWeek
+            ? OutlinedButton.icon(
+                onPressed: () => _showTemplateManager(context),
+                icon: const Icon(Icons.library_books_outlined),
+                label: const Text('Dagindelingen'),
+              )
+            : FilledButton.icon(
+                onPressed: () => editActivity(context, widget.controller),
+                icon: const Icon(Icons.add),
+                label: const Text('Activiteit toevoegen'),
+              ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: true, label: Text('Weekoverzicht')),
+                ButtonSegment(value: false, label: Text('Dagplan')),
+              ],
+              selected: {_showWeek},
+              onSelectionChanged: (values) =>
+                  setState(() => _showWeek = values.first),
+            ),
+            const SizedBox(height: 18),
+            if (_showWeek) _buildWeek(context) else _buildDay(context),
+          ],
+        ),
+      );
+
+  Widget _buildWeek(BuildContext context) {
+    final lastDay = _weekStart.add(const Duration(days: 6));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: 'Vorige week',
+              onPressed: () => setState(
+                () => _weekStart = _weekStart.subtract(const Duration(days: 7)),
+              ),
+              icon: const Icon(Icons.chevron_left_rounded),
+            ),
+            Expanded(
+              child: Text(
+                _rangeLabel(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Volgende week',
+              onPressed: () => setState(
+                () => _weekStart = _weekStart.add(const Duration(days: 7)),
+              ),
+              icon: const Icon(Icons.chevron_right_rounded),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        for (var offset = 0; offset < 7; offset++)
+          _buildWeekDayCard(
+            context,
+            _weekStart.add(Duration(days: offset)),
+          ),
+        if (widget.controller.templates.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(17),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lightbulb_outline_rounded, color: _green),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Je hebt nog geen vaste dagindeling. Open een dagplan en kies ‘Bewaar als dagindeling’ om een sjabloon te maken.',
+                      style: TextStyle(color: _ink, height: 1.45),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Padding(
+            padding: const EdgeInsets.only(top: 9),
+            child: Text(
+              widget.controller.templates.length.toString() +
+                  (widget.controller.templates.length == 1
+                      ? ' dagindeling beschikbaar'
+                      : ' dagindelingen beschikbaar'),
+              style: const TextStyle(color: _muted, fontSize: 12),
+            ),
+          ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: () => setState(() => _weekStart = _mondayFor(DateTime.now())),
+          icon: const Icon(Icons.today_outlined),
+          label: const Text('Ga naar deze week'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeekDayCard(BuildContext context, DateTime date) {
+    final items = widget.controller.activitiesFor(date);
+    final completed = items.where((item) => item.done).length;
+    final summary = items.isEmpty
+        ? 'Nog geen dagplan'
+        : items.length.toString() +
+            (items.length == 1 ? ' activiteit · ' : ' activiteiten · ') +
+            completed.toString() + ' afgerond';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: _greenPale,
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Text(
+                  date.day.toString(),
+                  style: const TextStyle(
+                    color: _green,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 17,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _formatDutchWeekday(date),
+                      style: const TextStyle(
+                        color: _ink,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      summary,
+                      style: const TextStyle(color: _muted, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => _openDay(date),
+                child: const Text('Open dag'),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Dagindeling toepassen',
+                enabled: widget.controller.templates.isNotEmpty,
+                icon: const Icon(Icons.copy_all_outlined, color: _green),
+                onSelected: (templateId) =>
+                    _applyTemplateToDate(context, date, templateId),
+                itemBuilder: (context) => widget.controller.templates
+                    .map(
+                      (template) => PopupMenuItem<String>(
+                        value: template.id,
+                        child: Text(template.name),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDay(BuildContext context) {
+    final date = widget.controller.selectedDate;
+    final items = widget.controller.activities;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Row(
+              children: [
+                IconButton(
+                  tooltip: 'Vorige dag',
+                  onPressed: () =>
+                      widget.controller.selectDate(date.subtract(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_left_rounded),
+                ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Text(
+                        _formatDutchWeekday(date),
+                        style: const TextStyle(
+                          color: _ink,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        _formatDutchDate(date) + ' ' + date.year.toString(),
+                        style: const TextStyle(color: _muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Volgende dag',
+                  onPressed: () =>
+                      widget.controller.selectDate(date.add(const Duration(days: 1))),
+                  icon: const Icon(Icons.chevron_right_rounded),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 13),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(17),
+          decoration: BoxDecoration(
+            color: _sand,
+            borderRadius: BorderRadius.circular(17),
+          ),
+          child: const Text(
+            'Kijk alleen naar de eerstvolgende activiteit. De rest komt later.',
+            style: TextStyle(color: _ink, fontWeight: FontWeight.w600),
+          ),
+        ),
+        const SizedBox(height: 15),
+        for (final item in items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 11),
+            child: ActivityCard(
+              activity: item,
+              speechRate: widget.controller.preferences.speechRate,
+              toggle: () => widget.controller.toggleActivity(item.id),
+              edit: () => editActivity(context, widget.controller, existing: item),
+              delete: () => confirmDelete(context, widget.controller, item),
+            ),
+          ),
+        if (items.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(22),
+              child: Text(
+                'Voor deze dag staat nog niets gepland. Voeg een activiteit toe of gebruik een dagindeling.',
+                style: TextStyle(color: _muted, height: 1.45),
+              ),
+            ),
+          ),
+        Wrap(
+          spacing: 9,
+          runSpacing: 7,
+          children: [
+            OutlinedButton.icon(
+              onPressed: items.isEmpty
+                  ? null
+                  : () => _saveTemplateFromDay(context, date),
+              icon: const Icon(Icons.bookmark_add_outlined),
+              label: const Text('Bewaar als dagindeling'),
+            ),
+            TextButton.icon(
+              onPressed: () => widget.controller.selectDate(DateTime.now()),
+              icon: const Icon(Icons.today_outlined),
+              label: const Text('Vandaag'),
+            ),
+          ],
+        ),
+        if (widget.controller.storageNotice != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: StorageNotice(message: widget.controller.storageNotice!),
+          ),
+      ],
+    );
+  }
+
+  Future<void> _saveTemplateFromDay(BuildContext context, DateTime date) async {
+    final field = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Dagindeling bewaren'),
+        content: SizedBox(
+          width: 420,
+          child: TextField(
+            controller: field,
+            autofocus: true,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: const InputDecoration(
+              labelText: 'Naam van de dagindeling',
+              hintText: 'Bijvoorbeeld: Werkdag',
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuleren'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, field.text.trim()),
+            child: const Text('Bewaren'),
+          ),
+        ],
+      ),
+    );
+    field.dispose();
+    if (name != null && name.trim().isNotEmpty) {
+      await widget.controller.saveTemplateFromDate(name, date);
+    }
+  }
+
+  Future<void> _applyTemplateToDate(
+    BuildContext context,
+    DateTime date,
+    String templateId,
+  ) async {
+    if (widget.controller.activitiesFor(date).isNotEmpty) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Dagindeling vervangen?'),
+          content: const Text(
+            'De activiteiten die nu op deze dag staan, worden vervangen door de gekozen dagindeling.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuleren'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Vervangen'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+    await widget.controller.applyTemplateToDate(templateId, date);
+  }
+
+  Future<void> _showTemplateManager(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Mijn dagindelingen'),
+          content: SizedBox(
+            width: 460,
+            height: 300,
+            child: widget.controller.templates.isEmpty
+                ? const Center(
+                    child: Text(
+                      'Je hebt nog geen dagindelingen bewaard.',
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : ListView.separated(
+                    itemCount: widget.controller.templates.length,
+                    separatorBuilder: (context, index) =>
+                        const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final template = widget.controller.templates[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(template.name),
+                        subtitle: Text(
+                          template.activities.length.toString() +
+                              (template.activities.length == 1
+                                  ? ' activiteit'
+                                  : ' activiteiten'),
+                        ),
+                        trailing: IconButton(
+                          tooltip: 'Dagindeling verwijderen',
+                          onPressed: () async {
+                            final confirmed = await showDialog<bool>(
+                              context: context,
+                              builder: (confirmContext) => AlertDialog(
+                                title: const Text('Dagindeling verwijderen?'),
+                                content: Text(
+                                  'Wil je ‘' + template.name + '’ verwijderen?',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(confirmContext, false),
+                                    child: const Text('Annuleren'),
+                                  ),
+                                  FilledButton(
+                                    onPressed: () =>
+                                        Navigator.pop(confirmContext, true),
+                                    child: const Text('Verwijderen'),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirmed == true) {
+                              await widget.controller.deleteTemplate(template.id);
+                              setDialogState(() {});
+                            }
+                          },
+                          icon: const Icon(Icons.delete_outline_rounded),
+                        ),
+                      );
+                    },
+                  ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Sluiten'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 class ActivityCard extends StatelessWidget {
   const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete});
   final DayActivity activity;

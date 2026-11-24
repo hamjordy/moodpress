@@ -21,8 +21,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 | Onderdeel | Doel |
 |---|---|
 | Vandaag | Eerstvolgende stap en overzicht van de dag |
-| Mijn dag | Zelf activiteiten toevoegen, aanpassen en afronden |
-| Vijf vragen | Wie, wat, waar, wanneer en hoe concreet maken |
+| Planning | Weekoverzicht en eigen dagplan per datum |
+| Dagindelingen | Dagplannen bewaren als sjabloon en hergebruiken |\n| Vijf vragen | Wie, wat, waar, wanneer en hoe concreet maken |
 | Voorlezen | Korte teksten via spraak kunnen beluisteren |
 | Even rust | Vrijwillige, niet-klinische grondingsoefening |
 | Mijn steun | Persoonlijke afspraken en helpende stappen bewaren |
@@ -31,8 +31,9 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 
 ### Fase 2 — samen instellen
 - Profiel zonder diagnosevelden; voorkeuren voor taal, geluid en prikkelniveau.
-- Uitbreiden en gebruikerstesten van de huidige instellingen voor tekstgrootte en voorleessnelheid.
-- Herhaalbare dagtemplates en weekoverzicht.
+- Weekoverzicht met een apart dagplan per datum.
+- Herbruikbare dagindelingen bewaren, toepassen en verwijderen.
+- Gebruikertesten van tekstgrootte, voorleessnelheid en planning.
 - Activiteiten met eigen foto's/pictogrammen die de gebruiker of begeleider toevoegt.
 - Rustige herinneringen die volledig uit te zetten zijn.
 - Een optionele begeleidersweergave met expliciete toestemming van de cliënt.

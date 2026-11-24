@@ -44,4 +44,52 @@ void main() {
     expect(restored.textScale, 1.4);
     expect(restored.speechRate, 0.3);
   });
+
+  test('day templates can be saved and restored', () {
+    final original = DayTemplate(
+      id: 'template-1',
+      name: 'Werkdag',
+      activities: [
+        DayActivity(
+          id: 'activity-1',
+          title: 'Naar werk',
+          time: '08:30',
+          who: 'Ik en begeleider',
+          what: 'Naar mijn werk gaan',
+          where: 'Werk',
+          how: 'Eerst jas pakken, dan vertrekken',
+          done: true,
+        ),
+      ],
+    );
+
+    final restored = DayTemplate.fromJson(original.toJson());
+
+    expect(restored.id, original.id);
+    expect(restored.name, original.name);
+    expect(restored.activities.single.title, 'Naar werk');
+    expect(restored.activities.single.how, 'Eerst jas pakken, dan vertrekken');
+  });
+
+  test('using a day template creates fresh unfinished activities', () {
+    final template = DayTemplate(
+      id: 'template-2',
+      name: 'Rustige dag',
+      activities: [
+        DayActivity(
+          id: 'old-id',
+          title: 'Ontbijten',
+          time: '08:00',
+          what: 'Ontbijt eten',
+          done: true,
+        ),
+      ],
+    );
+
+    final applied = template.createActivities();
+
+    expect(applied.single.title, 'Ontbijten');
+    expect(applied.single.done, isFalse);
+    expect(applied.single.id, isNot('old-id'));
+  });
 }
