@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:cryptography/cryptography.dart';
+import 'package:cryptography/helpers.dart' show randomBytes;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -34,7 +35,7 @@ Future<Uint8List> encryptMoodPressBackup(
   }
 
   final headerBytes = utf8.encode(_backupHeader);
-  final salt = Cryptography.instance.randomBytes(16);
+  final salt = randomBytes(16);
   final kdf = Pbkdf2(
     macAlgorithm: Hmac.sha256(),
     iterations: _backupKdfIterations,
