@@ -1,5 +1,9 @@
 
 import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -30,6 +34,8 @@ class DayActivity {
     this.where = '',
     this.how = '',
     this.note = '',
+    this.symbol = '📌',
+    this.photoPath = '',
     this.done = false,
   });
 
@@ -41,6 +47,8 @@ class DayActivity {
   String where;
   String how;
   String note;
+  String symbol;
+  String photoPath;
   bool done;
 
   Map<String, dynamic> toJson() => {
@@ -52,6 +60,8 @@ class DayActivity {
         'where': where,
         'how': how,
         'note': note,
+        'symbol': symbol,
+        'photoPath': photoPath,
         'done': done,
       };
 
@@ -64,6 +74,8 @@ class DayActivity {
         where: json['where'] as String? ?? '',
         how: json['how'] as String? ?? '',
         note: json['note'] as String? ?? '',
+        symbol: json['symbol'] as String? ?? '📌',
+        photoPath: json['photoPath'] as String? ?? '',
         done: json['done'] as bool? ?? false,
       );
 
@@ -76,6 +88,8 @@ class DayActivity {
         where: where,
         how: how,
         note: note,
+        symbol: symbol,
+        photoPath: photoPath,
         done: done ?? this.done,
       );
 }
@@ -1544,7 +1558,15 @@ class ActivityCard extends StatelessWidget {
             Expanded(child: InkWell(
               onTap: edit,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(activity.title, style: TextStyle(color: activity.done ? _muted : _ink, fontSize: 16, fontWeight: FontWeight.w700, decoration: activity.done ? TextDecoration.lineThrough : null)),
+                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  Text(activity.symbol, style: const TextStyle(fontSize: 24)),
+                  const SizedBox(width: 9),
+                  Expanded(child: Text(activity.title, style: TextStyle(color: activity.done ? _muted : _ink, fontSize: 16, fontWeight: FontWeight.w700, decoration: activity.done ? TextDecoration.lineThrough : null))),
+                ]),
+                if (activity.photoPath.isNotEmpty && File(activity.photoPath).existsSync()) ...[
+                  const SizedBox(height: 9),
+                  ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(activity.photoPath), height: 110, width: 150, fit: BoxFit.cover)),
+                ],
                 if (activity.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text(activity.note, style: const TextStyle(color: _muted, fontSize: 13))),
                 const SizedBox(height: 7),
                 const Text('Tik om de vijf vragen te bekijken', style: TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w600)),
@@ -1599,6 +1621,8 @@ class _ActivityEditorState extends State<ActivityEditor> {
   late final TextEditingController where;
   late final TextEditingController how;
   late final TextEditingController note;
+  String symbol = '📌';
+  String photoPath = '';
 
   @override
   void initState() {
@@ -1611,6 +1635,8 @@ class _ActivityEditorState extends State<ActivityEditor> {
     where = TextEditingController(text: item?.where ?? '');
     how = TextEditingController(text: item?.how ?? '');
     note = TextEditingController(text: item?.note ?? '');
+    symbol = item?.symbol ?? '📌';
+    photoPath = item?.photoPath ?? '';
   }
 
   @override
@@ -1630,6 +1656,32 @@ class _ActivityEditorState extends State<ActivityEditor> {
         ),
       );
 
+  Future<void> choosePhoto() async {
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+        withData: true,
+      );
+      if (picked == null || picked.files.isEmpty) return;
+      final file = picked.files.single;
+      final bytes = file.bytes;
+      if (bytes == null || bytes.isEmpty) return;
+      final directory = await getApplicationSupportDirectory();
+      final imageDirectory = Directory('${directory.path}${Platform.pathSeparator}activity_images');
+      await imageDirectory.create(recursive: true);
+      final extension = (file.extension ?? 'jpg').toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+      final safeName = '${DateTime.now().microsecondsSinceEpoch}.$extension';
+      final saved = File('${imageDirectory.path}${Platform.pathSeparator}$safeName');
+      await saved.writeAsBytes(bytes, flush: true);
+      if (!mounted) return;
+      setState(() => photoPath = saved.path);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('De foto kon niet worden toegevoegd. Probeer een andere afbeelding.')));
+    }
+  }
+
   void save() {
     if (!_formKey.currentState!.validate()) return;
     final old = widget.existing;
@@ -1642,6 +1694,8 @@ class _ActivityEditorState extends State<ActivityEditor> {
       where: where.text.trim(),
       how: how.text.trim(),
       note: note.text.trim(),
+      symbol: symbol,
+      photoPath: photoPath,
       done: old?.done ?? false,
     ));
   }
@@ -1657,6 +1711,40 @@ class _ActivityEditorState extends State<ActivityEditor> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Text('Maak de uitleg kort en duidelijk. Je kunt dit samen invullen.', style: TextStyle(color: _muted)),
                 const SizedBox(height: 12),
+                const SizedBox(height: 8),
+                const Text('Pictogram', style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  value: symbol,
+                  decoration: const InputDecoration(labelText: 'Kies een herkenbaar plaatje'),
+                  items: const [
+                    DropdownMenuItem(value: '📌', child: Text('📌  Algemeen')),
+                    DropdownMenuItem(value: '🍽️', child: Text('🍽️  Eten')),
+                    DropdownMenuItem(value: '🚿', child: Text('🚿  Douchen')),
+                    DropdownMenuItem(value: '👕', child: Text('👕  Aankleden')),
+                    DropdownMenuItem(value: '🏠', child: Text('🏠  Thuis')),
+                    DropdownMenuItem(value: '🚶', child: Text('🚶  Wandelen')),
+                    DropdownMenuItem(value: '🚌', child: Text('🚌  Reizen')),
+                    DropdownMenuItem(value: '💊', child: Text('💊  Medicatie')),
+                    DropdownMenuItem(value: '🧹', child: Text('🧹  Opruimen')),
+                    DropdownMenuItem(value: '🎮', child: Text('🎮  Vrije tijd')),
+                    DropdownMenuItem(value: '🛒', child: Text('🛒  Boodschappen')),
+                    DropdownMenuItem(value: '😴', child: Text('😴  Rust')),
+                  ],
+                  onChanged: (value) { if (value != null) setState(() => symbol = value); },
+                ),
+                const SizedBox(height: 12),
+                const Text('Eigen foto (optioneel)', style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 5),
+                const Text('Kies een foto die jou helpt de activiteit te herkennen. De foto blijft op dit apparaat.', style: TextStyle(color: _muted, fontSize: 13)),
+                if (photoPath.isNotEmpty && File(photoPath).existsSync()) ...[
+                  const SizedBox(height: 9),
+                  ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(photoPath), height: 130, width: double.infinity, fit: BoxFit.cover)),
+                ],
+                Wrap(spacing: 8, children: [
+                  OutlinedButton.icon(onPressed: choosePhoto, icon: const Icon(Icons.add_photo_alternate_outlined), label: const Text('Foto kiezen')),
+                  if (photoPath.isNotEmpty) TextButton.icon(onPressed: () => setState(() => photoPath = ''), icon: const Icon(Icons.close), label: const Text('Foto weghalen')),
+                ]),
                 field(title, 'Naam van de activiteit', 'Bijvoorbeeld: naar de winkel', required: true),
                 field(time, 'Wanneer?', 'Bijvoorbeeld: 10:30'),
                 field(who, 'Wie?', 'Wie is erbij?'),
