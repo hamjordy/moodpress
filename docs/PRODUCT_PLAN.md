@@ -39,7 +39,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Activiteiten met herkenbare pictogrammen en eigen foto's die de gebruiker of begeleider toevoegt (lokaal op het apparaat).
 - [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
 - [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
-- Rustige herinneringen die volledig uit te zetten zijn.
+- [x] Rustige herinneringen die volledig uit te zetten zijn (in-app, zolang MoodPress open is; standaard uit).
 - Een optionele begeleidersweergave met expliciete toestemming van de cliënt.
 
 ### Fase 3 — zorgvuldig testen
