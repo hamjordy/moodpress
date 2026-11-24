@@ -170,6 +170,30 @@ void main() {
     expect(dates.map((date) => date.weekday).toList(), [DateTime.monday]);
   });
 
+  test('day activities can be reordered without changing their data', () {
+    final activities = [
+      DayActivity(id: 'a', title: 'Ontbijt', time: '08:00'),
+      DayActivity(id: 'b', title: 'Wandelen', time: '10:00'),
+      DayActivity(id: 'c', title: 'Rust', time: '12:00'),
+    ];
+
+    reorderDayActivities(activities, 0, 3);
+
+    expect(activities.map((item) => item.id).toList(), ['b', 'c', 'a']);
+    expect(activities.last.title, 'Ontbijt');
+  });
+
+  test('reordering to the same position keeps the order', () {
+    final activities = [
+      DayActivity(id: 'a', title: 'Ontbijt', time: '08:00'),
+      DayActivity(id: 'b', title: 'Wandelen', time: '10:00'),
+    ];
+
+    reorderDayActivities(activities, 1, 1);
+
+    expect(activities.map((item) => item.id).toList(), ['a', 'b']);
+  });
+
   test('older activities without image fields remain compatible', () {
     final restored = DayActivity.fromJson({
       'id': 'old',
