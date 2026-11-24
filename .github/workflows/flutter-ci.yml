@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: moodpress-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   analyze-and-test:
     runs-on: ubuntu-latest
@@ -31,6 +35,11 @@ jobs:
       - run: flutter create --platforms=windows .
       - run: flutter pub get
       - run: flutter build windows --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moodpress-windows-x64
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error
 
   build-android:
     runs-on: ubuntu-latest
@@ -43,3 +52,8 @@ jobs:
       - run: flutter create --platforms=android .
       - run: flutter pub get
       - run: flutter build apk --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moodpress-android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
