@@ -611,12 +611,19 @@ class CalmPage extends StatefulWidget {
   State<CalmPage> createState() => _CalmPageState();
 }
 
+class CalmStep {
+  const CalmStep({required this.title, required this.description, required this.icon});
+  final String title;
+  final String description;
+  final IconData icon;
+}
+
 class _CalmPageState extends State<CalmPage> {
   int step = 0;
   static const steps = [
-    ('Voel de grond', 'Zet je voeten neer. Voel waar je voeten de grond raken.', Icons.place_outlined),
-    ('Kijk rustig om je heen', 'Noem voor jezelf drie dingen die je ziet. Je hoeft niets hardop te zeggen.', Icons.remove_red_eye_outlined),
-    ('Kies één kleine stap', 'Wat heb je nu nodig? Rust, hulp of verdergaan?', Icons.spa_outlined),
+    CalmStep(title: 'Voel de grond', description: 'Zet je voeten neer. Voel waar je voeten de grond raken.', icon: Icons.place_outlined),
+    CalmStep(title: 'Kijk rustig om je heen', description: 'Noem voor jezelf drie dingen die je ziet. Je hoeft niets hardop te zeggen.', icon: Icons.remove_red_eye_outlined),
+    CalmStep(title: 'Kies één kleine stap', description: 'Wat heb je nu nodig? Rust, hulp of verdergaan?', icon: Icons.spa_outlined),
   ];
 
   @override
@@ -631,13 +638,13 @@ class _CalmPageState extends State<CalmPage> {
               padding: const EdgeInsets.all(26),
               decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(23)),
               child: Column(children: [
-                CircleAvatar(radius: 33, backgroundColor: Colors.white, child: Icon(steps[step].$3, color: _green, size: 29)),
+                CircleAvatar(radius: 33, backgroundColor: Colors.white, child: Icon(steps[step].icon, color: _green, size: 29)),
                 const SizedBox(height: 18),
                 Text('STAP ' + (step + 1).toString() + ' VAN 3', style: const TextStyle(color: _green, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 11),
-                Text(steps[step].$1, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+                Text(steps[step].title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
                 const SizedBox(height: 10),
-                Text(steps[step].$2, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, height: 1.5)),
+                Text(steps[step].description, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, height: 1.5)),
                 const SizedBox(height: 23),
                 Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _green : _line, borderRadius: BorderRadius.circular(5))))),
                 const SizedBox(height: 22),
