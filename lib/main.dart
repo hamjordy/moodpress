@@ -2403,8 +2403,8 @@ class _BackupPasswordDialogState extends State<_BackupPasswordDialog> {
   @override
   Widget build(BuildContext context) => AlertDialog(
         title: Text(widget.confirm ? 'Beveilig je back-up' : 'Open je back-up'),
-        content: SizedBox(
-          width: 430,
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 430),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
