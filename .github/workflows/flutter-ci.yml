@@ -67,21 +67,21 @@ jobs:
                   continue
               content = path.read_text()
               next_content = re.sub(
-                  r"minSdk\\s*=\\s*flutter\\.minSdkVersion",
+                  r"minSdk\s*=\s*flutter\.minSdkVersion",
                   "minSdk = 23",
                   content,
               )
               next_content = re.sub(
-                  r"minSdkVersion\\s+flutter\\.minSdkVersion",
+                  r"minSdkVersion\s+flutter\.minSdkVersion",
                   "minSdkVersion 23",
                   next_content,
               )
               if next_content != content:
                   path.write_text(next_content)
                   updated_gradle = True
-              elif re.search(r"minSdk\\s*=\\s*([0-9]+)", content):
+              elif re.search(r"minSdk\s*=\s*([0-9]+)", content):
                   updated_gradle = True
-              elif re.search(r"minSdkVersion\\s+([0-9]+)", content):
+              elif re.search(r"minSdkVersion\s+([0-9]+)", content):
                   updated_gradle = True
 
           if not updated_gradle:
