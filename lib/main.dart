@@ -68,9 +68,35 @@ class DayActivity {
       );
 }
 
+class MoodPressPreferences {
+  const MoodPressPreferences({this.textScale = 1.0, this.speechRate = 0.42});
+
+  final double textScale;
+  final double speechRate;
+
+  Map<String, dynamic> toJson() => {
+        'textScale': textScale,
+        'speechRate': speechRate,
+      };
+
+  factory MoodPressPreferences.fromJson(Map<String, dynamic> json) {
+    final rawTextScale = json['textScale'];
+    final rawSpeechRate = json['speechRate'];
+    return MoodPressPreferences(
+      textScale: rawTextScale is num
+          ? rawTextScale.toDouble().clamp(1.0, 1.4).toDouble()
+          : 1.0,
+      speechRate: rawSpeechRate is num
+          ? rawSpeechRate.toDouble().clamp(0.3, 0.6).toDouble()
+          : 0.42,
+    );
+  }
+}
+
 class MoodPressController extends ChangeNotifier {
   static const _dayKey = 'moodpress.day.v1';
   static const _supportKey = 'moodpress.support.v1';
+  static const _preferencesKey = 'moodpress.preferences.v1';
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   List<DayActivity> activities = [];
@@ -79,6 +105,7 @@ class MoodPressController extends ChangeNotifier {
     'place': 'Een rustige plek waar ik mij prettig voel.',
     'person': '',
   };
+  MoodPressPreferences preferences = const MoodPressPreferences();
   String? feeling;
   String? storageNotice;
   bool ready = false;
@@ -114,6 +141,16 @@ class MoodPressController extends ChangeNotifier {
     } catch (_) {
       activities = _starterPlan();
       storageNotice = 'Opslaan is op dit apparaat niet beschikbaar. Gebruik nog geen echte cliëntgegevens.';
+    }
+    try {
+      final savedPreferences = await _storage.read(key: _preferencesKey);
+      if (savedPreferences != null) {
+        preferences = MoodPressPreferences.fromJson(
+          jsonDecode(savedPreferences) as Map<String, dynamic>,
+        );
+      }
+    } catch (_) {
+      preferences = const MoodPressPreferences();
     }
     ready = true;
     notifyListeners();
@@ -169,6 +206,41 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setTextScale(double value) async {
+    preferences = MoodPressPreferences(
+      textScale: value.clamp(1.0, 1.4).toDouble(),
+      speechRate: preferences.speechRate,
+    );
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> setSpeechRate(double value) async {
+    preferences = MoodPressPreferences(
+      textScale: preferences.textScale,
+      speechRate: value.clamp(0.3, 0.6).toDouble(),
+    );
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> resetPreferences() async {
+    preferences = const MoodPressPreferences();
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> _savePreferences() async {
+    try {
+      await _storage.write(
+        key: _preferencesKey,
+        value: jsonEncode(preferences.toJson()),
+      );
+    } catch (_) {
+      storageNotice = 'Je instellingen konden niet veilig worden opgeslagen.';
+    }
+  }
+
   void setFeeling(String value) {
     // This voluntary check-in is temporary and is never stored as a health record.
     feeling = value;
@@ -189,6 +261,15 @@ class MoodPressApp extends StatelessWidget {
       builder: (context, _) => MaterialApp(
         title: 'MoodPress',
         debugShowCheckedModeBanner: false,
+        builder: (context, child) {
+          final systemScale = MediaQuery.textScalerOf(context).scale(1.0);
+          return MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(systemScale * controller.preferences.textScale),
+            ),
+            child: child!,
+          );
+        },
         theme: ThemeData(
           useMaterial3: true,
           colorScheme: scheme,
@@ -225,8 +306,8 @@ class MoodPressShell extends StatefulWidget {
 
 class _MoodPressShellState extends State<MoodPressShell> {
   int selected = 0;
-  static const labels = ['Vandaag', 'Mijn dag', 'Even rust', 'Mijn steun'];
-  static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border];
+  static const labels = ['Vandaag', 'Mijn dag', 'Even rust', 'Mijn steun', 'Instellingen'];
+  static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded];
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
@@ -236,6 +317,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
           PlanPage(controller: widget.controller),
           const CalmPage(),
           SupportPage(controller: widget.controller),
+          SettingsPage(controller: widget.controller),
         ];
         return Scaffold(
           body: Row(children: [
@@ -446,6 +528,7 @@ class PlanPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 11),
               child: ActivityCard(
                 activity: item,
+                speechRate: controller.preferences.speechRate,
                 toggle: () => controller.toggleActivity(item.id),
                 edit: () => editActivity(context, controller, existing: item),
                 delete: () => confirmDelete(context, controller, item),
@@ -458,8 +541,9 @@ class PlanPage extends StatelessWidget {
 }
 
 class ActivityCard extends StatelessWidget {
-  const ActivityCard({super.key, required this.activity, required this.toggle, required this.edit, required this.delete});
+  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete});
   final DayActivity activity;
+  final double speechRate;
   final VoidCallback toggle;
   final VoidCallback edit;
   final VoidCallback delete;
@@ -480,7 +564,7 @@ class ActivityCard extends StatelessWidget {
                 const Text('Tik om de vijf vragen te bekijken', style: TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w600)),
               ]),
             )),
-            SpeakButton(text: activity.title + '. ' + activity.time + '. Wie: ' + activity.who + '. Wat: ' + activity.what + '. Waar: ' + activity.where + '. Hoe: ' + activity.how + '.'),
+            SpeakButton(text: activity.title + '. ' + activity.time + '. Wie: ' + activity.who + '. Wat: ' + activity.what + '. Waar: ' + activity.where + '. Hoe: ' + activity.how + '.', speechRate: speechRate),
             IconButton(tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond', onPressed: toggle, icon: Icon(activity.done ? Icons.check_circle : Icons.circle_outlined, color: activity.done ? _green : _muted)),
             PopupMenuButton<String>(
               tooltip: 'Meer opties',
@@ -694,6 +778,121 @@ class SupportPage extends StatelessWidget {
       );
 }
 
+class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key, required this.controller});
+  final MoodPressController controller;
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+        title: 'Instellingen',
+        subtitle: 'Pas MoodPress aan op wat prettig werkt voor jou.',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.text_fields_rounded, color: _green),
+                  SizedBox(width: 10),
+                  Text('Tekstgrootte', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 5),
+                const Text('Kies tekst die prettig leesbaar is.', style: TextStyle(color: _muted)),
+                const SizedBox(height: 15),
+                SegmentedButton<double>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 1.0, label: Text('Normaal')),
+                    ButtonSegment(value: 1.15, label: Text('Groter')),
+                    ButtonSegment(value: 1.3, label: Text('Extra groot')),
+                  ],
+                  selected: {controller.preferences.textScale},
+                  onSelectionChanged: (values) => controller.setTextScale(values.first),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.volume_up_outlined, color: _green),
+                  SizedBox(width: 10),
+                  Text('Voorleessnelheid', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 5),
+                const Text('Maak het voorlezen langzamer of sneller.', style: TextStyle(color: _muted)),
+                Slider(
+                  value: controller.preferences.speechRate,
+                  min: 0.3,
+                  max: 0.6,
+                  divisions: 6,
+                  label: controller.preferences.speechRate.toStringAsFixed(2),
+                  onChanged: controller.setSpeechRate,
+                ),
+                const Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text('Langzaam', style: TextStyle(color: _muted, fontSize: 12)),
+                  Text('Sneller', style: TextStyle(color: _muted, fontSize: 12)),
+                ]),
+                const SizedBox(height: 9),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: OutlinedButton.icon(
+                    onPressed: () => SpeakButtonPreview.play(context, controller.preferences.speechRate),
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('Luister naar een voorbeeld'),
+                  ),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Jouw instellingen', style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 7),
+                const Text('Je voorkeuren worden op dit apparaat bewaard. Ze worden niet naar een account of cloud verstuurd.', style: TextStyle(color: _muted, height: 1.45)),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: controller.resetPreferences,
+                  icon: const Icon(Icons.restart_alt_rounded),
+                  label: const Text('Herstel standaardinstellingen'),
+                ),
+              ]),
+            ),
+          ),
+          if (controller.storageNotice != null) ...[
+            const SizedBox(height: 12),
+            StorageNotice(message: controller.storageNotice!),
+          ],
+          const SizedBox(height: 18),
+          const SmallDisclaimer(),
+        ]),
+      );
+}
+
+class SpeakButtonPreview {
+  static Future<void> play(BuildContext context, double rate) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final tts = FlutterTts();
+    try {
+      await tts.setLanguage('nl-NL');
+      await tts.setSpeechRate(rate);
+      await tts.setPitch(1.0);
+      await tts.awaitSpeakCompletion(true);
+      await tts.speak('Dit is een voorbeeld. Je kunt de voorleessnelheid aanpassen aan wat prettig is.');
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Voorlezen is op dit apparaat niet beschikbaar.')));
+    } finally {
+      await tts.stop();
+    }
+  }
+}
+
 class SupportCard extends StatelessWidget {
   const SupportCard({super.key, required this.title, required this.value, required this.icon, required this.edit});
   final String title;
@@ -763,8 +962,9 @@ class SmallDisclaimer extends StatelessWidget {
 }
 
 class SpeakButton extends StatefulWidget {
-  const SpeakButton({super.key, required this.text});
+  const SpeakButton({super.key, required this.text, this.speechRate = 0.42});
   final String text;
+  final double speechRate;
 
   @override
   State<SpeakButton> createState() => _SpeakButtonState();
@@ -782,7 +982,7 @@ class _SpeakButtonState extends State<SpeakButton> {
         return;
       }
       await _tts.setLanguage('nl-NL');
-      await _tts.setSpeechRate(0.42);
+      await _tts.setSpeechRate(widget.speechRate);
       await _tts.setPitch(1.0);
       await _tts.awaitSpeakCompletion(true);
       if (mounted) setState(() => speaking = true);
