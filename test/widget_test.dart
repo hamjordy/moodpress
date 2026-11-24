@@ -26,4 +26,22 @@ void main() {
     expect(restored.how, original.how);
     expect(restored.done, isTrue);
   });
+  
+  test('accessibility preferences can be saved and restored', () {
+    const original = MoodPressPreferences(textScale: 1.3, speechRate: 0.5);
+    final restored = MoodPressPreferences.fromJson(original.toJson());
+
+    expect(restored.textScale, 1.3);
+    expect(restored.speechRate, 0.5);
+  });
+
+  test('accessibility preferences stay within supported limits', () {
+    final restored = MoodPressPreferences.fromJson({
+      'textScale': 4.0,
+      'speechRate': 0.05,
+    });
+
+    expect(restored.textScale, 1.4);
+    expect(restored.speechRate, 0.3);
+  });
 }

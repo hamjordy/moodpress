@@ -13,7 +13,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Geen streaks, strafmeldingen, aftelstress, scorebord of competitieve beloningen.
 - De gebruiker kan onderdelen overslaan, aanpassen of stoppen.
 - Geen automatische analyse of diagnose op basis van gedrag of stemming.
-- Instelbare tekstgrootte, contrast, voorleessnelheid en eventueel pictogrammen zijn geplande verbeteringen.
+- Instelbare tekstgrootte en voorleessnelheid zijn beschikbaar in de instellingen.
+- Extra contrastopties en eigen pictogrammen blijven geplande verbeteringen.
 
 ## Eerste versie
 
@@ -29,7 +30,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 ## Volgende ontwikkelfasen
 
 ### Fase 2 — samen instellen
-- Profiel zonder diagnosevelden; voorkeuren voor taal, tekstgrootte, geluid en prikkelniveau.
+- Profiel zonder diagnosevelden; voorkeuren voor taal, geluid en prikkelniveau.
+- Uitbreiden en gebruikerstesten van de huidige instellingen voor tekstgrootte en voorleessnelheid.
 - Herhaalbare dagtemplates en weekoverzicht.
 - Activiteiten met eigen foto's/pictogrammen die de gebruiker of begeleider toevoegt.
 - Rustige herinneringen die volledig uit te zetten zijn.

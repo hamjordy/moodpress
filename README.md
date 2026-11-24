@@ -7,7 +7,8 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Vandaag** — eerstvolgende stap, voortgang en een vrijwillige check-in.
 - **Mijn dag** — activiteiten toevoegen, aanpassen en afronden.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
-- **Voorlezen** — Nederlandse tekst-naar-spraak.
+- **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
+- **Instellingen** — kies normale, grotere of extra grote tekst.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
 - **Mijn steun** — een persoonlijk plan met wat helpt, een fijne plek en een vertrouwd persoon.
 - **Offline uitgangspunt** — geen account, advertenties, analytics, cloudbackend of externe AI-dienst.
@@ -58,10 +59,10 @@ De platformmappen `android/` en `windows/` worden door `flutter create` gegenere
 
 ## Privacy en veiligheid
 
-De prototypecode bewaart het dagplan en steunplan lokaal via platformgebonden secure storage. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
+De prototypecode bewaart het dagplan, steunplan en de toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
 
 Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor een pilot zijn onder meer een privacy- en beveiligingsbeoordeling, beoordeling van de gegevensverwerking (waaronder een DPIA indien vereist), toegangs- en verwijderbeleid, gebruikerstesten en professionele toetsing nodig. Lees [veiligheid en privacy](docs/SAFETY_AND_PRIVACY.md).
 
 ## Ontwikkelstatus
 
-**Versie 0.1.0 — eerste functionele prototypebasis.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.2.0 — toegankelijkheidsinstellingen toegevoegd aan het prototype.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
