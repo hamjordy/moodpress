@@ -19,6 +19,7 @@ In het prototype:
 - Geen advertenties, tracking of analytics.
 - Dagplanning en persoonlijk steunplan worden lokaal opgeslagen met `flutter_secure_storage`.
 - Deel geen echte cliëntgegevens in ontwikkel-, demo- of testomgevingen.
+- Back-upbestanden bevatten mogelijk persoonlijke informatie en worden daarom met een wachtwoord versleuteld (AES-256-GCM). Het wachtwoord wordt niet opgeslagen of hersteld door MoodPress; zonder het juiste wachtwoord kan een back-up niet worden teruggezet. Bewaar bestand en wachtwoord apart en veilig.
 
 Voor een cliëntpilot moet de verantwoordelijke organisatie onder meer vaststellen wie verwerkingsverantwoordelijke is, wat de rechtsgrond is, welke data noodzakelijk zijn, wie toegang krijgt, hoe lang gegevens worden bewaard en hoe verwijdering en inzage worden geregeld. Beoordeel of een DPIA verplicht is en laat de implementatie onafhankelijk testen.
 
