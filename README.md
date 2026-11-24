@@ -10,7 +10,8 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Vast weekritme** — bewaar een vaste indeling per weekdag en vul daarmee lege dagen in.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
-- **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan en schakel animaties uit voor een rustigere weergave.
+- **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan, schakel animaties uit en zet optionele herinneringen aan of uit.
+- **Rustige herinneringen** — een melding op het geplande tijdstip zolang MoodPress open is; standaard uit en altijd uit te zetten.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
 - **Mijn steun** — een persoonlijk plan met wat helpt, een fijne plek en een vertrouwd persoon.
 - **Offline uitgangspunt** — geen account, advertenties, analytics, cloudbackend of externe AI-dienst.
@@ -68,4 +69,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.6.0 — activiteiten kunnen nu met slepen in een eigen volgorde worden gezet; pictogrammen, eigen foto's en rustige weergave zijn beschikbaar.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.7.0 — optionele herinneringen in de app zijn toegevoegd; ze staan standaard uit en werken zolang MoodPress open is.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
