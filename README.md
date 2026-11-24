@@ -67,4 +67,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.4.0 — weekritme met vaste indelingen per weekdag toegevoegd aan het prototype.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.5.0 — herkenbare pictogrammen en eigen foto's per activiteit toegevoegd aan het prototype.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
