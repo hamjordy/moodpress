@@ -35,7 +35,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Herbruikbare dagindelingen bewaren, toepassen en verwijderen.
 - Vast weekritme per weekdag bewaren en toepassen op lege dagen.
 - Gebruikertesten van tekstgrootte, voorleessnelheid en planning.
-- Activiteiten met eigen foto's/pictogrammen die de gebruiker of begeleider toevoegt.
+- [x] Activiteiten met herkenbare pictogrammen en eigen foto's die de gebruiker of begeleider toevoegt (lokaal op het apparaat).
 - Rustige herinneringen die volledig uit te zetten zijn.
 - Een optionele begeleidersweergave met expliciete toestemming van de cliënt.
 
