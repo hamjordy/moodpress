@@ -7,6 +7,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Vandaag** — eerstvolgende stap, voortgang en een vrijwillige check-in.
 - **Planning** — weekoverzicht, een apart dagplan per datum en activiteiten afronden.
 - **Dagindelingen** — bewaar een dag als sjabloon en gebruik die opnieuw op een andere datum.
+- **Vast weekritme** — bewaar een vaste indeling per weekdag en vul daarmee lege dagen in.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
 - **Instellingen** — kies normale, grotere of extra grote tekst.
@@ -60,10 +61,10 @@ De platformmappen `android/` en `windows/` worden door `flutter create` gegenere
 
 ## Privacy en veiligheid
 
-De prototypecode bewaart dagplannen per datum, herbruikbare dagindelingen, het steunplan en toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. Bestaande dagplannen uit versie 0.2.0 worden bij de eerste start gemigreerd. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
+De prototypecode bewaart dagplannen per datum, herbruikbare dagindelingen, vaste weekritmes, het steunplan en toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. Bestaande dagplannen uit versie 0.2.0 worden bij de eerste start gemigreerd. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
 
 Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor een pilot zijn onder meer een privacy- en beveiligingsbeoordeling, beoordeling van de gegevensverwerking (waaronder een DPIA indien vereist), toegangs- en verwijderbeleid, gebruikerstesten en professionele toetsing nodig. Lees [veiligheid en privacy](docs/SAFETY_AND_PRIVACY.md).
 
 ## Ontwikkelstatus
 
-**Versie 0.3.0 — weekplanning en herbruikbare dagindelingen toegevoegd aan het prototype.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.4.0 — weekritme met vaste indelingen per weekdag toegevoegd aan het prototype.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.

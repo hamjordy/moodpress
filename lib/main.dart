@@ -136,6 +136,40 @@ String _formatDutchDate(DateTime date) =>
 
 String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
+class WeeklyRoutine {
+  const WeeklyRoutine({this.days = const <int, DayTemplate>{}});
+
+  final Map<int, DayTemplate> days;
+
+  DayTemplate? forWeekday(int weekday) => days[weekday];
+
+  WeeklyRoutine withDay(int weekday, DayTemplate template) =>
+      WeeklyRoutine(days: {...days, weekday: template});
+
+  WeeklyRoutine withoutDay(int weekday) {
+    final updated = Map<int, DayTemplate>.from(days)..remove(weekday);
+    return WeeklyRoutine(days: updated);
+  }
+
+  Map<String, dynamic> toJson() => {
+        for (final entry in days.entries)
+          entry.key.toString(): entry.value.toJson(),
+      };
+
+  factory WeeklyRoutine.fromJson(Map<String, dynamic> json) {
+    final result = <int, DayTemplate>{};
+    for (final entry in json.entries) {
+      final weekday = int.tryParse(entry.key);
+      final value = entry.value;
+      if (weekday != null && weekday >= 1 && weekday <= 7 &&
+          value is Map<String, dynamic>) {
+        result[weekday] = DayTemplate.fromJson(value);
+      }
+    }
+    return WeeklyRoutine(days: result);
+  }
+}
+
 class MoodPressPreferences {
   const MoodPressPreferences({this.textScale = 1.0, this.speechRate = 0.42});
 
@@ -167,12 +201,14 @@ class MoodPressController extends ChangeNotifier {
   static const _supportKey = 'moodpress.support.v1';
   static const _preferencesKey = 'moodpress.preferences.v1';
   static const _templatesKey = 'moodpress.templates.v1';
+  static const _weeklyRoutineKey = 'moodpress.weeklyroutine.v1';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final Map<String, List<DayActivity>> _plansByDate = {};
   DateTime selectedDate = DateTime.now();
 
   List<DayTemplate> templates = [];
+  WeeklyRoutine weeklyRoutine = const WeeklyRoutine();
   Map<String, String> support = {
     'help': 'Ik wil even rust en één ding tegelijk doen.',
     'place': 'Een rustige plek waar ik mij prettig voel.',
@@ -281,6 +317,18 @@ class MoodPressController extends ChangeNotifier {
       storageNotice ??= 'Je dagindelingen konden niet worden gelezen.';
     }
 
+    try {
+      final savedRoutine = await _storage.read(key: _weeklyRoutineKey);
+      if (savedRoutine != null) {
+        weeklyRoutine = WeeklyRoutine.fromJson(
+          jsonDecode(savedRoutine) as Map<String, dynamic>,
+        );
+      }
+    } catch (_) {
+      weeklyRoutine = const WeeklyRoutine();
+      storageNotice ??= 'Je vaste weekritme kon niet worden gelezen.';
+    }
+
     ready = true;
     notifyListeners();
   }
@@ -308,6 +356,74 @@ class MoodPressController extends ChangeNotifier {
     } catch (_) {
       storageNotice = 'Je dagindelingen konden niet veilig worden opgeslagen.';
     }
+  }
+
+  Future<void> _saveWeeklyRoutine() async {
+    try {
+      await _storage.write(
+        key: _weeklyRoutineKey,
+        value: jsonEncode(weeklyRoutine.toJson()),
+      );
+    } catch (_) {
+      storageNotice = 'Je vaste weekritme kon niet veilig worden opgeslagen.';
+    }
+  }
+
+  bool hasPlanFor(DateTime date) => _plansByDate.containsKey(_dateKey(date));
+
+  int routinesInWeek(DateTime monday) {
+    var count = 0;
+    for (var offset = 0; offset < 7; offset++) {
+      final date = monday.add(Duration(days: offset));
+      if (weeklyRoutine.forWeekday(date.weekday) != null &&
+          !hasPlanFor(date)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  Future<void> saveWeeklyRoutineFromDate(DateTime date) async {
+    final source = activitiesFor(date);
+    if (source.isEmpty) return;
+
+    final weekday = date.weekday;
+    final template = DayTemplate(
+      id: 'weekly-' + weekday.toString() + '-' +
+          DateTime.now().microsecondsSinceEpoch.toString(),
+      name: _dutchWeekdays[weekday - 1][0].toUpperCase() +
+          _dutchWeekdays[weekday - 1].substring(1),
+      activities: source.map((item) => item.copyWith(done: false)).toList(),
+    );
+    weeklyRoutine = weeklyRoutine.withDay(weekday, template);
+    await _saveWeeklyRoutine();
+    notifyListeners();
+  }
+
+  Future<void> removeWeeklyRoutine(int weekday) async {
+    weeklyRoutine = weeklyRoutine.withoutDay(weekday);
+    await _saveWeeklyRoutine();
+    notifyListeners();
+  }
+
+  Future<int> applyWeeklyRoutineToWeek(DateTime monday) async {
+    var added = 0;
+    for (var offset = 0; offset < 7; offset++) {
+      final date = monday.add(Duration(days: offset));
+      final key = _dateKey(date);
+      final routine = weeklyRoutine.forWeekday(date.weekday);
+      // Existing plans are always left untouched by the bulk action.
+      if (routine != null && !_plansByDate.containsKey(key)) {
+        _plansByDate[key] = routine.createActivities()
+          ..sort((a, b) => a.time.compareTo(b.time));
+        added++;
+      }
+    }
+    if (added > 0) {
+      await _saveDayPlans();
+      notifyListeners();
+    }
+    return added;
   }
 
   void selectDate(DateTime date) {
@@ -737,10 +853,21 @@ class _PlanningPageState extends State<PlanningPage> {
             ? 'Een rustig overzicht van maandag tot en met zondag.'
             : 'Bekijk één dag tegelijk. Je kunt alles aanpassen.',
         action: _showWeek
-            ? OutlinedButton.icon(
-                onPressed: () => _showTemplateManager(context),
-                icon: const Icon(Icons.library_books_outlined),
-                label: const Text('Dagindelingen'),
+            ? Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => _showWeeklyRoutineManager(context),
+                    icon: const Icon(Icons.repeat_rounded),
+                    label: const Text('Vast weekritme'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _showTemplateManager(context),
+                    icon: const Icon(Icons.library_books_outlined),
+                    label: const Text('Dagindelingen'),
+                  ),
+                ],
               )
             : FilledButton.icon(
                 onPressed: () => editActivity(context, widget.controller),
@@ -804,6 +931,42 @@ class _PlanningPageState extends State<PlanningPage> {
           _buildWeekDayCard(
             context,
             _weekStart.add(Duration(days: offset)),
+          ),
+        if (widget.controller.weeklyRoutine.days.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 7, bottom: 8),
+            child: Card(
+              color: _greenPale,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Vaste dagen invullen',
+                      style: TextStyle(
+                        color: _ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      widget.controller.routinesInWeek(_weekStart).toString() +
+                          ' lege dagen kunnen worden gevuld. Bestaande plannen blijven staan.',
+                      style: const TextStyle(color: _muted, height: 1.4),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton.icon(
+                      onPressed: widget.controller.routinesInWeek(_weekStart) == 0
+                          ? null
+                          : () => _applyWeeklyRoutine(context),
+                      icon: const Icon(Icons.auto_awesome_outlined),
+                      label: const Text('Vul lege dagen met weekritme'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         if (widget.controller.templates.isEmpty)
           const Card(
@@ -892,6 +1055,18 @@ class _PlanningPageState extends State<PlanningPage> {
                       ),
                     ),
                     const SizedBox(height: 3),
+                    if (widget.controller.weeklyRoutine.forWeekday(date.weekday) != null)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 3),
+                        child: Text(
+                          'Vaste indeling beschikbaar',
+                          style: TextStyle(
+                            color: _green,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     Text(
                       summary,
                       style: const TextStyle(color: _muted, fontSize: 12),
@@ -1016,6 +1191,13 @@ class _PlanningPageState extends State<PlanningPage> {
               icon: const Icon(Icons.bookmark_add_outlined),
               label: const Text('Bewaar als dagindeling'),
             ),
+            OutlinedButton.icon(
+              onPressed: items.isEmpty
+                  ? null
+                  : () => _saveWeeklyRoutineFromDay(context, date),
+              icon: const Icon(Icons.repeat_rounded),
+              label: const Text('Bewaar als vast weekritme'),
+            ),
             TextButton.icon(
               onPressed: () => widget.controller.selectDate(DateTime.now()),
               icon: const Icon(Icons.today_outlined),
@@ -1096,6 +1278,170 @@ class _PlanningPageState extends State<PlanningPage> {
       if (confirmed != true) return;
     }
     await widget.controller.applyTemplateToDate(templateId, date);
+  }
+
+  Future<void> _saveWeeklyRoutineFromDay(
+    BuildContext context,
+    DateTime date,
+  ) async {
+    final existing = widget.controller.weeklyRoutine.forWeekday(date.weekday);
+    if (existing != null) {
+      final replace = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Vaste dagindeling aanpassen?'),
+          content: Text(
+            'Er is al een vaste indeling voor ' +
+                _formatDutchWeekday(date) +
+                '. Wil je deze vervangen door het huidige dagplan?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuleren'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Vervangen'),
+            ),
+          ],
+        ),
+      );
+      if (replace != true) return;
+    }
+    await widget.controller.saveWeeklyRoutineFromDate(date);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Vaste indeling voor ' + _formatDutchWeekday(date) + ' bewaard.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _applyWeeklyRoutine(BuildContext context) async {
+    final count = widget.controller.routinesInWeek(_weekStart);
+    if (count == 0) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Weekritme toepassen?'),
+        content: Text(
+          'MoodPress vult ' + count.toString() +
+              (count == 1 ? ' lege dag' : ' lege dagen') +
+              ' met de vaste indeling. Bestaande dagplannen blijven ongewijzigd.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuleren'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Lege dagen invullen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final added = await widget.controller.applyWeeklyRoutineToWeek(_weekStart);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          added.toString() +
+              (added == 1 ? ' dag ingevuld.' : ' dagen ingevuld.'),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showWeeklyRoutineManager(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final routines = widget.controller.weeklyRoutine.days.entries.toList()
+            ..sort((a, b) => a.key.compareTo(b.key));
+          return AlertDialog(
+            title: const Text('Mijn vaste weekritme'),
+            content: SizedBox(
+              width: 460,
+              height: 320,
+              child: routines.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Er zijn nog geen vaste dagen. Open een dagplan en bewaar het als weekritme.',
+                        textAlign: TextAlign.center,
+                      ),
+                    )
+                  : ListView.separated(
+                      itemCount: routines.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final entry = routines[index];
+                        final weekday = entry.key;
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(
+                            _dutchWeekdays[weekday - 1][0].toUpperCase() +
+                                _dutchWeekdays[weekday - 1].substring(1),
+                          ),
+                          subtitle: Text(
+                            entry.value.activities.length.toString() +
+                                (entry.value.activities.length == 1
+                                    ? ' vaste activiteit'
+                                    : ' vaste activiteiten'),
+                          ),
+                          trailing: IconButton(
+                            tooltip: 'Vaste dag verwijderen',
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (confirmContext) => AlertDialog(
+                                  title: const Text('Vaste dag verwijderen?'),
+                                  content: Text(
+                                    'Wil je het vaste weekritme voor ' +
+                                        _dutchWeekdays[weekday - 1] +
+                                        ' verwijderen?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(confirmContext, false),
+                                      child: const Text('Annuleren'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.pop(confirmContext, true),
+                                      child: const Text('Verwijderen'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true) {
+                                await widget.controller.removeWeeklyRoutine(weekday);
+                                setDialogState(() {});
+                              }
+                            },
+                            icon: const Icon(Icons.delete_outline_rounded),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Sluiten'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _showTemplateManager(BuildContext context) async {

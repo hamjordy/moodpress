@@ -92,4 +92,43 @@ void main() {
     expect(applied.single.done, isFalse);
     expect(applied.single.id, isNot('old-id'));
   });
+
+  test('weekly routines can be saved and restored by weekday', () {
+    final original = WeeklyRoutine().withDay(
+      DateTime.monday,
+      DayTemplate(
+        id: 'monday-template',
+        name: 'Maandag',
+        activities: [
+          DayActivity(id: 'a1', title: 'Naar werk', time: '08:00'),
+        ],
+      ),
+    );
+
+    final restored = WeeklyRoutine.fromJson(original.toJson());
+
+    expect(restored.days.length, 1);
+    expect(restored.forWeekday(DateTime.monday)?.name, 'Maandag');
+    expect(restored.forWeekday(DateTime.tuesday), isNull);
+  });
+
+  test('weekly routine can remove one weekday without changing others', () {
+    final monday = DayTemplate(
+      id: 'monday',
+      name: 'Maandag',
+      activities: [DayActivity(id: 'a', title: 'Werk', time: '08:00')],
+    );
+    final friday = DayTemplate(
+      id: 'friday',
+      name: 'Vrijdag',
+      activities: [DayActivity(id: 'b', title: 'Vrije dag', time: '09:00')],
+    );
+    final original = WeeklyRoutine()
+        .withDay(DateTime.monday, monday)
+        .withDay(DateTime.friday, friday);
+    final updated = original.withoutDay(DateTime.monday);
+
+    expect(updated.forWeekday(DateTime.monday), isNull);
+    expect(updated.forWeekday(DateTime.friday)?.name, 'Vrijdag');
+  });
 }
