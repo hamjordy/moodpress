@@ -68,4 +68,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.5.0 — herkenbare pictogrammen en eigen foto's per activiteit toegevoegd aan het prototype.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.6.0 — activiteiten kunnen nu met slepen in een eigen volgorde worden gezet; pictogrammen, eigen foto's en rustige weergave zijn beschikbaar.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
