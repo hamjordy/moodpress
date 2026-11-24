@@ -2,11 +2,13 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:flutter/material.dart';
+import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -17,6 +19,135 @@ const _green = Color(0xFF54796E);
 const _greenPale = Color(0xFFE8F0EC);
 const _sand = Color(0xFFF1E9DC);
 const _line = Color(0xFFE3E8E4);
+
+const _backupHeader = 'MOODPRESS_BACKUP_V1\n';
+const _backupKdfIterations = 150000;
+const _maxBackupFileBytes = 30 * 1024 * 1024;
+const _maxBackupPhotoBytes = 12 * 1024 * 1024;
+
+Future<Uint8List> encryptMoodPressBackup(
+  Map<String, dynamic> document,
+  String password,
+) async {
+  if (password.trim().length < 8) {
+    throw ArgumentError('Gebruik een wachtwoord van minimaal 8 tekens.');
+  }
+
+  final headerBytes = utf8.encode(_backupHeader);
+  final salt = Cryptography.instance.randomBytes(16);
+  final kdf = Pbkdf2(
+    macAlgorithm: Hmac.sha256(),
+    iterations: _backupKdfIterations,
+    bits: 256,
+  );
+  final key = await kdf.deriveKeyFromPassword(
+    password: password,
+    nonce: salt,
+  );
+  final cipher = AesGcm.with256bits();
+  final clearText = utf8.encode(jsonEncode(document));
+  if (clearText.length > _maxBackupFileBytes) {
+    throw FormatException(
+      'De back-up is te groot. Verwijder eventueel een paar grote foto’s en probeer opnieuw.',
+    );
+  }
+
+  final secretBox = await cipher.encrypt(
+    clearText,
+    secretKey: key,
+    nonce: cipher.newNonce(),
+    aad: headerBytes,
+  );
+  final envelope = <String, dynamic>{
+    'format': 'MoodPressEncryptedBackup',
+    'version': 1,
+    'cipher': 'AES-256-GCM',
+    'kdf': 'PBKDF2-HMAC-SHA256',
+    'iterations': _backupKdfIterations,
+    'salt': base64Encode(salt),
+    'nonce': base64Encode(secretBox.nonce),
+    'cipherText': base64Encode(secretBox.cipherText),
+    'mac': base64Encode(secretBox.mac.bytes),
+  };
+  final fileBytes = <int>[
+    ...headerBytes,
+    ...utf8.encode(jsonEncode(envelope)),
+  ];
+  if (fileBytes.length > _maxBackupFileBytes) {
+    throw FormatException('De back-up is groter dan MoodPress veilig kan verwerken.');
+  }
+  return Uint8List.fromList(fileBytes);
+}
+
+Future<Map<String, dynamic>> decryptMoodPressBackup(
+  Uint8List fileBytes,
+  String password,
+) async {
+  if (fileBytes.length > _maxBackupFileBytes ||
+      fileBytes.length <= utf8.encode(_backupHeader).length) {
+    throw FormatException('Dit is geen geldig MoodPress-back-upbestand.');
+  }
+  if (password.trim().length < 8) {
+    throw ArgumentError('Vul het wachtwoord van je back-up in.');
+  }
+
+  final headerBytes = utf8.encode(_backupHeader);
+  for (var index = 0; index < headerBytes.length; index++) {
+    if (fileBytes[index] != headerBytes[index]) {
+      throw FormatException('Dit is geen geldig MoodPress-back-upbestand.');
+    }
+  }
+
+  final decoded = jsonDecode(
+    utf8.decode(fileBytes.sublist(headerBytes.length)),
+  );
+  if (decoded is! Map<String, dynamic> ||
+      decoded['format'] != 'MoodPressEncryptedBackup' ||
+      decoded['version'] != 1 ||
+      decoded['cipher'] != 'AES-256-GCM' ||
+      decoded['kdf'] != 'PBKDF2-HMAC-SHA256' ||
+      decoded['iterations'] != _backupKdfIterations) {
+    throw FormatException('Dit back-upbestand wordt niet ondersteund.');
+  }
+
+  try {
+    final salt = base64Decode(decoded['salt'] as String);
+    final nonce = base64Decode(decoded['nonce'] as String);
+    final cipherText = base64Decode(decoded['cipherText'] as String);
+    final macBytes = base64Decode(decoded['mac'] as String);
+    if (salt.length != 16 || nonce.length != 12 || macBytes.length != 16) {
+      throw FormatException('Het back-upbestand is beschadigd.');
+    }
+
+    final kdf = Pbkdf2(
+      macAlgorithm: Hmac.sha256(),
+      iterations: _backupKdfIterations,
+      bits: 256,
+    );
+    final key = await kdf.deriveKeyFromPassword(
+      password: password,
+      nonce: salt,
+    );
+    final clearText = await AesGcm.with256bits().decrypt(
+      SecretBox(cipherText, nonce: nonce, mac: Mac(macBytes)),
+      secretKey: key,
+      aad: headerBytes,
+    );
+    final data = jsonDecode(utf8.decode(clearText));
+    if (data is! Map<String, dynamic> ||
+        data['app'] != 'MoodPress' ||
+        data['dataVersion'] != 1) {
+      throw FormatException('De inhoud van deze back-up wordt niet ondersteund.');
+    }
+    return data;
+  } on FormatException {
+    rethrow;
+  } catch (_) {
+    throw FormatException(
+      'Het wachtwoord klopt niet of het back-upbestand is beschadigd.',
+    );
+  }
+}
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
