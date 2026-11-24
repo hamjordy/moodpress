@@ -14,7 +14,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Rustige herinneringen** — een melding op het geplande tijdstip zolang MoodPress open is; standaard uit en altijd uit te zetten.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
 - **Mijn steun** — een persoonlijk plan met wat helpt, een fijne plek en een vertrouwd persoon.
-- **Offline uitgangspunt** — geen account, advertenties, analytics, cloudbackend of externe AI-dienst.
+- **Volledig zelfstandig** — geen account, advertenties, analytics, cloudbackend, begeleidersportaal, server of betaalde hosting. Persoonlijke informatie blijft lokaal op het apparaat.
 
 ## Doelgroep en grenzen
 
@@ -32,7 +32,7 @@ MoodPress is een zelfstandig product en is **niet** de officiële app van *Geef 
 - Android en Windows desktop
 - `flutter_secure_storage` voor platformgebonden beveiligde opslag
 - `flutter_tts` voor voorlezen
-- Geen servercomponent of telemetrie in deze prototypeversie
+- Geen servercomponent, portaal, betaalde hosting of telemetrie in deze prototypeversie
 - Eigen activiteitfoto's worden lokaal opgeslagen in de app-map; deel het apparaat alleen met mensen die deze afbeeldingen mogen zien
 
 ## Starten
