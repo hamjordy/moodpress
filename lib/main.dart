@@ -1658,7 +1658,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
 
   Future<void> choosePhoto() async {
     try {
-      final picked = await FilePicker.platform.pickFiles(
+      final picked = await FilePicker.pickFiles(
         type: FileType.image,
         allowMultiple: false,
         withData: true,
