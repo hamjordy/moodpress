@@ -38,6 +38,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Gebruikertesten van tekstgrootte, voorleessnelheid en planning.
 - [x] Activiteiten met herkenbare pictogrammen en eigen foto's die de gebruiker of begeleider toevoegt (lokaal op het apparaat).
 - [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
+- [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
 - Rustige herinneringen die volledig uit te zetten zijn.
 - Een optionele begeleidersweergave met expliciete toestemming van de cliënt.
 
