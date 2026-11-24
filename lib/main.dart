@@ -151,6 +151,15 @@ String _formatDutchDate(DateTime date) =>
 
 String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
+bool isActivityDueAt(DayActivity activity, DateTime now) {
+  if (activity.done) return false;
+  final parts = activity.time.split(':');
+  if (parts.length != 2) return false;
+  final hour = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  return hour != null && minute != null && hour == now.hour && minute == now.minute;
+}
+
 void reorderDayActivities(List<DayActivity> activities, int oldIndex, int newIndex) {
   if (oldIndex < 0 || oldIndex >= activities.length ||
       newIndex < 0 || newIndex > activities.length) return;
@@ -690,12 +699,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
     final now = DateTime.now();
     final dateKey = _dateKey(now);
     for (final activity in widget.controller.activitiesFor(now)) {
-      if (activity.done) continue;
-      final parts = activity.time.split(':');
-      if (parts.length != 2) continue;
-      final hour = int.tryParse(parts[0]);
-      final minute = int.tryParse(parts[1]);
-      if (hour == null || minute == null || hour != now.hour || minute != now.minute) continue;
+      if (!isActivityDueAt(activity, now)) continue;
       final reminderKey = '$dateKey-${activity.id}';
       if (!_shownReminders.add(reminderKey)) continue;
       ScaffoldMessenger.of(context)
