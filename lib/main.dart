@@ -302,7 +302,7 @@ class MoodPressController extends ChangeNotifier {
             _plansByDate[entry.key] = rawItems
                 .whereType<Map<String, dynamic>>()
                 .map(DayActivity.fromJson)
-                .toList()
+                .toList();
           }
         }
       } else {
@@ -448,7 +448,7 @@ class MoodPressController extends ChangeNotifier {
     );
     for (final date in dates) {
       final routine = weeklyRoutine.forWeekday(date.weekday)!;
-      _plansByDate[_dateKey(date)] = routine.createActivities()
+      _plansByDate[_dateKey(date)] = routine.createActivities();
     }
     if (dates.isNotEmpty) {
       await _saveDayPlans();
@@ -519,7 +519,7 @@ class MoodPressController extends ChangeNotifier {
     }
     if (selected == null) return false;
 
-    _plansByDate[_dateKey(date)] = selected.createActivities()
+    _plansByDate[_dateKey(date)] = selected.createActivities();
     await _saveDayPlans();
     notifyListeners();
     return true;
@@ -749,7 +749,7 @@ class TodayPage extends StatelessWidget {
     final now = DateTime.now();
     final greeting = now.hour < 12 ? 'Goedemorgen' : now.hour < 18 ? 'Goedemiddag' : 'Goedenavond';
     final todayActivities = controller.activitiesFor(now);
-    final upcoming = todayActivities.where((item) => !item.done).toList()
+    final upcoming = todayActivities.where((item) => !item.done).toList();
     final next = upcoming.isEmpty ? null : upcoming.first;
     final completedToday = todayActivities.where((item) => item.done).length;
     final progressToday = todayActivities.isEmpty ? 0.0 : completedToday / todayActivities.length;
