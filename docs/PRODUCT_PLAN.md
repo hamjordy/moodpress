@@ -14,7 +14,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - De gebruiker kan onderdelen overslaan, aanpassen of stoppen.
 - Geen automatische analyse of diagnose op basis van gedrag of stemming.
 - Instelbare tekstgrootte en voorleessnelheid zijn beschikbaar in de instellingen.
-- Extra contrastopties en eigen pictogrammen blijven geplande verbeteringen.
+- [x] Eigen pictogrammen en foto's per activiteit.
+- [x] Optie voor minder animaties (rustige weergave).
 
 ## Eerste versie
 
@@ -36,6 +37,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Vast weekritme per weekdag bewaren en toepassen op lege dagen.
 - Gebruikertesten van tekstgrootte, voorleessnelheid en planning.
 - [x] Activiteiten met herkenbare pictogrammen en eigen foto's die de gebruiker of begeleider toevoegt (lokaal op het apparaat).
+- [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
 - Rustige herinneringen die volledig uit te zetten zijn.
 - Een optionele begeleidersweergave met expliciete toestemming van de cliënt.
 
