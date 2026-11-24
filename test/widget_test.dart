@@ -38,6 +38,48 @@ void main() {
     expect(restored.textScale, 1.3);
     expect(restored.speechRate, 0.5);
     expect(restored.reduceMotion, isTrue);
+    expect(restored.inAppRemindersEnabled, isFalse);
+  });
+
+  test('in-app reminders can be enabled and survive preference restoration', () {
+    const original = MoodPressPreferences(inAppRemindersEnabled: true);
+    final restored = MoodPressPreferences.fromJson(original.toJson());
+
+    expect(restored.inAppRemindersEnabled, isTrue);
+  });
+
+  test('older preferences keep reminders switched off by default', () {
+    final restored = MoodPressPreferences.fromJson({
+      'textScale': 1.15,
+      'speechRate': 0.42,
+    });
+
+    expect(restored.inAppRemindersEnabled, isFalse);
+  });
+
+  test('activity reminder is due only at its planned minute and when unfinished', () {
+    final activity = DayActivity(
+      id: 'reminder-1',
+      title: 'Ontbijten',
+      time: '08:30',
+    );
+
+    expect(isActivityDueAt(activity, DateTime(2026, 11, 25, 8, 30)), isTrue);
+    expect(isActivityDueAt(activity, DateTime(2026, 11, 25, 8, 31)), isFalse);
+    expect(
+      isActivityDueAt(
+        DayActivity(id: 'done', title: 'Klaar', time: '08:30', done: true),
+        DateTime(2026, 11, 25, 8, 30),
+      ),
+      isFalse,
+    );
+    expect(
+      isActivityDueAt(
+        DayActivity(id: 'bad-time', title: 'Ongeldig', time: 'later'),
+        DateTime(2026, 11, 25, 8, 30),
+      ),
+      isFalse,
+    );
   });
 
   test('accessibility preferences stay within supported limits', () {
