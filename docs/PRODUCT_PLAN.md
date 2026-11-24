@@ -23,7 +23,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 |---|---|
 | Vandaag | Eerstvolgende stap en overzicht van de dag |
 | Planning | Weekoverzicht en eigen dagplan per datum |
-| Dagindelingen | Dagplannen bewaren als sjabloon en hergebruiken |\n| Vijf vragen | Wie, wat, waar, wanneer en hoe concreet maken |
+| Dagindelingen | Dagplannen bewaren als sjabloon en hergebruiken |
+| Vijf vragen | Wie, wat, waar, wanneer en hoe concreet maken |
 | Voorlezen | Korte teksten via spraak kunnen beluisteren |
 | Even rust | Vrijwillige, niet-klinische grondingsoefening |
 | Mijn steun | Persoonlijke afspraken en helpende stappen bewaren |
@@ -40,7 +41,6 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
 - [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
 - [x] Rustige herinneringen die volledig uit te zetten zijn (in-app, zolang MoodPress open is; standaard uit).
-- Een optionele begeleidersweergave met expliciete toestemming van de cliënt.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
@@ -53,6 +53,10 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - DPIA/AVG-documentatie, verwerkersafspraken indien van toepassing.
 - MDR-kwalificatie op basis van definitieve intended purpose.
 - Klinische en juridische review vóór claims over effect, behandeling of symptoomvermindering.
+
+## Bewuste productgrens
+
+MoodPress blijft een zelfstandige app voor Android en Windows. Er komt geen begeleidersportaal, online begeleidersomgeving, account, server of betaalde hosting. Plannen en persoonlijke instellingen blijven op het eigen apparaat. Ontwikkeling richt zich op functies die zonder terugkerende hostingkosten werken.
 
 ## Buiten scope van het prototype
 
