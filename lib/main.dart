@@ -2509,6 +2509,7 @@ Future<void> _importMoodPressBackup(
     );
     if (picked == null || !context.mounted) return;
     final length = await picked.length();
+    if (!context.mounted) return;
     if (length != null && length > _maxBackupFileBytes) {
       throw FormatException('Dit back-upbestand is te groot om veilig te openen.');
     }
