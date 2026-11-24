@@ -646,7 +646,7 @@ class _CalmPageState extends State<CalmPage> {
                 const SizedBox(height: 10),
                 Text(steps[step].description, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, height: 1.5)),
                 const SizedBox(height: 23),
-                Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _green : _line, borderRadius: BorderRadius.circular(5))))),
+                Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _green : _line, borderRadius: BorderRadius.circular(5)))))),
                 const SizedBox(height: 22),
                 Row(children: [
                   Expanded(child: OutlinedButton(onPressed: step == 0 ? null : () => setState(() => step--), child: const Text('Vorige'))),
