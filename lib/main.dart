@@ -535,6 +535,7 @@ class MoodPressController extends ChangeNotifier {
     preferences = MoodPressPreferences(
       textScale: value.clamp(1.0, 1.4).toDouble(),
       speechRate: preferences.speechRate,
+      reduceMotion: preferences.reduceMotion,
     );
     await _savePreferences();
     notifyListeners();
