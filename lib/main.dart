@@ -767,7 +767,6 @@ class _PlanningPageState extends State<PlanningPage> {
       );
 
   Widget _buildWeek(BuildContext context) {
-    final lastDay = _weekStart.add(const Duration(days: 6));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
