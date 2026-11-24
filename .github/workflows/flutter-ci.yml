@@ -50,6 +50,55 @@ jobs:
           channel: stable
           cache: true
       - run: flutter create --platforms=android .
+      - name: Configure Android API and text-to-speech visibility
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          gradle_files = [
+              Path("android/app/build.gradle.kts"),
+              Path("android/app/build.gradle"),
+          ]
+          updated_gradle = False
+          for path in gradle_files:
+              if not path.exists():
+                  continue
+              content = path.read_text()
+              next_content = re.sub(
+                  r"minSdk\\s*=\\s*flutter\\.minSdkVersion",
+                  "minSdk = 23",
+                  content,
+              )
+              next_content = re.sub(
+                  r"minSdkVersion\\s+flutter\\.minSdkVersion",
+                  "minSdkVersion 23",
+                  next_content,
+              )
+              if next_content != content:
+                  path.write_text(next_content)
+                  updated_gradle = True
+              elif re.search(r"minSdk\\s*=\\s*([0-9]+)", content):
+                  updated_gradle = True
+              elif re.search(r"minSdkVersion\\s+([0-9]+)", content):
+                  updated_gradle = True
+
+          if not updated_gradle:
+              raise SystemExit("Could not confirm Android minSdk configuration.")
+
+          manifest = Path("android/app/src/main/AndroidManifest.xml")
+          xml = manifest.read_text()
+          if "android.intent.action.TTS_SERVICE" not in xml:
+              query = """    <queries>
+                  <intent>
+                      <action android:name="android.intent.action.TTS_SERVICE" />
+                  </intent>
+              </queries>
+          """
+              xml = xml.replace("<application", query + "    <application", 1)
+              manifest.write_text(xml)
+          PY
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
