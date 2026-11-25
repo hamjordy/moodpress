@@ -167,10 +167,10 @@ void main() {
     expect(find.text('Eerdere notities'), findsOneWidget);
     expect(find.textContaining('Ik heb een fijne wandeling gemaakt.'), findsOneWidget);
 
-    await tester.tap(find.textContaining('dinsdag 24 november'));
+    await tester.tap(find.textContaining('Dinsdag 24 november'));
     await tester.pumpAndSettle();
 
-    final textField = tester.widget<TextField>(find.byType(TextField).first);
+    final textField = tester.widget<TextField>(find.descendant(of: find.byType(DagboekPage), matching: find.byType(TextField)).first);
     expect(textField.controller!.text, 'Ik heb een fijne wandeling gemaakt.');
   });
 
