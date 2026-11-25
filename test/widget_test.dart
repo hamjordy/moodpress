@@ -71,10 +71,8 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final controller = MoodPressController();
-    await tester.pumpWidget(
-      MaterialApp(home: MoodPressShell(controller: controller)),
-    );
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(MoodPressApp(controller: controller));
     await tester.pumpAndSettle();
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
@@ -85,26 +83,26 @@ void main() {
 
     final reminderLabel = find.text('Herinneringen in de app');
     await tester.ensureVisible(reminderLabel);
-    expect(controller.preferences.inAppRemindersEnabled, isFalse);
-    expect(tester.widget<SwitchListTile>(find.ancestor(
-      of: reminderLabel,
-      matching: find.byType(SwitchListTile),
-    )).value, isFalse);
-
     final reminderTile = find.ancestor(
       of: reminderLabel,
       matching: find.byType(SwitchListTile),
     );
+    final reminderSwitch = find.descendant(
+      of: reminderTile,
+      matching: find.byType(Switch),
+    );
 
-    // Invoke the same callback supplied to SwitchListTile. This avoids
-    // relying on pointer hit-testing of the compact switch thumb in CI.
-    final tile = tester.widget<SwitchListTile>(reminderTile);
-    await tile.onChanged!(true);
+    expect(controller.preferences.inAppRemindersEnabled, isFalse);
+    expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
+
+    // Use the real app root so controller notifications rebuild the visible
+    // switch exactly as they do when MoodPress is running normally.
+    await tester.tap(reminderSwitch);
     await tester.pumpAndSettle();
     expect(controller.preferences.inAppRemindersEnabled, isTrue);
     expect(tester.widget<SwitchListTile>(reminderTile).value, isTrue);
 
-    await tester.widget<SwitchListTile>(reminderTile).onChanged!(false);
+    await tester.tap(reminderSwitch);
     await tester.pumpAndSettle();
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
     expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
