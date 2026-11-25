@@ -1149,6 +1149,7 @@ class MoodPressController extends ChangeNotifier {
         for (final entry in weeklyRoutine.days.entries)
           entry.key.toString(): templateJson(entry.value),
       },
+      'prikkelMetingen': prikkelMetingen.map((item) => item.toJson()).toList(),
       'photos': photos,
     };
 
@@ -1272,6 +1273,14 @@ class MoodPressController extends ChangeNotifier {
       }
       final restoredRoutine = WeeklyRoutine(days: routineDays);
 
+      final rawPrikkelMetingen = document['prikkelMetingen'];
+      final restoredPrikkelMetingen = rawPrikkelMetingen is List
+          ? rawPrikkelMetingen
+              .whereType<Map<String, dynamic>>()
+              .map(PrikkelMeting.fromJson)
+              .toList()
+          : <PrikkelMeting>[];
+
       final rawSupport = document['support'];
       if (rawSupport is! Map<String, dynamic>) {
         throw FormatException('Het steunplan in deze back-up is niet geldig.');
@@ -1299,6 +1308,9 @@ class MoodPressController extends ChangeNotifier {
           restoredTemplates.map((item) => item.toJson()).toList(),
         ),
         _weeklyRoutineKey: jsonEncode(restoredRoutine.toJson()),
+        _prikkelMetingenKey: jsonEncode(
+          restoredPrikkelMetingen.map((item) => item.toJson()).toList(),
+        ),
       };
       final previousStorage = <String, String?>{};
       for (final key in nextStorage.keys) {
@@ -1331,6 +1343,7 @@ class MoodPressController extends ChangeNotifier {
       preferences = restoredPreferences;
       templates = restoredTemplates;
       weeklyRoutine = restoredRoutine;
+      prikkelMetingen = restoredPrikkelMetingen;
       storageNotice = null;
       notifyListeners();
     } catch (_) {
