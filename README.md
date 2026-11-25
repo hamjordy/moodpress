@@ -75,4 +75,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.12.0 — activiteiten kunnen nu een eigen stappenplan krijgen. Vink maximaal 12 kleine stappen afzonderlijk af; de voortgang wordt lokaal opgeslagen.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.12.1 — activiteiten kunnen nu een eigen stappenplan krijgen. Vink maximaal 12 kleine stappen afzonderlijk af; de voortgang wordt lokaal opgeslagen.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.

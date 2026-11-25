@@ -2574,6 +2574,7 @@ class ActivityCard extends StatelessWidget {
           ]),
         ),
       );
+  }
 }
 
 Future<void> editActivity(BuildContext context, MoodPressController controller, {DayActivity? existing}) async {
