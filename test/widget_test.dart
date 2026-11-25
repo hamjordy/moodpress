@@ -1349,7 +1349,11 @@ void main() {
     final controller = MoodPressController();
     await tester.pumpWidget(
       MaterialApp(
-        home: TodayPage(controller: controller, openPlan: () {}),
+        home: TodayPage(
+          controller: controller,
+          openPlan: () {},
+          openPrikkel: () {},
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -1359,6 +1363,8 @@ void main() {
     expect(find.text('We doen het rustig aan. Eén ding tegelijk.'), findsOneWidget);
     expect(find.text('DIT IS JE VOLGENDE STAP'), findsOneWidget);
     expect(find.text('Hoe is het nu met je?'), findsOneWidget);
+    expect(find.text('Prikkelmeter'), findsOneWidget);
+    expect(find.text('Open prikkelmeter'), findsOneWidget);
   });
 
 
