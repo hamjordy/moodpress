@@ -1289,4 +1289,35 @@ void main() {
   });
 
 
+  test('prikkel meter levels and measurement data are safely represented', () {
+    expect(prikkelNiveaus, [
+      'Helemaal rustig',
+      'Een beetje prikkels',
+      'Best veel prikkels',
+      'Erg veel prikkels',
+      'Overprikkeld',
+    ]);
+
+    final measurement = PrikkelMeting(
+      id: 'meter-test',
+      level: 4,
+      createdAt: DateTime(2026, 11, 25, 18, 30),
+      note: 'Veel geluid',
+    );
+    final restored = PrikkelMeting.fromJson(measurement.toJson());
+
+    expect(restored.id, 'meter-test');
+    expect(restored.level, 4);
+    expect(restored.createdAt, DateTime(2026, 11, 25, 18, 30));
+    expect(restored.note, 'Veel geluid');
+  });
+
+  test('prikkel meter rejects invalid levels when saving', () async {
+    final controller = MoodPressController();
+    await controller.savePrikkelMeting(0, 'Ongeldig');
+    await controller.savePrikkelMeting(6, 'Ongeldig');
+    expect(controller.prikkelMetingen, isEmpty);
+  });
+
+
 }
