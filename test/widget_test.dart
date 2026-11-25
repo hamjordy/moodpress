@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -242,6 +243,45 @@ void main() {
 
     await expectLater(
       decryptMoodPressBackup(bytes, 'een-andere-wachtwoordzin'),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('backup rejects encrypted data that has been changed', () async {
+    final source = <String, dynamic>{
+      'app': 'MoodPress',
+      'dataVersion': 1,
+      'privateNote': 'Deze tekst moet beschermd blijven.',
+    };
+    final original = await encryptMoodPressBackup(
+      source,
+      'mijn-veilig-wachtwoord',
+    );
+    const header = 'MOODPRESS_BACKUP_V1\\n';
+    final headerLength = utf8.encode(header).length;
+    final envelope = jsonDecode(
+      utf8.decode(original.sublist(headerLength)),
+    ) as Map<String, dynamic>;
+    final cipherText = base64Decode(envelope['cipherText'] as String);
+    cipherText[0] ^= 1;
+    envelope['cipherText'] = base64Encode(cipherText);
+    final tampered = Uint8List.fromList([
+      ...utf8.encode(header),
+      ...utf8.encode(jsonEncode(envelope)),
+    ]);
+
+    await expectLater(
+      decryptMoodPressBackup(tampered, 'mijn-veilig-wachtwoord'),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
+  test('backup rejects a file with an unknown header', () async {
+    await expectLater(
+      decryptMoodPressBackup(
+        Uint8List.fromList(utf8.encode('NOT_A_MOODPRESS_BACKUP')),
+        'mijn-veilig-wachtwoord',
+      ),
       throwsA(isA<FormatException>()),
     );
   });
