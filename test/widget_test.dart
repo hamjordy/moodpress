@@ -293,6 +293,42 @@ void main() {
     expect(copied.first.photoPath, source.first.photoPath);
   });
 
+  test('copying one activity creates a new unfinished copy and keeps the original', () {
+    final original = DayActivity(
+      id: 'original-activity',
+      title: 'Naar de winkel',
+      time: '10:30',
+      who: 'Ik en begeleider',
+      what: 'Boodschappen doen',
+      where: 'De supermarkt',
+      how: 'Rustig samen lopen',
+      note: 'Neem een tas mee',
+      symbol: '🛒',
+      photoPath: '/local/moodpress/winkel.jpg',
+      done: true,
+    );
+
+    final copied = copyDayActivity(
+      original,
+      newId: 'copy-activity-123',
+    );
+
+    expect(copied.id, 'copy-activity-123');
+    expect(copied.id, isNot(original.id));
+    expect(copied.done, isFalse);
+    expect(copied.title, original.title);
+    expect(copied.time, original.time);
+    expect(copied.who, original.who);
+    expect(copied.what, original.what);
+    expect(copied.where, original.where);
+    expect(copied.how, original.how);
+    expect(copied.note, original.note);
+    expect(copied.symbol, original.symbol);
+    expect(copied.photoPath, original.photoPath);
+    expect(original.done, isTrue);
+    expect(original.id, 'original-activity');
+  });
+
   test('moving an activity to another day preserves its details and status', () {
     final source = [
       DayActivity(

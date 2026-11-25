@@ -305,6 +305,12 @@ List<DayActivity> copyDayActivities(
       ),
     );
 
+DayActivity copyDayActivity(
+  DayActivity source, {
+  required String newId,
+}) =>
+    source.copyWith(id: newId, done: false);
+
 bool moveDayActivityBetweenLists(
   List<DayActivity> source,
   List<DayActivity> destination, {
@@ -650,6 +656,34 @@ class MoodPressController extends ChangeNotifier {
     await _saveDayPlans();
     notifyListeners();
     return source.length;
+  }
+
+  Future<bool> copyActivityToDate(
+    DateTime sourceDate,
+    String activityId,
+    DateTime targetDate,
+  ) async {
+    final sourceKey = _dateKey(sourceDate);
+    final targetKey = _dateKey(targetDate);
+    if (sourceKey == targetKey) return false;
+
+    final source = _plansByDate[sourceKey];
+    if (source == null) return false;
+    final index = source.indexWhere((activity) => activity.id == activityId);
+    if (index == -1) return false;
+
+    final prefix = 'copy-activity-' +
+        DateTime.now().microsecondsSinceEpoch.toString();
+    final destination = _plansByDate.putIfAbsent(
+      targetKey,
+      () => <DayActivity>[],
+    );
+    destination.add(
+      copyDayActivity(source[index], newId: prefix),
+    );
+    await _saveDayPlans();
+    notifyListeners();
+    return true;
   }
 
   Future<bool> moveActivityToDate(
@@ -1495,6 +1529,49 @@ class _PlanningPageState extends State<PlanningPage> {
     );
   }
 
+  Future<void> _copyActivityToDate(
+    BuildContext context,
+    DateTime sourceDate,
+    DayActivity activity,
+  ) async {
+    final targetDate = await showDatePicker(
+      context: context,
+      initialDate: sourceDate.add(const Duration(days: 1)),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Kies de datum voor de kopie',
+      cancelText: 'Annuleren',
+      confirmText: 'Kopiëren',
+    );
+    if (targetDate == null || !context.mounted) return;
+
+    if (_dateKey(targetDate) == _dateKey(sourceDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kies een andere datum dan de huidige dag.')),
+      );
+      return;
+    }
+
+    final copied = await widget.controller.copyActivityToDate(
+      sourceDate,
+      activity.id,
+      targetDate,
+    );
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          copied
+              ? 'Activiteit gekopieerd naar ' +
+                  _formatDutchWeekday(targetDate) + ' ' +
+                  _formatDutchDate(targetDate) + '.'
+              : 'De activiteit kon niet worden gekopieerd.',
+        ),
+      ),
+    );
+  }
+
   Future<void> _moveActivityToDate(
     BuildContext context,
     DateTime sourceDate,
@@ -1883,6 +1960,7 @@ class _PlanningPageState extends State<PlanningPage> {
                   toggle: () => widget.controller.toggleActivity(item.id),
                   edit: () => editActivity(context, widget.controller, existing: item),
                   delete: () => confirmDelete(context, widget.controller, item),
+                  copy: () => _copyActivityToDate(context, date, item),
                   move: () => _moveActivityToDate(context, date, item),
                   reorderHandle: ReorderableDragStartListener(
                     index: index,
@@ -2247,12 +2325,13 @@ class _PlanningPageState extends State<PlanningPage> {
   }
 }
 class ActivityCard extends StatelessWidget {
-  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete, required this.move, required this.reorderHandle});
+  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete, required this.copy, required this.move, required this.reorderHandle});
   final DayActivity activity;
   final double speechRate;
   final VoidCallback toggle;
   final VoidCallback edit;
   final VoidCallback delete;
+  final VoidCallback copy;
   final VoidCallback move;
   final Widget reorderHandle;
 
@@ -2287,11 +2366,13 @@ class ActivityCard extends StatelessWidget {
               tooltip: 'Meer opties',
               onSelected: (choice) {
                 if (choice == 'edit') edit();
+                if (choice == 'copy') copy();
                 if (choice == 'move') move();
                 if (choice == 'delete') delete();
               },
               itemBuilder: (context) => const [
                 PopupMenuItem(value: 'edit', child: Text('Bewerken')),
+                PopupMenuItem(value: 'copy', child: Text('Kopieer naar datum')),
                 PopupMenuItem(value: 'move', child: Text('Verplaatsen naar datum')),
                 PopupMenuItem(value: 'delete', child: Text('Verwijderen')),
               ],
