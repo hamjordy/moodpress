@@ -1110,14 +1110,14 @@ void main() {
     var node = tester.getSemantics(find.byType(FeelingChoice));
     expect(node.label, 'Rustig');
     expect(node.flagsCollection.isButton, isTrue);
-    expect(node.flagsCollection.isSelected, isFalse);
+    expect(node.flagsCollection.isSelected.toBoolOrNull(), isFalse);
     // Button semantics are verified by the isButton flag above.
 
     await tester.tap(find.text('Rustig'));
     await tester.pump();
 
     node = tester.getSemantics(find.byType(FeelingChoice));
-    expect(node.flagsCollection.isSelected, isTrue);
+    expect(node.flagsCollection.isSelected.toBoolOrNull(), isTrue);
     semanticsHandle.dispose();
   });
 
