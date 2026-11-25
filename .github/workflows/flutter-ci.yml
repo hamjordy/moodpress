@@ -152,7 +152,7 @@ jobs:
               raise SystemExit("Expected generated android/app/build.gradle.kts was not found")
           content = path.read_text()
           if "import java.util.Properties" not in content:
-              content = "import java.util.Properties\\nimport java.io.FileInputStream\\n\\n" + content
+              content = "import java.util.Properties\nimport java.io.FileInputStream\n\n" + content
           marker = "android {"
           if marker not in content:
               raise SystemExit("Could not find android block in generated Gradle file")
