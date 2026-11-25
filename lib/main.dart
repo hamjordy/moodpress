@@ -170,6 +170,11 @@ List<String> parseActivitySteps(String value) => value
     .take(12)
     .toList();
 
+int safeFocusedActivityIndex(int requestedIndex, int activityCount) {
+  if (activityCount <= 0) return 0;
+  return requestedIndex.clamp(0, activityCount - 1).toInt();
+}
+
 bool toggleDayActivityStep(DayActivity activity, int index) {
   if (index < 0 || index >= activity.steps.length) return false;
   activity.stepDone = _normalizeStepProgress(
@@ -1510,6 +1515,8 @@ class PlanningPage extends StatefulWidget {
 
 class _PlanningPageState extends State<PlanningPage> {
   bool _showWeek = true;
+  bool _singleActivityMode = false;
+  int _focusedActivityIndex = 0;
   late DateTime _weekStart;
 
   @override
@@ -1681,8 +1688,13 @@ class _PlanningPageState extends State<PlanningPage> {
     );
   }
 
-  void _openDay(DateTime date) {
+  void _selectDay(DateTime date) {
+    setState(() => _focusedActivityIndex = 0);
     widget.controller.selectDate(date);
+  }
+
+  void _openDay(DateTime date) {
+    _selectDay(date);
     setState(() => _showWeek = false);
   }
 
@@ -1940,6 +1952,231 @@ class _PlanningPageState extends State<PlanningPage> {
     );
   }
 
+  Widget _activityDetail(String label, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 11),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: _green,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: const TextStyle(color: _ink, fontSize: 15, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleActivityView(
+    BuildContext context,
+    List<DayActivity> items,
+  ) {
+    final index = safeFocusedActivityIndex(
+      _focusedActivityIndex,
+      items.length,
+    );
+    final activity = items[index];
+    final completedSteps =
+        activity.stepDone.where((value) => value).length;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(21),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Activiteit ' + (index + 1).toString() +
+                  ' van ' + items.length.toString(),
+              style: const TextStyle(
+                color: _muted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 15),
+            Center(
+              child: Text(
+                activity.symbol,
+                style: const TextStyle(fontSize: 48),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                activity.time,
+                style: const TextStyle(
+                  color: _green,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                activity.title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 23,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (activity.photoPath.isNotEmpty &&
+                File(activity.photoPath).existsSync()) ...[
+              const SizedBox(height: 15),
+              Center(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.file(
+                    File(activity.photoPath),
+                    height: 190,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+            ],
+            _activityDetail('Wie?', activity.who),
+            _activityDetail('Wat?', activity.what),
+            _activityDetail('Waar?', activity.where),
+            _activityDetail('Hoe?', activity.how),
+            _activityDetail('Extra uitleg', activity.note),
+            if (activity.steps.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              const Divider(),
+              const SizedBox(height: 9),
+              const Text(
+                'Mijn kleine stappen',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 5, bottom: 5),
+                child: Text(
+                  completedSteps.toString() + ' van ' +
+                      activity.steps.length.toString() + ' afgevinkt',
+                  style: const TextStyle(color: _muted, fontSize: 12),
+                ),
+              ),
+              for (var stepIndex = 0;
+                  stepIndex < activity.steps.length;
+                  stepIndex++)
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  visualDensity: VisualDensity.compact,
+                  value: stepIndex < activity.stepDone.length
+                      ? activity.stepDone[stepIndex]
+                      : false,
+                  title: Text(
+                    activity.steps[stepIndex],
+                    style: const TextStyle(color: _ink, fontSize: 14),
+                  ),
+                  onChanged: (_) => widget.controller.toggleActivityStep(
+                    activity.id,
+                    stepIndex,
+                  ),
+                ),
+            ],
+            const SizedBox(height: 17),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () => editActivity(
+                    context,
+                    widget.controller,
+                    existing: activity,
+                  ),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: const Text('Aanpassen'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => widget.controller.toggleActivity(activity.id),
+                  icon: Icon(
+                    activity.done
+                        ? Icons.undo_rounded
+                        : Icons.check_circle_outline_rounded,
+                  ),
+                  label: Text(
+                    activity.done
+                        ? 'Zet weer open'
+                        : 'Markeer als afgerond',
+                  ),
+                ),
+                SpeakButton(
+                  text: activity.title + '. ' + activity.time +
+                      '. Wie: ' + activity.who +
+                      '. Wat: ' + activity.what +
+                      '. Waar: ' + activity.where +
+                      '. Hoe: ' + activity.how +
+                      (activity.note.isEmpty ? '' : '. ' + activity.note) +
+                      (activity.steps.isEmpty
+                          ? ''
+                          : '. Stappen: ' + activity.steps.join('. ')),
+                  speechRate: widget.controller.preferences.speechRate,
+                ),
+              ],
+            ),
+            const Divider(height: 30),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: index > 0
+                        ? () => setState(
+                              () => _focusedActivityIndex = index - 1,
+                            )
+                        : null,
+                    icon: const Icon(Icons.chevron_left_rounded),
+                    label: const Text('Vorige'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: index < items.length - 1
+                        ? () => setState(
+                              () => _focusedActivityIndex = index + 1,
+                            )
+                        : null,
+                    icon: const Icon(Icons.chevron_right_rounded),
+                    label: const Text('Volgende'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: TextButton.icon(
+                onPressed: () => setState(() => _singleActivityMode = false),
+                icon: const Icon(Icons.view_agenda_outlined),
+                label: const Text('Toon alle activiteiten'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDay(BuildContext context) {
     final date = widget.controller.selectedDate;
     final items = widget.controller.activities;
@@ -2003,12 +2240,34 @@ class _PlanningPageState extends State<PlanningPage> {
           Align(
             alignment: Alignment.centerLeft,
             child: OutlinedButton.icon(
+              onPressed: () => setState(() {
+                _singleActivityMode = !_singleActivityMode;
+                _focusedActivityIndex = 0;
+              }),
+              icon: Icon(
+                _singleActivityMode
+                    ? Icons.view_agenda_outlined
+                    : Icons.filter_1_rounded,
+              ),
+              label: Text(
+                _singleActivityMode
+                    ? 'Toon alle activiteiten'
+                    : 'Eén activiteit tegelijk',
+              ),
+            ),
+          ),
+        if (items.isNotEmpty && _singleActivityMode)
+          _buildSingleActivityView(context, items),
+        if (items.isNotEmpty && !_singleActivityMode)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
               onPressed: () => _copyDayToDate(context, date),
               icon: const Icon(Icons.content_copy_rounded),
               label: const Text('Kopieer dit dagplan naar een andere datum'),
             ),
           ),
-        if (items.isNotEmpty)
+        if (items.isNotEmpty && !_singleActivityMode)
           ReorderableListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -2070,7 +2329,7 @@ class _PlanningPageState extends State<PlanningPage> {
               label: const Text('Bewaar als vast weekritme'),
             ),
             TextButton.icon(
-              onPressed: () => widget.controller.selectDate(DateTime.now()),
+              onPressed: () => _selectDay(DateTime.now()),
               icon: const Icon(Icons.today_outlined),
               label: const Text('Vandaag'),
             ),

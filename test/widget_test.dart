@@ -84,6 +84,13 @@ void main() {
     expect(parseActivitySteps(tooMany), hasLength(12));
   });
 
+  test('single-activity view keeps its selected index within the day plan', () {
+    expect(safeFocusedActivityIndex(2, 5), 2);
+    expect(safeFocusedActivityIndex(-4, 5), 0);
+    expect(safeFocusedActivityIndex(20, 5), 4);
+    expect(safeFocusedActivityIndex(0, 0), 0);
+  });
+
   test('activity steps can be checked independently', () {
     final activity = DayActivity(
       id: 'steps',
