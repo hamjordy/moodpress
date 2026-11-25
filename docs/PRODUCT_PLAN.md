@@ -41,6 +41,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
 - [x] Eén instelling om alle voorleesknoppen in de app uit en aan te zetten; de keuze blijft lokaal bewaard en oude instellingen blijven compatibel.
 - [x] Regressietest controleert dat tekstgrootte, voorleessnelheid, rustige weergave, herinneringen en voorlezen elkaars voorkeuren behouden.
+- [x] Regressietest controleert dat het terugzetten van instellingen alle toegankelijkheidsvoorkeuren herstelt naar veilige standaardwaarden.
 - [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
 - [x] Rustige herinneringen die volledig uit te zetten zijn (in-app, zolang MoodPress open is; standaard uit).
 - [x] Volledige lokale back-up en terugzetten van planning, sjablonen, weekritme, steunplan, voorkeuren en activiteitfoto’s, versleuteld met een eigen wachtwoord.
@@ -72,6 +73,11 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Privacy/security review en besluit over eventuele gegevensuitwisseling.
 
 ### Fase 4 — releasevoorbereiding
+- [ ] Praktijktest op een echt Android-apparaat met fictieve gegevens.
+- [ ] Praktijktest op Windows 11 met fictieve gegevens.
+- [ ] Toegankelijkheid controleren met TalkBack en NVDA of Narrator.
+- [ ] Gegevensbehoud, back-up en herstel op beide platforms handmatig controleren.
+- [ ] Bevindingen oplossen en hertesten voordat een releasekandidaat wordt gemaakt.
 - Android signing, Windows installer, crash reporting alleen na privacybeoordeling.
 - DPIA/AVG-documentatie, verwerkersafspraken indien van toepassing.
 - MDR-kwalificatie op basis van definitieve intended purpose.

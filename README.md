@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.29 — extra controle dat lege en te grote back-upbestanden direct worden geweigerd.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Huidige ontwikkelversie: 0.15.35+53.** De automatische Flutter-controles voor code-analyse, tests en Android- en Windows-builds zijn geslaagd. De volgende stap is handmatig testen op echte Android- en Windows-apparaten, inclusief toegankelijkheid, gegevensbehoud en back-up/herstel. Deze praktijktests en doelgroepbeoordeling zijn nog niet afgerond. Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
