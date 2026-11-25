@@ -815,7 +815,7 @@ void main() {
     expect(restored.stepDone, isEmpty);
   });
   test('backup rejects malformed envelope JSON', () async {
-    const header = 'MOODPRESS_BACKUP_V1\\n';
+    const header = 'MOODPRESS_BACKUP_V1\n';
     final bytes = Uint8List.fromList([
       ...utf8.encode(header),
       ...utf8.encode('{not-json'),
@@ -828,7 +828,7 @@ void main() {
   });
 
   test('backup rejects unsupported envelope metadata', () async {
-    const header = 'MOODPRESS_BACKUP_V1\\n';
+    const header = 'MOODPRESS_BACKUP_V1\n';
     final envelope = jsonEncode({
       'format': 'MoodPressEncryptedBackup',
       'version': 999,
