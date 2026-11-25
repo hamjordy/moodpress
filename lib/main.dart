@@ -243,17 +243,19 @@ class DayActivity {
         ? rawProgress.whereType<bool>().toList()
         : <bool>[];
     return DayActivity(
-      id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
-      title: json['title'] as String? ?? 'Nieuwe activiteit',
-      time: json['time'] as String? ?? '09:00',
-      who: json['who'] as String? ?? '',
-      what: json['what'] as String? ?? '',
-      where: json['where'] as String? ?? '',
-      how: json['how'] as String? ?? '',
-      note: json['note'] as String? ?? '',
-      symbol: json['symbol'] as String? ?? '📌',
-      photoPath: json['photoPath'] as String? ?? '',
-      done: json['done'] as bool? ?? false,
+      id: json['id'] is String && (json['id'] as String).isNotEmpty
+          ? json['id'] as String
+          : DateTime.now().microsecondsSinceEpoch.toString(),
+      title: json['title'] is String ? json['title'] as String : 'Nieuwe activiteit',
+      time: json['time'] is String ? json['time'] as String : '09:00',
+      who: json['who'] is String ? json['who'] as String : '',
+      what: json['what'] is String ? json['what'] as String : '',
+      where: json['where'] is String ? json['where'] as String : '',
+      how: json['how'] is String ? json['how'] as String : '',
+      note: json['note'] is String ? json['note'] as String : '',
+      symbol: json['symbol'] is String ? json['symbol'] as String : '📌',
+      photoPath: json['photoPath'] is String ? json['photoPath'] as String : '',
+      done: json['done'] is bool ? json['done'] as bool : false,
       steps: steps,
       stepDone: _normalizeStepProgress(steps, progress),
     );
@@ -299,8 +301,10 @@ class DayTemplate {
   factory DayTemplate.fromJson(Map<String, dynamic> json) {
     final rawActivities = json['activities'];
     return DayTemplate(
-      id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
-      name: json['name'] as String? ?? 'Dagindeling',
+      id: json['id'] is String && (json['id'] as String).isNotEmpty
+          ? json['id'] as String
+          : DateTime.now().microsecondsSinceEpoch.toString(),
+      name: json['name'] is String ? json['name'] as String : 'Dagindeling',
       activities: rawActivities is List
           ? rawActivities.whereType<Map<String, dynamic>>().map(DayActivity.fromJson).toList()
           : <DayActivity>[],
@@ -473,10 +477,12 @@ class MoodPressPreferences {
       speechRate: rawSpeechRate is num
           ? rawSpeechRate.toDouble().clamp(0.3, 0.6).toDouble()
           : 0.42,
-      reduceMotion: json['reduceMotion'] as bool? ?? false,
-      inAppRemindersEnabled: json['inAppRemindersEnabled'] as bool? ?? false,
+      reduceMotion: json['reduceMotion'] is bool ? json['reduceMotion'] as bool : false,
+      inAppRemindersEnabled: json['inAppRemindersEnabled'] is bool
+          ? json['inAppRemindersEnabled'] as bool
+          : false,
       // Existing preference files did not contain this field; keep speech on.
-      speechEnabled: json['speechEnabled'] as bool? ?? true,
+      speechEnabled: json['speechEnabled'] is bool ? json['speechEnabled'] as bool : true,
     );
   }
 }

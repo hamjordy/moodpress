@@ -296,6 +296,43 @@ void main() {
     );
   });
 
+  test('activity, template and preferences ignore fields with wrong data types', () {
+    final activity = DayActivity.fromJson({
+      'id': 42,
+      'title': false,
+      'time': ['10:00'],
+      'who': null,
+      'done': 'yes',
+      'steps': ['Eerste stap'],
+      'stepDone': [true],
+    });
+    expect(activity.id, isNotEmpty);
+    expect(activity.title, 'Nieuwe activiteit');
+    expect(activity.time, '09:00');
+    expect(activity.who, '');
+    expect(activity.done, isFalse);
+    expect(activity.steps, ['Eerste stap']);
+    expect(activity.stepDone, [true]);
+
+    final template = DayTemplate.fromJson({
+      'id': 99,
+      'name': false,
+      'activities': 'geen lijst',
+    });
+    expect(template.id, isNotEmpty);
+    expect(template.name, 'Dagindeling');
+    expect(template.activities, isEmpty);
+
+    final preferences = MoodPressPreferences.fromJson({
+      'reduceMotion': 'true',
+      'inAppRemindersEnabled': 1,
+      'speechEnabled': null,
+    });
+    expect(preferences.reduceMotion, isFalse);
+    expect(preferences.inAppRemindersEnabled, isFalse);
+    expect(preferences.speechEnabled, isTrue);
+  });
+
   test('activity data can be saved and restored', () {
     final original = DayActivity(
       id: 'activity-1',
