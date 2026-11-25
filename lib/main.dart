@@ -992,6 +992,37 @@ class MoodPressController extends ChangeNotifier {
     if (prikkelMetingen.length > 200) {
       prikkelMetingen = prikkelMetingen.take(200).toList();
     }
+    await _savePrikkelMetingen();
+  }
+
+  Future<bool> updatePrikkelMeting(
+    String id, {
+    required int level,
+    required String note,
+  }) async {
+    if (level < 1 || level > 5) return false;
+    final index = prikkelMetingen.indexWhere((item) => item.id == id);
+    if (index < 0) return false;
+    final current = prikkelMetingen[index];
+    prikkelMetingen[index] = PrikkelMeting(
+      id: current.id,
+      level: level,
+      createdAt: current.createdAt,
+      note: note.trim(),
+    );
+    await _savePrikkelMetingen();
+    return true;
+  }
+
+  Future<bool> deletePrikkelMeting(String id) async {
+    final index = prikkelMetingen.indexWhere((item) => item.id == id);
+    if (index < 0) return false;
+    prikkelMetingen.removeAt(index);
+    await _savePrikkelMetingen();
+    return true;
+  }
+
+  Future<void> _savePrikkelMetingen() async {
     try {
       await _storage.write(
         key: _prikkelMetingenKey,
@@ -4284,6 +4315,97 @@ class _CalmPageState extends State<CalmPage> {
     );
   }
 
+  Future<void> _bewerkPrikkelMeting(PrikkelMeting meting) async {
+    final noteController = TextEditingController(text: meting.note);
+    var selectedLevel = meting.level;
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) => AlertDialog(
+          title: const Text('Meting bewerken'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Hoeveel prikkels had je?'),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<int>(
+                  value: selectedLevel,
+                  items: const [
+                    DropdownMenuItem(value: 1, child: Text('1 · Helemaal rustig')),
+                    DropdownMenuItem(value: 2, child: Text('2 · Een beetje prikkels')),
+                    DropdownMenuItem(value: 3, child: Text('3 · Best veel prikkels')),
+                    DropdownMenuItem(value: 4, child: Text('4 · Erg veel prikkels')),
+                    DropdownMenuItem(value: 5, child: Text('5 · Overprikkeld')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setDialogState(() => selectedLevel = value);
+                    }
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: noteController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Notitie',
+                    hintText: 'Wat speelde er op dat moment?',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuleren'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Opslaan'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (saved == true && mounted) {
+      await widget.controller.updatePrikkelMeting(
+        meting.id,
+        level: selectedLevel,
+        note: noteController.text,
+      );
+    }
+    noteController.dispose();
+  }
+
+  Future<void> _verwijderPrikkelMeting(PrikkelMeting meting) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Meting verwijderen?'),
+        content: const Text(
+          'Deze prikkelmeting en de bijbehorende notitie worden verwijderd. Dit kun je niet ongedaan maken.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuleren'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Verwijderen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await widget.controller.deletePrikkelMeting(meting.id);
+    }
+  }
+
   Future<void> _toonPrikkelPuntDetails(
     BuildContext context,
     PrikkelGrafiekPunt point,
@@ -4358,6 +4480,22 @@ class _CalmPageState extends State<CalmPage> {
                                   ? 'Geen notitie toegevoegd.'
                                   : meting.note,
                               style: const TextStyle(color: _muted),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                TextButton.icon(
+                                  onPressed: () => _bewerkPrikkelMeting(meting),
+                                  icon: const Icon(Icons.edit_outlined, size: 16),
+                                  label: const Text('Bewerken'),
+                                ),
+                                TextButton.icon(
+                                  onPressed: () => _verwijderPrikkelMeting(meting),
+                                  icon: const Icon(Icons.delete_outline, size: 16),
+                                  label: const Text('Verwijderen'),
+                                ),
+                              ],
                             ),
                           ],
                         ),
