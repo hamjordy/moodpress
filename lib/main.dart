@@ -2421,83 +2421,119 @@ class _PlanningPageState extends State<PlanningPage> {
             (items.length == 1 ? ' activiteit · ' : ' activiteiten · ') +
             completed.toString() + ' afgerond';
 
+    final dayBadge = Container(
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: _greenPale,
+        borderRadius: BorderRadius.circular(13),
+      ),
+      child: Text(
+        date.day.toString(),
+        style: const TextStyle(
+          color: _green,
+          fontWeight: FontWeight.w800,
+          fontSize: 17,
+        ),
+      ),
+    );
+
+    final dayInfo = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          _formatDutchWeekday(date),
+          style: const TextStyle(
+            color: _ink,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 3),
+        if (widget.controller.weeklyRoutine.forWeekday(date.weekday) != null)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 3),
+            child: Text(
+              'Vaste indeling beschikbaar',
+              style: TextStyle(
+                color: _green,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        Text(
+          summary,
+          style: const TextStyle(color: _muted, fontSize: 12),
+        ),
+      ],
+    );
+
+    final dayActions = Wrap(
+      spacing: 4,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        TextButton(
+          onPressed: () => _openDay(date),
+          child: const Text('Open dag'),
+        ),
+        PopupMenuButton<String>(
+          tooltip: 'Dagindeling toepassen',
+          enabled: widget.controller.templates.isNotEmpty,
+          icon: const Icon(Icons.copy_all_outlined, color: _green),
+          onSelected: (templateId) =>
+              _applyTemplateToDate(context, date, templateId),
+          itemBuilder: (context) => widget.controller.templates
+              .map(
+                (template) => PopupMenuItem<String>(
+                  value: template.id,
+                  child: Text(template.name),
+                ),
+              )
+              .toList(),
+        ),
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
       child: Card(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-          child: Row(
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _greenPale,
-                  borderRadius: BorderRadius.circular(13),
-                ),
-                child: Text(
-                  date.day.toString(),
-                  style: const TextStyle(
-                    color: _green,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 17,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 620) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      _formatDutchWeekday(date),
-                      style: const TextStyle(
-                        color: _ink,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        dayBadge,
+                        const SizedBox(width: 12),
+                        Expanded(child: dayInfo),
+                      ],
                     ),
-                    const SizedBox(height: 3),
-                    if (widget.controller.weeklyRoutine.forWeekday(date.weekday) != null)
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 3),
-                        child: Text(
-                          'Vaste indeling beschikbaar',
-                          style: TextStyle(
-                            color: _green,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    Text(
-                      summary,
-                      style: const TextStyle(color: _muted, fontSize: 12),
+                    const SizedBox(height: 5),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: dayActions,
                     ),
                   ],
-                ),
-              ),
-              TextButton(
-                onPressed: () => _openDay(date),
-                child: const Text('Open dag'),
-              ),
-              PopupMenuButton<String>(
-                tooltip: 'Dagindeling toepassen',
-                enabled: widget.controller.templates.isNotEmpty,
-                icon: const Icon(Icons.copy_all_outlined, color: _green),
-                onSelected: (templateId) =>
-                    _applyTemplateToDate(context, date, templateId),
-                itemBuilder: (context) => widget.controller.templates
-                    .map(
-                      (template) => PopupMenuItem<String>(
-                        value: template.id,
-                        child: Text(template.name),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
+                );
+              }
+
+              return Row(
+                children: [
+                  dayBadge,
+                  const SizedBox(width: 12),
+                  Expanded(child: dayInfo),
+                  dayActions,
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -3227,165 +3263,228 @@ class ActivityCard extends StatelessWidget {
   final VoidCallback move;
   final Widget reorderHandle;
 
+  Widget _timeBadge() => Container(
+        width: 55,
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: _greenPale,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          activity.time,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            color: _green,
+            fontWeight: FontWeight.w800,
+            fontSize: 12,
+          ),
+        ),
+      );
+
+  Widget _activityContent(int completedSteps) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: edit,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      activity.symbol,
+                      style: const TextStyle(fontSize: 24),
+                    ),
+                    const SizedBox(width: 9),
+                    Expanded(
+                      child: Text(
+                        activity.title,
+                        style: TextStyle(
+                          color: activity.done ? _muted : _ink,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          decoration: activity.done
+                              ? TextDecoration.lineThrough
+                              : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (activity.photoPath.isNotEmpty &&
+                    File(activity.photoPath).existsSync()) ...[
+                  const SizedBox(height: 9),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.file(
+                      File(activity.photoPath),
+                      height: 110,
+                      width: 150,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ],
+                if (activity.note.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 5),
+                    child: Text(
+                      activity.note,
+                      style: const TextStyle(color: _muted, fontSize: 13),
+                    ),
+                  ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Tik om de vijf vragen te bekijken',
+                  style: TextStyle(
+                    color: _green,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (activity.steps.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Stappen: ' +
+                  completedSteps.toString() +
+                  ' van ' +
+                  activity.steps.length.toString() +
+                  ' klaar',
+              style: const TextStyle(
+                color: _green,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            for (var index = 0; index < activity.steps.length; index++)
+              Row(
+                children: [
+                  Checkbox(
+                    value: index < activity.stepDone.length
+                        ? activity.stepDone[index]
+                        : false,
+                    visualDensity: VisualDensity.compact,
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    onChanged: (_) => toggleStep(index),
+                  ),
+                  Expanded(
+                    child: Text(
+                      activity.steps[index],
+                      style: const TextStyle(color: _ink, fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ],
+      );
+
+  String get _speechText =>
+      activity.title +
+      '. ' + activity.time +
+      '. Wie: ' + activity.who +
+      '. Wat: ' + activity.what +
+      '. Waar: ' + activity.where +
+      '. Hoe: ' + activity.how +
+      (activity.steps.isEmpty
+          ? ''
+          : '. Stappen: ' + activity.steps.join('. '));
+
+  Widget _speechButton() => SpeakButton(
+        text: _speechText,
+        speechRate: speechRate,
+        enabled: speechEnabled,
+      );
+
+  Widget _completionButton() => IconButton(
+        tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond',
+        onPressed: toggle,
+        icon: Icon(
+          activity.done ? Icons.check_circle : Icons.circle_outlined,
+          color: activity.done ? _green : _muted,
+        ),
+      );
+
+  Widget _moreMenu() => PopupMenuButton<String>(
+        tooltip: 'Meer opties',
+        onSelected: (choice) {
+          if (choice == 'edit') edit();
+          if (choice == 'copy') copy();
+          if (choice == 'move') move();
+          if (choice == 'delete') delete();
+        },
+        itemBuilder: (context) => const [
+          PopupMenuItem(value: 'edit', child: Text('Bewerken')),
+          PopupMenuItem(value: 'copy', child: Text('Kopieer naar datum')),
+          PopupMenuItem(value: 'move', child: Text('Verplaatsen naar datum')),
+          PopupMenuItem(value: 'delete', child: Text('Verwijderen')),
+        ],
+      );
+
+  Widget _compactActions() => Align(
+        alignment: Alignment.centerRight,
+        child: Wrap(
+          spacing: 4,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            reorderHandle,
+            _speechButton(),
+            _completionButton(),
+            _moreMenu(),
+          ],
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final completedSteps = activity.stepDone.where((value) => value).length;
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 55,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: _greenPale,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                activity.time,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: _green,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-            const SizedBox(width: 13),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final timeBadge = _timeBadge();
+            final content = _activityContent(completedSteps);
+
+            if (constraints.maxWidth < 620) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  InkWell(
-                    onTap: edit,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Text(activity.symbol, style: const TextStyle(fontSize: 24)),
-                            const SizedBox(width: 9),
-                            Expanded(
-                              child: Text(
-                                activity.title,
-                                style: TextStyle(
-                                  color: activity.done ? _muted : _ink,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  decoration: activity.done
-                                      ? TextDecoration.lineThrough
-                                      : null,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        if (activity.photoPath.isNotEmpty &&
-                            File(activity.photoPath).existsSync()) ...[
-                          const SizedBox(height: 9),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.file(
-                              File(activity.photoPath),
-                              height: 110,
-                              width: 150,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ],
-                        if (activity.note.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 5),
-                            child: Text(
-                              activity.note,
-                              style: const TextStyle(color: _muted, fontSize: 13),
-                            ),
-                          ),
-                        const SizedBox(height: 7),
-                        const Text(
-                          'Tik om de vijf vragen te bekijken',
-                          style: TextStyle(
-                            color: _green,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      timeBadge,
+                      const SizedBox(width: 13),
+                      Expanded(child: content),
+                    ],
                   ),
-                  if (activity.steps.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Text(
-                      'Stappen: ' +
-                          completedSteps.toString() +
-                          ' van ' +
-                          activity.steps.length.toString() +
-                          ' klaar',
-                      style: const TextStyle(
-                        color: _green,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    for (var index = 0; index < activity.steps.length; index++)
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: index < activity.stepDone.length
-                                ? activity.stepDone[index]
-                                : false,
-                            visualDensity: VisualDensity.compact,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            onChanged: (_) => toggleStep(index),
-                          ),
-                          Expanded(
-                            child: Text(
-                              activity.steps[index],
-                              style: const TextStyle(color: _ink, fontSize: 13),
-                            ),
-                          ),
-                        ],
-                      ),
-                  ],
+                  const SizedBox(height: 6),
+                  _compactActions(),
                 ],
-              ),
-            ),
-            reorderHandle,
-            SpeakButton(
-              text: activity.title +
-                  '. ' + activity.time +
-                  '. Wie: ' + activity.who +
-                  '. Wat: ' + activity.what +
-                  '. Waar: ' + activity.where +
-                  '. Hoe: ' + activity.how +
-                  (activity.steps.isEmpty
-                      ? ''
-                      : '. Stappen: ' + activity.steps.join('. ')),
-              speechRate: speechRate,
-              enabled: speechEnabled,
-            ),
-            IconButton(tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond', onPressed: toggle, icon: Icon(activity.done ? Icons.check_circle : Icons.circle_outlined, color: activity.done ? _green : _muted)),
-            PopupMenuButton<String>(
-              tooltip: 'Meer opties',
-              onSelected: (choice) {
-                if (choice == 'edit') edit();
-                if (choice == 'copy') copy();
-                if (choice == 'move') move();
-                if (choice == 'delete') delete();
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: 'edit', child: Text('Bewerken')),
-                PopupMenuItem(value: 'copy', child: Text('Kopieer naar datum')),
-                PopupMenuItem(value: 'move', child: Text('Verplaatsen naar datum')),
-                PopupMenuItem(value: 'delete', child: Text('Verwijderen')),
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                timeBadge,
+                const SizedBox(width: 13),
+                Expanded(child: content),
+                reorderHandle,
+                _speechButton(),
+                _completionButton(),
+                _moreMenu(),
               ],
-            ),
-          ]),
+            );
+          },
         ),
-      );
+      ),
+    );
   }
 }
 
