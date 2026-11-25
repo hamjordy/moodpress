@@ -35,10 +35,14 @@ jobs:
       - run: flutter create --platforms=windows .
       - run: flutter pub get
       - run: flutter build windows --release
+      - name: Package Windows release as ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "moodpress-windows-x64.zip" -Force
       - uses: actions/upload-artifact@v4
         with:
-          name: moodpress-windows-x64
-          path: build/windows/x64/runner/Release/
+          name: moodpress-windows-x64-zip
+          path: moodpress-windows-x64.zip
           if-no-files-found: error
 
   build-android:
@@ -50,42 +54,63 @@ jobs:
           channel: stable
           cache: true
       - run: flutter create --platforms=android .
-      - name: Configure Android API and text-to-speech visibility
+      - name: Set permanent Android application ID and configure API
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
+          app_id = "nl.moodpress.app"
           gradle_files = [
               Path("android/app/build.gradle.kts"),
               Path("android/app/build.gradle"),
           ]
-          updated_gradle = False
+          configured = False
           for path in gradle_files:
               if not path.exists():
                   continue
               content = path.read_text()
-              next_content = re.sub(
-                  r"minSdk\s*=\s*flutter\.minSdkVersion",
-                  "minSdk = 23",
-                  content,
-              )
-              next_content = re.sub(
-                  r"minSdkVersion\s+flutter\.minSdkVersion",
-                  "minSdkVersion 23",
-                  next_content,
-              )
-              if next_content != content:
-                  path.write_text(next_content)
-                  updated_gradle = True
-              elif re.search(r"minSdk\s*=\s*([0-9]+)", content):
-                  updated_gradle = True
-              elif re.search(r"minSdkVersion\s+([0-9]+)", content):
-                  updated_gradle = True
+              if path.suffix == ".kts":
+                  content, ns_count = re.subn(
+                      r'(?m)^(\s*namespace\s*=\s*)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content, app_count = re.subn(
+                      r'(?m)^(\s*applicationId\s*=\s*)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content = re.sub(
+                      r"minSdk\s*=\s*flutter\.minSdkVersion",
+                      "minSdk = 23",
+                      content,
+                  )
+                  if ns_count and app_count:
+                      configured = True
+              else:
+                  content, ns_count = re.subn(
+                      r'(?m)^(\s*namespace\s+)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content, app_count = re.subn(
+                      r'(?m)^(\s*applicationId\s+)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content = re.sub(
+                      r"minSdkVersion\s+flutter\.minSdkVersion",
+                      "minSdkVersion 23",
+                      content,
+                  )
+                  if ns_count and app_count:
+                      configured = True
+              path.write_text(content)
 
-          if not updated_gradle:
-              raise SystemExit("Could not confirm Android minSdk configuration.")
+          if not configured:
+              raise SystemExit("Could not set Android namespace and applicationId to " + app_id)
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           xml = manifest.read_text()
@@ -105,4 +130,11 @@ jobs:
         with:
           name: moodpress-android-apk
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+      - name: Build Android App Bundle (preview; signing still required for Play Store)
+        run: flutter build appbundle --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moodpress-android-aab-preview
+          path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
