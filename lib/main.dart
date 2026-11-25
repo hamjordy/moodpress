@@ -581,6 +581,16 @@ class MoodPressPreferences {
 }
 
 class MoodPressController extends ChangeNotifier {
+  MoodPressController({
+    Map<DateTime, List<DayActivity>> initialPlans =
+        const <DateTime, List<DayActivity>>{},
+  }) {
+    for (final entry in initialPlans.entries) {
+      _plansByDate[_dateKey(entry.key)] =
+          List<DayActivity>.from(entry.value);
+    }
+  }
+
   static const _dayPlansKey = 'moodpress.dayplans.v1';
   static const _legacyDayKey = 'moodpress.day.v1';
   static const _supportKey = 'moodpress.support.v1';
