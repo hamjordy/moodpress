@@ -1466,6 +1466,41 @@ void main() {
     expect(hoogstePrikkelGrafiekPunt(const []), isNull);
   });
 
+  test('personal prikkel insights summarize levels, weekdays and weekly trend', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(id: 'mon-low', level: 2, createdAt: DateTime(2026, 11, 23, 9)),
+      PrikkelMeting(id: 'tue-high', level: 5, createdAt: DateTime(2026, 11, 24, 9)),
+      PrikkelMeting(id: 'tue-mid', level: 5, createdAt: DateTime(2026, 11, 24, 18)),
+      PrikkelMeting(id: 'prev-week', level: 4, createdAt: DateTime(2026, 11, 17, 9)),
+    ];
+
+    final insights = berekenPrikkelInzichten(measurements, vandaag: today);
+
+    expect(insights.totalMeasurements, 4);
+    expect(insights.averageLevel, 4);
+    expect(insights.mostCommonLevel, 5);
+    expect(insights.highestAverageWeekday, DateTime.tuesday);
+    expect(insights.highestAverageWeekdayLevel, 5);
+    expect(insights.highestAverageWeekdayCount, 2);
+    expect(insights.recentAverage, 4);
+    expect(insights.previousAverage, 4);
+  });
+
+  test('personal prikkel insights handle an empty history', () {
+    final insights = berekenPrikkelInzichten(
+      const [],
+      vandaag: DateTime(2026, 11, 25),
+    );
+
+    expect(insights.totalMeasurements, 0);
+    expect(insights.averageLevel, isNull);
+    expect(insights.mostCommonLevel, isNull);
+    expect(insights.highestAverageWeekday, isNull);
+    expect(insights.recentAverage, isNull);
+    expect(insights.previousAverage, isNull);
+  });
+
   test('prikkel week overview calculates daily averages for seven days', () {
     final today = DateTime(2026, 11, 25);
     final measurements = [
