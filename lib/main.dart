@@ -154,8 +154,8 @@ Future<Map<String, dynamic>> decryptMoodPressBackup(
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final controller = MoodPressController();
-  await controller.load();
   runApp(MoodPressApp(controller: controller));
+  unawaited(controller.load());
 }
 
 List<bool> _normalizeStepProgress(List<String> steps, List<bool> progress) =>
@@ -1340,10 +1340,85 @@ class MoodPressApp extends StatelessWidget {
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
           ),
         ),
-        home: controller.ready ? MoodPressShell(controller: controller) : const Scaffold(body: Center(child: CircularProgressIndicator())),
+        home: controller.ready
+            ? MoodPressShell(controller: controller)
+            : const MoodPressSplashScreen(),
       ),
     );
   }
+}
+
+class MoodPressSplashScreen extends StatelessWidget {
+  const MoodPressSplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: _paper,
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 92,
+                    height: 92,
+                    decoration: BoxDecoration(
+                      color: _greenPale,
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    child: const Icon(
+                      Icons.spa_rounded,
+                      size: 48,
+                      color: _green,
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  const Text(
+                    'MoodPress',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _ink,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.1,
+                    ),
+                  ),
+                  const SizedBox(height: 9),
+                  const Text(
+                    'Rust en overzicht in je dag.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 16,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 34),
+                  Container(
+                    width: 54,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: _green,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  const Text(
+                    'Je omgeving wordt klaargemaakt…',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _muted,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
 }
 
 class MoodPressShell extends StatefulWidget {
