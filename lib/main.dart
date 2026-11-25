@@ -371,6 +371,39 @@ String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
 
 
+class DagboekNotitie {
+  const DagboekNotitie({
+    required this.date,
+    required this.feeling,
+    required this.text,
+    required this.updatedAt,
+  });
+
+  final DateTime date;
+  final String feeling;
+  final String text;
+  final DateTime updatedAt;
+
+  Map<String, dynamic> toJson() => {
+        'date': _dateKey(date),
+        'feeling': feeling,
+        'text': text,
+        'updatedAt': updatedAt.toIso8601String(),
+      };
+
+  factory DagboekNotitie.fromJson(Map<String, dynamic> json) {
+    final parsedDate = DateTime.tryParse(json['date']?.toString() ?? '');
+    final updatedAt = DateTime.tryParse(json['updatedAt']?.toString() ?? '');
+    final date = parsedDate ?? DateTime.now();
+    return DagboekNotitie(
+      date: DateTime(date.year, date.month, date.day),
+      feeling: json['feeling'] is String ? json['feeling'] as String : '',
+      text: json['text'] is String ? json['text'] as String : '',
+      updatedAt: updatedAt ?? date,
+    );
+  }
+}
+
 class PrikkelMeting {
   const PrikkelMeting({
     required this.id,
@@ -1014,11 +1047,13 @@ class MoodPressController extends ChangeNotifier {
   MoodPressController({
     Map<DateTime, List<DayActivity>> initialPlans =
         const <DateTime, List<DayActivity>>{},
+    List<DagboekNotitie> initialJournalEntries = const <DagboekNotitie>[],
   }) {
     for (final entry in initialPlans.entries) {
       _plansByDate[_dateKey(entry.key)] =
           List<DayActivity>.from(entry.value);
     }
+    dagboekNotities.addAll(initialJournalEntries);
   }
 
   static const _dayPlansKey = 'moodpress.dayplans.v1';
@@ -1028,6 +1063,7 @@ class MoodPressController extends ChangeNotifier {
   static const _templatesKey = 'moodpress.templates.v1';
   static const _weeklyRoutineKey = 'moodpress.weeklyroutine.v1';
   static const _prikkelMetingenKey = 'moodpress.prikkelmetingen.v1';
+  static const _dagboekKey = 'moodpress.dagboek.v1';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final Map<String, List<DayActivity>> _plansByDate = {};
@@ -1036,6 +1072,7 @@ class MoodPressController extends ChangeNotifier {
   List<DayTemplate> templates = [];
   WeeklyRoutine weeklyRoutine = const WeeklyRoutine();
   List<PrikkelMeting> prikkelMetingen = [];
+  final List<DagboekNotitie> dagboekNotities = <DagboekNotitie>[];
   Map<String, String> support = {
     'help': 'Ik wil even rust en één ding tegelijk doen.',
     'place': 'Een rustige plek waar ik mij prettig voel.',
@@ -1182,7 +1219,76 @@ class MoodPressController extends ChangeNotifier {
       storageNotice ??= 'Je prikkelmetergegevens konden niet worden gelezen.';
     }
 
+    try {
+      final savedJournal = await _storage.read(key: _dagboekKey);
+      if (savedJournal != null) {
+        final values = jsonDecode(savedJournal) as List<dynamic>;
+        dagboekNotities
+          ..clear()
+          ..addAll(values
+              .whereType<Map<String, dynamic>>()
+              .map(DagboekNotitie.fromJson))
+          ..sort((a, b) => b.date.compareTo(a.date));
+      }
+    } catch (_) {
+      dagboekNotities.clear();
+      storageNotice ??= 'Je dagboeknotities konden niet worden gelezen.';
+    }
+
     ready = true;
+    notifyListeners();
+  }
+
+  DagboekNotitie? dagboekNotitieVoor(DateTime date) {
+    for (final note in dagboekNotities) {
+      if (_dateKey(note.date) == _dateKey(date)) return note;
+    }
+    return null;
+  }
+
+  Future<void> saveDagboekNotitie(
+    DateTime date, {
+    required String feeling,
+    required String text,
+  }) async {
+    final normalizedDate = DateTime(date.year, date.month, date.day);
+    final index = dagboekNotities.indexWhere(
+      (item) => _dateKey(item.date) == _dateKey(normalizedDate),
+    );
+    final note = DagboekNotitie(
+      date: normalizedDate,
+      feeling: feeling,
+      text: text.trim(),
+      updatedAt: DateTime.now(),
+    );
+    if (index < 0) {
+      dagboekNotities.add(note);
+    } else {
+      dagboekNotities[index] = note;
+    }
+    dagboekNotities.sort((a, b) => b.date.compareTo(a.date));
+    await _saveDagboekNotities();
+  }
+
+  Future<bool> deleteDagboekNotitie(DateTime date) async {
+    final before = dagboekNotities.length;
+    dagboekNotities.removeWhere(
+      (item) => _dateKey(item.date) == _dateKey(date),
+    );
+    if (dagboekNotities.length == before) return false;
+    await _saveDagboekNotities();
+    return true;
+  }
+
+  Future<void> _saveDagboekNotities() async {
+    try {
+      await _storage.write(
+        key: _dagboekKey,
+        value: jsonEncode(dagboekNotities.map((item) => item.toJson()).toList()),
+      );
+    } catch (_) {
+      storageNotice = 'Je dagboeknotities konden niet veilig worden opgeslagen.';
+    }
     notifyListeners();
   }
 
@@ -1570,6 +1676,7 @@ class MoodPressController extends ChangeNotifier {
           entry.key.toString(): templateJson(entry.value),
       },
       'prikkelMetingen': prikkelMetingen.map((item) => item.toJson()).toList(),
+      'dagboekNotities': dagboekNotities.map((item) => item.toJson()).toList(),
       'photos': photos,
     };
 
@@ -1701,6 +1808,14 @@ class MoodPressController extends ChangeNotifier {
               .toList()
           : <PrikkelMeting>[];
 
+      final rawJournalEntries = document['dagboekNotities'];
+      final restoredJournalEntries = rawJournalEntries is List
+          ? rawJournalEntries
+              .whereType<Map<String, dynamic>>()
+              .map(DagboekNotitie.fromJson)
+              .toList()
+          : <DagboekNotitie>[];
+
       final rawSupport = document['support'];
       if (rawSupport is! Map<String, dynamic>) {
         throw FormatException('Het steunplan in deze back-up is niet geldig.');
@@ -1730,6 +1845,9 @@ class MoodPressController extends ChangeNotifier {
         _weeklyRoutineKey: jsonEncode(restoredRoutine.toJson()),
         _prikkelMetingenKey: jsonEncode(
           restoredPrikkelMetingen.map((item) => item.toJson()).toList(),
+        ),
+        _dagboekKey: jsonEncode(
+          restoredJournalEntries.map((item) => item.toJson()).toList(),
         ),
       };
       final previousStorage = <String, String?>{};
@@ -1764,6 +1882,9 @@ class MoodPressController extends ChangeNotifier {
       templates = restoredTemplates;
       weeklyRoutine = restoredRoutine;
       prikkelMetingen = restoredPrikkelMetingen;
+      dagboekNotities
+        ..clear()
+        ..addAll(restoredJournalEntries);
       storageNotice = null;
       notifyListeners();
     } catch (_) {
@@ -1857,6 +1978,7 @@ class MoodPressController extends ChangeNotifier {
       _templatesKey,
       _weeklyRoutineKey,
       _prikkelMetingenKey,
+      _dagboekKey,
     ]) {
       await _storage.delete(key: key);
     }
@@ -1873,6 +1995,7 @@ class MoodPressController extends ChangeNotifier {
     templates = [];
     weeklyRoutine = const WeeklyRoutine();
     prikkelMetingen = [];
+    dagboekNotities.clear();
     support = {
       'help': 'Ik wil even rust en één ding tegelijk doen.',
       'place': 'Een rustige plek waar ik mij prettig voel.',
@@ -2240,8 +2363,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
     _reminderTimer?.cancel();
     super.dispose();
   }
-  static const labels = ['Vandaag', 'Planning', 'Even rust', 'Mijn steun', 'Instellingen'];
-  static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded];
+  static const labels = ['Vandaag', 'Planning', 'Even rust', 'Mijn steun', 'Instellingen', 'Dagboek'];
+  static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded, Icons.menu_book_outlined];
 
   @override
   Widget build(BuildContext context) => Shortcuts(
@@ -2256,6 +2379,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
               _NavigateToPageIntent(3),
           SingleActivator(LogicalKeyboardKey.digit5, control: true):
               _NavigateToPageIntent(4),
+          SingleActivator(LogicalKeyboardKey.digit6, control: true):
+              _NavigateToPageIntent(5),
           SingleActivator(LogicalKeyboardKey.numpad1, control: true):
               _NavigateToPageIntent(0),
           SingleActivator(LogicalKeyboardKey.numpad2, control: true):
@@ -2266,6 +2391,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
               _NavigateToPageIntent(3),
           SingleActivator(LogicalKeyboardKey.numpad5, control: true):
               _NavigateToPageIntent(4),
+          SingleActivator(LogicalKeyboardKey.numpad6, control: true):
+              _NavigateToPageIntent(5),
         },
         child: Actions(
           actions: <Type, Action<Intent>>{
@@ -2291,6 +2418,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
           CalmPage(controller: widget.controller),
           SupportPage(controller: widget.controller),
           SettingsPage(controller: widget.controller),
+          DagboekPage(controller: widget.controller),
         ];
         return Scaffold(
           body: Row(children: [
@@ -5857,6 +5985,246 @@ Future<void> _importMoodPressBackup(
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(_backupErrorMessage(error, importing: true))),
+    );
+  }
+}
+
+class DagboekPage extends StatefulWidget {
+  const DagboekPage({super.key, required this.controller});
+  final MoodPressController controller;
+
+  @override
+  State<DagboekPage> createState() => _DagboekPageState();
+}
+
+class _DagboekPageState extends State<DagboekPage> {
+  late DateTime _selectedDate;
+  late TextEditingController _textController;
+  String _feeling = 'Neutraal';
+
+  static const _feelings = [
+    'Heel fijn',
+    'Goed',
+    'Neutraal',
+    'Moeilijk',
+    'Zwaar',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _selectedDate = DateTime(now.year, now.month, now.day);
+    _textController = TextEditingController();
+    _loadSelectedEntry();
+  }
+
+  void _loadSelectedEntry() {
+    final entry = widget.controller.dagboekNotitieVoor(_selectedDate);
+    _feeling = entry?.feeling ?? 'Neutraal';
+    _textController.text = entry?.text ?? '';
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _chooseDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Kies een dag voor je dagboek',
+      cancelText: 'Annuleren',
+      confirmText: 'Kiezen',
+    );
+    if (picked == null) return;
+    setState(() {
+      _selectedDate = DateTime(picked.year, picked.month, picked.day);
+      _loadSelectedEntry();
+    });
+  }
+
+  Future<void> _save() async {
+    if (_textController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Schrijf eerst iets over je dag.')),
+      );
+      return;
+    }
+    await widget.controller.saveDagboekNotitie(
+      _selectedDate,
+      feeling: _feeling,
+      text: _textController.text,
+    );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Je dagboeknotitie is opgeslagen.')),
+    );
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Notitie verwijderen?'),
+        content: const Text('Deze dagboeknotitie wordt van dit apparaat verwijderd.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Annuleren'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Verwijderen'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final deleted = await widget.controller.deleteDagboekNotitie(_selectedDate);
+    if (!mounted) return;
+    setState(() {
+      _feeling = 'Neutraal';
+      _textController.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(deleted ? 'Je notitie is verwijderd.' : 'Er was geen notitie om te verwijderen.'),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final existing = widget.controller.dagboekNotitieVoor(_selectedDate);
+    return PageFrame(
+      title: 'Mijn dagboek',
+      subtitle: 'Schrijf op hoe je dag was. Alleen jij bepaalt wat je deelt.',
+      action: OutlinedButton.icon(
+        onPressed: _chooseDate,
+        icon: const Icon(Icons.calendar_today_outlined),
+        label: Text(_formatDutchWeekday(_selectedDate)[0].toUpperCase() +
+            _formatDutchWeekday(_selectedDate).substring(1) +
+            ' ' + _formatDutchDate(_selectedDate) +
+            ' ' + _selectedDate.year.toString()),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: _line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Hoe voelde deze dag?',
+                  style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: _feelings.map((feeling) => ChoiceChip(
+                    label: Text(feeling),
+                    selected: _feeling == feeling,
+                    onSelected: (_) => setState(() => _feeling = feeling),
+                  )).toList(),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Wat wil je over deze dag onthouden?',
+                  style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 7),
+                const Text(
+                  'Je kunt iets fijns opschrijven, iets wat lastig was of wat je morgen wilt onthouden.',
+                  style: TextStyle(color: _muted, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _textController,
+                  minLines: 5,
+                  maxLines: 12,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    hintText: 'Vandaag voelde ik mij…',
+                    alignLabelWithHint: true,
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    FilledButton.icon(
+                      onPressed: _save,
+                      icon: const Icon(Icons.save_outlined),
+                      label: const Text('Notitie opslaan'),
+                    ),
+                    if (existing != null)
+                      OutlinedButton.icon(
+                        onPressed: _delete,
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Verwijderen'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          Text(
+            'Eerdere notities',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          if (widget.controller.dagboekNotities.isEmpty)
+            const Text(
+              'Je hebt nog geen dagboeknotities. Je notities verschijnen hier nadat je ze opslaat.',
+              style: TextStyle(color: _muted, height: 1.4),
+            )
+          else
+            ...widget.controller.dagboekNotities.map((entry) => Card(
+              child: ListTile(
+                leading: const CircleAvatar(
+                  backgroundColor: _greenPale,
+                  child: Icon(Icons.bookmark_border_rounded, color: _green),
+                ),
+                title: Text(
+                  _formatDutchWeekday(entry.date)[0].toUpperCase() +
+                      _formatDutchWeekday(entry.date).substring(1) +
+                      ' ' + _formatDutchDate(entry.date),
+                ),
+                subtitle: Text(
+                  entry.feeling + ' · ' + entry.text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => setState(() {
+                  _selectedDate = entry.date;
+                  _loadSelectedEntry();
+                }),
+              ),
+            )),
+          const SizedBox(height: 10),
+          const Text(
+            'Je dagboek blijft op dit apparaat en is geen medisch dossier.',
+            style: TextStyle(color: _muted, fontSize: 12),
+          ),
+        ],
+      ),
     );
   }
 }
