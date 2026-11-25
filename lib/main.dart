@@ -4206,6 +4206,35 @@ class _CalmPageState extends State<CalmPage> {
     );
   }
 
+  Future<void> _toonPrikkelPuntDetails(
+    BuildContext context,
+    PrikkelGrafiekPunt point,
+  ) async {
+    final dateTitle = _prikkelPeriode == 2
+        ? '${point.label} ${point.date.year}'
+        : '${_formatDutchWeekday(point.date)} ${_formatDutchDate(point.date)}';
+    final average = point.averageLevel;
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(dateTitle),
+        content: average == null
+            ? const Text('Voor deze periode zijn nog geen metingen opgeslagen.')
+            : Text(
+                'Gemiddeld prikkelniveau: ${average.toStringAsFixed(1)} van 5\\n'
+                'Aantal metingen: ${point.count}\\n\\n'
+                'Dit is het gemiddelde van de metingen die je in deze periode hebt opgeslagen.',
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Sluiten'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPrikkelWeekChart() {
     final points = maakPrikkelGrafiekPunten(
       widget.controller.prikkelMetingen,
@@ -4326,10 +4355,14 @@ class _CalmPageState extends State<CalmPage> {
                       final dateLabel = '${point.date.day}-${point.date.month}';
                       return Expanded(
                         child: Semantics(
+                          button: true,
                           label: average == null
-                              ? '$dateLabel: geen metingen'
-                              : '$dateLabel: gemiddeld ${average.toStringAsFixed(1)} van 5, ${point.count} metingen',
-                          child: Column(
+                              ? '$dateLabel: geen metingen. Tik voor details.'
+                              : '$dateLabel: gemiddeld ${average.toStringAsFixed(1)} van 5, ${point.count} metingen. Tik voor details.',
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _toonPrikkelPuntDetails(context, point),
+                            child: Column(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
                               SizedBox(
@@ -4384,6 +4417,7 @@ class _CalmPageState extends State<CalmPage> {
                                 style: const TextStyle(color: _ink, fontSize: 9),
                               ),
                             ],
+                          ),
                           ),
                         ),
                       );
