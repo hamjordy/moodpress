@@ -890,4 +890,39 @@ void main() {
     );
   });
 
+
+  test('backup rejects malformed cryptographic envelope fields', () async {
+    final valid = await encryptMoodPressBackup(
+      {'app': 'MoodPress', 'dataVersion': 1},
+      'mijn-veilig-wachtwoord',
+    );
+    const header = 'MOODPRESS_BACKUP_V1\\n';
+    final headerLength = utf8.encode(header).length;
+    final envelope = jsonDecode(
+      utf8.decode(valid.sublist(headerLength)),
+    ) as Map<String, dynamic>;
+
+    final invalidSalt = Map<String, dynamic>.from(envelope)
+      ..['salt'] = base64Encode([1, 2, 3]);
+    final invalidSaltFile = Uint8List.fromList([
+      ...utf8.encode(header),
+      ...utf8.encode(jsonEncode(invalidSalt)),
+    ]);
+    await expectLater(
+      decryptMoodPressBackup(invalidSaltFile, 'mijn-veilig-wachtwoord'),
+      throwsA(isA<FormatException>()),
+    );
+
+    final invalidMac = Map<String, dynamic>.from(envelope)
+      ..['mac'] = 'not-base64!';
+    final invalidMacFile = Uint8List.fromList([
+      ...utf8.encode(header),
+      ...utf8.encode(jsonEncode(invalidMac)),
+    ]);
+    await expectLater(
+      decryptMoodPressBackup(invalidMacFile, 'mijn-veilig-wachtwoord'),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
 }
