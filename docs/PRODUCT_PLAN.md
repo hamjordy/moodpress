@@ -73,8 +73,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - Privacy/security review en besluit over eventuele gegevensuitwisseling.
 
 ### Fase 4 — releasevoorbereiding
-- [ ] Praktijktest op een echt Android-apparaat met fictieve gegevens.
-- [ ] Praktijktest op Windows 11 met fictieve gegevens.
+- [x] Eerste praktijktest: Android-APK geïnstalleerd en start op het toestel (gebruiker bevestigt dat de app werkt; volledige functietest volgt).
+- [x] Eerste praktijktest: Windows 11-build gestart en werkt (gebruiker bevestigt dat de app werkt; volledige functietest volgt).
 - [ ] Toegankelijkheid controleren met TalkBack en NVDA of Narrator.
 - [ ] Gegevensbehoud, back-up en herstel op beide platforms handmatig controleren.
 - [ ] Bevindingen oplossen en hertesten voordat een releasekandidaat wordt gemaakt.
