@@ -3493,6 +3493,34 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
+                  Icon(Icons.privacy_tip_outlined, color: _green),
+                  SizedBox(width: 10),
+                  Text('Privacy en jouw gegevens', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 8),
+                const Text(
+                  'Je dagplannen, dagindelingen, weekritme, steunplan en instellingen worden op dit apparaat bewaard. MoodPress gebruikt geen account of cloud.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Je stemming-check-in is tijdelijk en wordt niet bewaard. Activiteitfoto’s blijven lokaal en kunnen in je versleutelde back-up terechtkomen.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'MoodPress is een prototype. Gebruik voor testdoeleinden alleen fictieve gegevens en deel je apparaat alleen met mensen die deze informatie mogen zien.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
                   Icon(Icons.backup_outlined, color: _green),
                   SizedBox(width: 10),
                   Text('Back-up en terugzetten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),

@@ -38,6 +38,10 @@ void main() {
     await pressControlNumber(LogicalKeyboardKey.digit5);
     expect(find.text('Instellingen').last, findsOneWidget);
 
+    expect(find.text('Privacy en jouw gegevens'), findsOneWidget);
+    expect(find.textContaining('MoodPress gebruikt geen account of cloud.'), findsOneWidget);
+    expect(find.textContaining('Je stemming-check-in is tijdelijk en wordt niet bewaard.'), findsOneWidget);
+
     await pressControlNumber(LogicalKeyboardKey.numpad2);
     expect(find.text('Mijn planning').last, findsOneWidget);
 

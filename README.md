@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.6 — handmatig toegankelijkheidstestplan toegevoegd als voorbereiding op praktijktesten.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Versie 0.15.7 — privacy-uitleg toegevoegd aan de instellingen.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
