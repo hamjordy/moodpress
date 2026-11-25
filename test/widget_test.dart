@@ -875,7 +875,7 @@ void main() {
 
 
   test('backup rejects empty and oversized files before decoding', () async {
-    const header = 'MOODPRESS_BACKUP_V1\\n';
+    const header = 'MOODPRESS_BACKUP_V1\n';
     final headerOnly = Uint8List.fromList(utf8.encode(header));
 
     await expectLater(
@@ -896,7 +896,7 @@ void main() {
       {'app': 'MoodPress', 'dataVersion': 1},
       'mijn-veilig-wachtwoord',
     );
-    const header = 'MOODPRESS_BACKUP_V1\\n';
+    const header = 'MOODPRESS_BACKUP_V1\n';
     final headerLength = utf8.encode(header).length;
     final envelope = jsonDecode(
       utf8.decode(valid.sublist(headerLength)),
