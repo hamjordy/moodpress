@@ -1481,8 +1481,8 @@ void main() {
     expect(insights.averageLevel, 4.0);
     expect(insights.mostCommonLevel, 5);
     expect(insights.highestAverageWeekday, DateTime.tuesday);
-    expect(insights.highestAverageWeekdayLevel, 5);
-    expect(insights.highestAverageWeekdayCount, 2);
+    expect(insights.highestAverageWeekdayLevel, closeTo(14 / 3, 0.0001));
+    expect(insights.highestAverageWeekdayCount, 3);
     expect(insights.recentAverage, 4);
     expect(insights.previousAverage, 4);
   });
