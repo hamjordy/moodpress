@@ -1739,6 +1739,7 @@ class MoodPressController extends ChangeNotifier {
       },
       'prikkelMetingen': prikkelMetingen.map((item) => item.toJson()).toList(),
       'dagboekNotities': dagboekNotities.map((item) => item.toJson()).toList(),
+      'rustplanActiviteiten': rustplanActiviteiten.map((item) => item.toJson()).toList(),
       'photos': photos,
     };
 
