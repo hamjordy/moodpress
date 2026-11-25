@@ -60,7 +60,8 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Widgettest controleert dat de gebruiker het verwijderen van lokale gegevens kan annuleren zonder de wisactie te starten.
 - [x] Test controleert dat herinneringen standaard uitstaan, bij oudere instellingen uit blijven en alleen aanstaan als de gebruiker ze zelf inschakelt.
 - [x] Herinneringen negeren ongeldige activiteitstijden (uren buiten 0–23 en minuten buiten 0–59).
-- [x] Widgettest roept de herinneringscallback aan binnen de echte appstructuur en controleert na beide acties zowel de opgeslagen voorkeur als de zichtbare schakelstand. De schakelaar ververst direct; lokale opslag volgt daarna.\n- [x] Back-uptests controleren dat aangepaste versleutelde inhoud en onbekende bestandsheaders worden geweigerd.
+- [x] Widgettest roept de herinneringscallback aan binnen de echte appstructuur en controleert na beide acties zowel de opgeslagen voorkeur als de zichtbare schakelstand. De schakelaar ververst direct; lokale opslag volgt daarna.
+- [x] Back-uptests controleren dat aangepaste versleutelde inhoud, onbekende bestandsheaders, ongeldige JSON en niet-ondersteunde metadata worden geweigerd.
 - [x] Handmatig testplan opgesteld voor Android, Windows, toetsenbord, schermlezers, prikkelbelasting, privacy en veilige gebruikerstesten. Dit is een voorbereiding; de praktijktesten zelf zijn nog niet uitgevoerd.
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
 - Testen met schermlezers, toetsenbord, touch, Windows scaling en Android toegankelijkheidsinstellingen.
