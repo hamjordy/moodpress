@@ -250,6 +250,49 @@ void main() {
     expect(dates.map((date) => date.weekday).toList(), [DateTime.monday]);
   });
 
+
+  test('copying a day plan gives fresh ids and resets completed activities', () {
+    final source = [
+      DayActivity(
+        id: 'source-1',
+        title: 'Naar de winkel',
+        time: '10:30',
+        who: 'Ik en begeleider',
+        what: 'Boodschappen doen',
+        where: 'De supermarkt',
+        how: 'Rustig samen lopen',
+        note: 'Neem een tas mee',
+        symbol: '🛒',
+        photoPath: '/local/moodpress/winkel.jpg',
+        done: true,
+      ),
+      DayActivity(
+        id: 'source-2',
+        title: 'Rustmoment',
+        time: '12:00',
+        done: false,
+      ),
+    ];
+
+    final copied = copyDayActivities(source, idPrefix: 'copy-20261125');
+
+    expect(copied, hasLength(2));
+    expect(copied.map((item) => item.id).toList(), [
+      'copy-20261125-0',
+      'copy-20261125-1',
+    ]);
+    expect(copied.map((item) => item.done).toList(), [false, false]);
+    expect(copied.first.title, source.first.title);
+    expect(copied.first.time, source.first.time);
+    expect(copied.first.who, source.first.who);
+    expect(copied.first.what, source.first.what);
+    expect(copied.first.where, source.first.where);
+    expect(copied.first.how, source.first.how);
+    expect(copied.first.note, source.first.note);
+    expect(copied.first.symbol, source.first.symbol);
+    expect(copied.first.photoPath, source.first.photoPath);
+  });
+
   test('day activities can be reordered without changing their data', () {
     final activities = [
       DayActivity(id: 'a', title: 'Ontbijt', time: '08:00'),
