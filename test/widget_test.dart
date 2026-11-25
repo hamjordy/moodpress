@@ -257,7 +257,7 @@ void main() {
       source,
       'mijn-veilig-wachtwoord',
     );
-    const header = 'MOODPRESS_BACKUP_V1\\n';
+    const header = 'MOODPRESS_BACKUP_V1\n';
     final headerLength = utf8.encode(header).length;
     final envelope = jsonDecode(
       utf8.decode(original.sublist(headerLength)),
