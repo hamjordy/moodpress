@@ -1879,6 +1879,12 @@ class MoodPressController extends ChangeNotifier {
               .toList()
           : <DagboekNotitie>[];
 
+      final rawRestPlanItems = document['rustplanActiviteiten'];
+      final restoredRestPlanItems = rawRestPlanItems is List
+          ? rawRestPlanItems.whereType<Map<String, dynamic>>()
+              .map(RustplanActiviteit.fromJson).toList()
+          : <RustplanActiviteit>[];
+
       final rawSupport = document['support'];
       if (rawSupport is! Map<String, dynamic>) {
         throw FormatException('Het steunplan in deze back-up is niet geldig.');
