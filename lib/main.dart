@@ -446,18 +446,21 @@ class MoodPressPreferences {
     this.speechRate = 0.42,
     this.reduceMotion = false,
     this.inAppRemindersEnabled = false,
+    this.speechEnabled = true,
   });
 
   final double textScale;
   final double speechRate;
   final bool reduceMotion;
   final bool inAppRemindersEnabled;
+  final bool speechEnabled;
 
   Map<String, dynamic> toJson() => {
         'textScale': textScale,
         'speechRate': speechRate,
         'reduceMotion': reduceMotion,
         'inAppRemindersEnabled': inAppRemindersEnabled,
+        'speechEnabled': speechEnabled,
       };
 
   factory MoodPressPreferences.fromJson(Map<String, dynamic> json) {
@@ -472,6 +475,8 @@ class MoodPressPreferences {
           : 0.42,
       reduceMotion: json['reduceMotion'] as bool? ?? false,
       inAppRemindersEnabled: json['inAppRemindersEnabled'] as bool? ?? false,
+      // Existing preference files did not contain this field; keep speech on.
+      speechEnabled: json['speechEnabled'] as bool? ?? true,
     );
   }
 }
@@ -1145,6 +1150,7 @@ class MoodPressController extends ChangeNotifier {
       speechRate: preferences.speechRate,
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
+      speechEnabled: preferences.speechEnabled,
     );
     await _savePreferences();
     notifyListeners();
@@ -1156,6 +1162,7 @@ class MoodPressController extends ChangeNotifier {
       speechRate: value.clamp(0.3, 0.6).toDouble(),
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
+      speechEnabled: preferences.speechEnabled,
     );
     await _savePreferences();
     notifyListeners();
@@ -1167,7 +1174,21 @@ class MoodPressController extends ChangeNotifier {
       speechRate: preferences.speechRate,
       reduceMotion: value,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
+      speechEnabled: preferences.speechEnabled,
     );
+    await _savePreferences();
+    notifyListeners();
+  }
+
+  Future<void> setSpeechEnabled(bool value) async {
+    preferences = MoodPressPreferences(
+      textScale: preferences.textScale,
+      speechRate: preferences.speechRate,
+      reduceMotion: preferences.reduceMotion,
+      inAppRemindersEnabled: preferences.inAppRemindersEnabled,
+      speechEnabled: value,
+    );
+    notifyListeners();
     await _savePreferences();
     notifyListeners();
   }
@@ -2256,6 +2277,7 @@ class _PlanningPageState extends State<PlanningPage> {
                           ? ''
                           : '. Stappen: ' + activity.steps.join('. ')),
                   speechRate: widget.controller.preferences.speechRate,
+                  enabled: widget.controller.preferences.speechEnabled,
                 ),
               ],
             ),
@@ -2406,6 +2428,7 @@ class _PlanningPageState extends State<PlanningPage> {
                 child: ActivityCard(
                   activity: item,
                   speechRate: widget.controller.preferences.speechRate,
+                  speechEnabled: widget.controller.preferences.speechEnabled,
                   toggle: () => widget.controller.toggleActivity(item.id),
                   toggleStep: (stepIndex) =>
                       widget.controller.toggleActivityStep(item.id, stepIndex),
@@ -2780,6 +2803,7 @@ class ActivityCard extends StatelessWidget {
     super.key,
     required this.activity,
     required this.speechRate,
+    required this.speechEnabled,
     required this.toggle,
     required this.toggleStep,
     required this.edit,
@@ -2791,6 +2815,7 @@ class ActivityCard extends StatelessWidget {
 
   final DayActivity activity;
   final double speechRate;
+  final bool speechEnabled;
   final VoidCallback toggle;
   final ValueChanged<int> toggleStep;
   final VoidCallback edit;
@@ -2937,6 +2962,7 @@ class ActivityCard extends StatelessWidget {
                       ? ''
                       : '. Stappen: ' + activity.steps.join('. ')),
               speechRate: speechRate,
+              enabled: speechEnabled,
             ),
             IconButton(tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond', onPressed: toggle, icon: Icon(activity.done ? Icons.check_circle : Icons.circle_outlined, color: activity.done ? _green : _muted)),
             PopupMenuButton<String>(
@@ -3625,7 +3651,14 @@ class SettingsPage extends StatelessWidget {
                   Text('Voorleessnelheid', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
                 const SizedBox(height: 5),
-                const Text('Maak het voorlezen langzamer of sneller.', style: TextStyle(color: _muted)),
+                const Text('Kies of je voorlezen wilt gebruiken en stel daarna de snelheid in.', style: TextStyle(color: _muted)),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Voorlezen in de app'),
+                  subtitle: const Text('Je kunt dit altijd weer aanzetten'),
+                  value: controller.preferences.speechEnabled,
+                  onChanged: controller.setSpeechEnabled,
+                ),
                 Slider(
                   value: controller.preferences.speechRate,
                   min: 0.3,
@@ -3642,7 +3675,9 @@ class SettingsPage extends StatelessWidget {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: OutlinedButton.icon(
-                    onPressed: () => SpeakButtonPreview.play(context, controller.preferences.speechRate),
+                    onPressed: controller.preferences.speechEnabled
+                        ? () => SpeakButtonPreview.play(context, controller.preferences.speechRate)
+                        : null,
                     icon: const Icon(Icons.play_arrow_rounded),
                     label: const Text('Luister naar een voorbeeld'),
                   ),
@@ -3821,9 +3856,15 @@ class SmallDisclaimer extends StatelessWidget {
 }
 
 class SpeakButton extends StatefulWidget {
-  const SpeakButton({super.key, required this.text, this.speechRate = 0.42});
+  const SpeakButton({
+    super.key,
+    required this.text,
+    this.speechRate = 0.42,
+    this.enabled = true,
+  });
   final String text;
   final double speechRate;
+  final bool enabled;
 
   @override
   State<SpeakButton> createState() => _SpeakButtonState();
@@ -3832,6 +3873,15 @@ class SpeakButton extends StatefulWidget {
 class _SpeakButtonState extends State<SpeakButton> {
   final FlutterTts _tts = FlutterTts();
   bool speaking = false;
+
+  @override
+  void didUpdateWidget(covariant SpeakButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.enabled && !widget.enabled && speaking) {
+      _tts.stop();
+      speaking = false;
+    }
+  }
 
   Future<void> _toggle() async {
     try {
@@ -3860,8 +3910,19 @@ class _SpeakButtonState extends State<SpeakButton> {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        tooltip: speaking ? 'Stop voorlezen' : 'Lees voor',
-        onPressed: _toggle,
-        icon: Icon(speaking ? Icons.stop_circle_outlined : Icons.volume_up_outlined, color: _green),
+        tooltip: !widget.enabled
+            ? 'Voorlezen staat uit in de instellingen'
+            : speaking
+                ? 'Stop voorlezen'
+                : 'Lees voor',
+        onPressed: widget.enabled ? _toggle : null,
+        icon: Icon(
+          !widget.enabled
+              ? Icons.volume_off_outlined
+              : speaking
+                  ? Icons.stop_circle_outlined
+                  : Icons.volume_up_outlined,
+          color: widget.enabled ? _green : _muted,
+        ),
       );
 }

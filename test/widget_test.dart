@@ -105,6 +105,42 @@ void main() {
     expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
   });
 
+  testWidgets('speech can be switched off and on in settings', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(MoodPressApp(controller: controller));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    final label = find.text('Voorlezen in de app');
+    await tester.ensureVisible(label);
+    final tileFinder = find.ancestor(
+      of: label,
+      matching: find.byType(SwitchListTile),
+    );
+    expect(controller.preferences.speechEnabled, isTrue);
+    expect(tester.widget<SwitchListTile>(tileFinder).value, isTrue);
+
+    tester.widget<SwitchListTile>(tileFinder).onChanged!(false);
+    expect(controller.preferences.speechEnabled, isFalse);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(tileFinder).value, isFalse);
+
+    tester.widget<SwitchListTile>(tileFinder).onChanged!(true);
+    expect(controller.preferences.speechEnabled, isTrue);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwitchListTile>(tileFinder).value, isTrue);
+  });
+
   testWidgets('canceling local data deletion keeps the settings screen unchanged', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
@@ -662,6 +698,29 @@ void main() {
     reorderDayActivities(activities, 1, 1);
 
     expect(activities.map((item) => item.id).toList(), ['a', 'b']);
+  });
+
+  test('speech preference defaults on when loading older settings', () {
+    final restored = MoodPressPreferences.fromJson({
+      'textScale': 1.15,
+      'speechRate': 0.5,
+      'reduceMotion': true,
+      'inAppRemindersEnabled': false,
+    });
+
+    expect(restored.speechEnabled, isTrue);
+    expect(restored.textScale, 1.15);
+    expect(restored.speechRate, 0.5);
+    expect(restored.reduceMotion, isTrue);
+  });
+
+  test('speech preference is included in local settings serialization', () {
+    final restored = MoodPressPreferences.fromJson({
+      'speechEnabled': false,
+    });
+
+    expect(restored.speechEnabled, isFalse);
+    expect(restored.toJson()['speechEnabled'], isFalse);
   });
 
   test('older activities without image fields remain compatible', () {

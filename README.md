@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.19 — de herinneringsschakelaar ververst direct en slaat de voorkeur daarna lokaal op.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Versie 0.15.20 — voorlezen kan met één lokale voorkeur overal in de app worden uitgeschakeld en weer ingeschakeld.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
