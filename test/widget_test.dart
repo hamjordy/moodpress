@@ -122,6 +122,29 @@ void main() {
   });
 
 
+  test('in-app reminders stay optional by default and restore safely', () {
+    const defaults = MoodPressPreferences();
+    expect(defaults.inAppRemindersEnabled, isFalse);
+
+    final olderPreferences = MoodPressPreferences.fromJson({
+      'textScale': 1.0,
+      'speechRate': 0.42,
+      'reduceMotion': false,
+    });
+    expect(olderPreferences.inAppRemindersEnabled, isFalse);
+
+    final enabledPreferences = MoodPressPreferences.fromJson({
+      ...defaults.toJson(),
+      'inAppRemindersEnabled': true,
+    });
+    expect(enabledPreferences.inAppRemindersEnabled, isTrue);
+    expect(
+      MoodPressPreferences.fromJson(enabledPreferences.toJson())
+          .inAppRemindersEnabled,
+      isTrue,
+    );
+  });
+
   test('backup files encrypt data and require the correct password', () async {
     final source = <String, dynamic>{
       'app': 'MoodPress',
