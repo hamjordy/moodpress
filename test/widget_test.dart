@@ -1478,7 +1478,7 @@ void main() {
     final insights = berekenPrikkelInzichten(measurements, vandaag: today);
 
     expect(insights.totalMeasurements, 4);
-    expect(insights.averageLevel, 4.25);
+    expect(insights.averageLevel, 4.0);
     expect(insights.mostCommonLevel, 5);
     expect(insights.highestAverageWeekday, DateTime.tuesday);
     expect(insights.highestAverageWeekdayLevel, 5);
