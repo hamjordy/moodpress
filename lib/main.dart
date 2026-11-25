@@ -6307,6 +6307,219 @@ class _DagboekPageState extends State<DagboekPage> {
   }
 }
 
+class RustplanPage extends StatelessWidget {
+  const RustplanPage({super.key, required this.controller});
+  final MoodPressController controller;
+
+  Future<void> _edit(BuildContext context, {RustplanActiviteit? existing}) async {
+    final result = await showDialog<RustplanActiviteit>(
+      context: context,
+      builder: (_) => RustplanEditorDialog(existing: existing),
+    );
+    if (result != null) await controller.saveRustplanActiviteit(result);
+  }
+
+  Future<void> _delete(BuildContext context, RustplanActiviteit item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Rustactiviteit verwijderen?'),
+        content: Text('Wil je ' + item.title + ' uit je rustplan verwijderen?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('Annuleren')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('Verwijderen')),
+        ],
+      ),
+    );
+    if (confirmed == true) await controller.deleteRustplanActiviteit(item.id);
+  }
+
+  @override
+  Widget build(BuildContext context) => PageFrame(
+    title: 'Mijn rustplan',
+    subtitle: 'Verzamel dingen die jou kunnen helpen wanneer je spanning voelt of behoefte hebt aan rust.',
+    action: FilledButton.icon(
+      onPressed: () => _edit(context),
+      icon: const Icon(Icons.add),
+      label: const Text('Rustactiviteit toevoegen'),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(18)),
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.spa_outlined, color: _green, size: 26),
+              SizedBox(width: 12),
+              Expanded(child: Text(
+                'Maak je eigen lijst met kleine dingen die voor jou prettig werken. Je kunt je rustplan op elk moment aanpassen.',
+                style: TextStyle(color: _ink, height: 1.45),
+              )),
+            ],
+          ),
+        ),
+        const SizedBox(height: 18),
+        if (controller.rustplanActiviteiten.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: _line)),
+            child: const Column(
+              children: [
+                Icon(Icons.self_improvement_outlined, color: _green, size: 38),
+                SizedBox(height: 10),
+                Text('Je rustplan is nog leeg', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                SizedBox(height: 6),
+                Text(
+                  'Voeg bijvoorbeeld een rustige activiteit, een fijne plek of iemand die je kunt bellen toe.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _muted, height: 1.4),
+                ),
+              ],
+            ),
+          )
+        else ...[
+          Text(
+            controller.rustplanActiviteiten.length.toString() +
+                (controller.rustplanActiviteiten.length == 1 ? ' idee voor rust' : ' ideeën voor rust'),
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 8),
+          ...controller.rustplanActiviteiten.map((item) => Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              leading: const CircleAvatar(backgroundColor: _greenPale, child: Icon(Icons.spa_outlined, color: _green)),
+              title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 5),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.category, style: const TextStyle(color: _green, fontWeight: FontWeight.w600)),
+                    if (item.description.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(item.description),
+                    ],
+                  ],
+                ),
+              ),
+              isThreeLine: item.description.isNotEmpty,
+              trailing: PopupMenuButton<String>(
+                tooltip: 'Acties voor ' + item.title,
+                onSelected: (value) {
+                  if (value == 'edit') _edit(context, existing: item);
+                  if (value == 'delete') _delete(context, item);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Bewerken')),
+                  PopupMenuItem(value: 'delete', child: Text('Verwijderen')),
+                ],
+              ),
+            ),
+          )),
+        ],
+        const SizedBox(height: 12),
+        const Text(
+          'Dit rustplan is bedoeld als persoonlijke geheugensteun. Het vervangt geen hulp of afspraken met je begeleider.',
+          style: TextStyle(color: _muted, fontSize: 12, height: 1.4),
+        ),
+      ],
+    ),
+  );
+}
+
+class RustplanEditorDialog extends StatefulWidget {
+  const RustplanEditorDialog({super.key, this.existing});
+  final RustplanActiviteit? existing;
+
+  @override
+  State<RustplanEditorDialog> createState() => _RustplanEditorDialogState();
+}
+
+class _RustplanEditorDialogState extends State<RustplanEditorDialog> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late String _category;
+
+  static const _categories = ['Ontspanning', 'Prikkelarm', 'Beweging', 'Afleiding', 'Contact', 'Anders'];
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.existing?.title ?? '');
+    _descriptionController = TextEditingController(text: widget.existing?.description ?? '');
+    _category = _categories.contains(widget.existing?.category) ? widget.existing!.category : 'Ontspanning';
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) return;
+    Navigator.pop(context, RustplanActiviteit(
+      id: widget.existing?.id ?? 'rust-' + DateTime.now().microsecondsSinceEpoch.toString(),
+      title: title,
+      category: _category,
+      description: _descriptionController.text.trim(),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.existing == null ? 'Rustactiviteit toevoegen' : 'Rustactiviteit bewerken'),
+    content: SingleChildScrollView(
+      child: SizedBox(
+        width: 420,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _titleController,
+              autofocus: true,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(labelText: 'Wat helpt jou?', hintText: 'Bijvoorbeeld: even naar buiten'),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              value: _category,
+              decoration: const InputDecoration(labelText: 'Soort rustactiviteit'),
+              items: _categories.map((category) => DropdownMenuItem(value: category, child: Text(category))).toList(),
+              onChanged: (value) { if (value != null) setState(() => _category = value); },
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _descriptionController,
+              minLines: 3,
+              maxLines: 6,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(
+                labelText: 'Extra uitleg (optioneel)',
+                hintText: 'Wat heb je nodig of hoe pak je dit aan?',
+                alignLabelWithHint: true,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    actions: [
+      TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annuleren')),
+      FilledButton(onPressed: _titleController.text.trim().isEmpty ? null : _save, child: const Text('Opslaan')),
+    ],
+  );
+}
+
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key, required this.controller});
   final MoodPressController controller;
