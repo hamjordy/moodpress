@@ -403,6 +403,86 @@ class PrikkelMeting {
   }
 }
 
+class PrikkelInzichten {
+  const PrikkelInzichten({
+    required this.totalMeasurements,
+    required this.averageLevel,
+    required this.mostCommonLevel,
+    required this.highestAverageWeekday,
+    required this.highestAverageWeekdayLevel,
+    required this.highestAverageWeekdayCount,
+    required this.recentAverage,
+    required this.previousAverage,
+  });
+
+  final int totalMeasurements;
+  final double? averageLevel;
+  final int? mostCommonLevel;
+  final int? highestAverageWeekday;
+  final double? highestAverageWeekdayLevel;
+  final int highestAverageWeekdayCount;
+  final double? recentAverage;
+  final double? previousAverage;
+}
+
+PrikkelInzichten berekenPrikkelInzichten(
+  List<PrikkelMeting> metingen, {
+  DateTime? vandaag,
+}) {
+  final total = metingen.length;
+  final average = total == 0
+      ? null
+      : metingen.fold<int>(0, (sum, item) => sum + item.level) / total;
+  final levelCounts = List<int>.filled(5, 0);
+  for (final meting in metingen) {
+    if (meting.level >= 1 && meting.level <= 5) {
+      levelCounts[meting.level - 1]++;
+    }
+  }
+  int? commonLevel;
+  for (var index = 0; index < levelCounts.length; index++) {
+    if (levelCounts[index] > 0 &&
+        (commonLevel == null ||
+            levelCounts[index] > levelCounts[commonLevel - 1])) {
+      commonLevel = index + 1;
+    }
+  }
+  final weekdayTotals = List<int>.filled(7, 0);
+  final weekdayCounts = List<int>.filled(7, 0);
+  for (final meting in metingen) {
+    final index = meting.createdAt.weekday - 1;
+    weekdayTotals[index] += meting.level;
+    weekdayCounts[index]++;
+  }
+  int? busiestWeekday;
+  double? busiestAverage;
+  for (var index = 0; index < 7; index++) {
+    if (weekdayCounts[index] == 0) continue;
+    final dayAverage = weekdayTotals[index] / weekdayCounts[index];
+    if (busiestAverage == null || dayAverage > busiestAverage) {
+      busiestWeekday = index + 1;
+      busiestAverage = dayAverage;
+    }
+  }
+  final comparison = vergelijkPrikkelPeriodes(
+    metingen,
+    periode: 0,
+    vandaag: vandaag,
+  );
+  return PrikkelInzichten(
+    totalMeasurements: total,
+    averageLevel: average,
+    mostCommonLevel: commonLevel,
+    highestAverageWeekday: busiestWeekday,
+    highestAverageWeekdayLevel: busiestAverage,
+    highestAverageWeekdayCount: busiestWeekday == null
+        ? 0
+        : weekdayCounts[busiestWeekday - 1],
+    recentAverage: comparison.huidigGemiddelde,
+    previousAverage: comparison.vorigGemiddelde,
+  );
+}
+
 class PrikkelDagSamenvatting {
   const PrikkelDagSamenvatting({
     required this.date,
@@ -4548,6 +4628,66 @@ class _CalmPageState extends State<CalmPage> {
     );
   }
 
+  Widget _buildPrikkelInzichten() {
+    final inzichten = berekenPrikkelInzichten(
+      widget.controller.prikkelMetingen,
+    );
+    const weekdays = ['maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag', 'zondag'];
+    String levelText(double? level) =>
+        level == null ? 'Nog niet genoeg gegevens' : '${level.toStringAsFixed(1)} / 5';
+    String trendText;
+    if (inzichten.recentAverage == null || inzichten.previousAverage == null) {
+      trendText = 'Nog niet genoeg gegevens voor een vergelijking.';
+    } else {
+      final difference = inzichten.recentAverage! - inzichten.previousAverage!;
+      if (difference.abs() < 0.05) {
+        trendText = 'Je gemiddelde is ongeveer gelijk aan de vorige week.';
+      } else if (difference < 0) {
+        trendText = 'Je gemiddelde ligt ${(-difference).toStringAsFixed(1)} punt lager dan vorige week.';
+      } else {
+        trendText = 'Je gemiddelde ligt ${difference.toStringAsFixed(1)} punt hoger dan vorige week.';
+      }
+    }
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Persoonlijke inzichten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+            const SizedBox(height: 4),
+            const Text('Een overzicht van patronen in je eigen metingen.', style: TextStyle(color: _muted, fontSize: 12)),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _PrikkelInzichtItem(label: 'Metingen bijgehouden', value: '${inzichten.totalMeasurements}'),
+                _PrikkelInzichtItem(label: 'Gemiddeld niveau', value: levelText(inzichten.averageLevel)),
+                _PrikkelInzichtItem(
+                  label: 'Meest gekozen niveau',
+                  value: inzichten.mostCommonLevel == null
+                      ? 'Nog geen metingen'
+                      : '${inzichten.mostCommonLevel} · ${prikkelNiveaus[inzichten.mostCommonLevel! - 1]}',
+                ),
+                _PrikkelInzichtItem(
+                  label: 'Hoogste gemiddelde dag',
+                  value: inzichten.highestAverageWeekday == null
+                      ? 'Nog geen metingen'
+                      : '${weekdays[inzichten.highestAverageWeekday! - 1]} · ${levelText(inzichten.highestAverageWeekdayLevel)}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(trendText, style: const TextStyle(color: _muted, height: 1.4)),
+            const SizedBox(height: 6),
+            const Text('Dit zijn beschrijvingen van je geregistreerde metingen, geen voorspellingen of medische conclusies.', style: TextStyle(color: _muted, fontSize: 11, height: 1.35)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildPrikkelGeschiedenis() {
     final metingen = filterPrikkelMetingen(
       widget.controller.prikkelMetingen,
@@ -4948,6 +5088,8 @@ class _CalmPageState extends State<CalmPage> {
         ),
         const SizedBox(height: 18),
         _buildPrikkelWeekChart(),
+        const SizedBox(height: 14),
+        _buildPrikkelInzichten(),
         const SizedBox(height: 18),
         _buildPrikkelGeschiedenis(),
         const SizedBox(height: 12),
@@ -4956,6 +5098,36 @@ class _CalmPageState extends State<CalmPage> {
           Padding(padding: const EdgeInsets.only(top: 12), child: StorageNotice(message: widget.controller.storageNotice!)),
       ]),
     )),
+  );
+}
+
+class _PrikkelInzichtItem extends StatelessWidget {
+  const _PrikkelInzichtItem({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 220,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: _paper,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _line),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(color: _muted, fontSize: 11)),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(color: _ink, fontSize: 14, fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
+    ),
   );
 }
 
