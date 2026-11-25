@@ -415,6 +415,20 @@ class PrikkelDagSamenvatting {
   final int count;
 }
 
+class PrikkelGrafiekPunt {
+  const PrikkelGrafiekPunt({
+    required this.date,
+    required this.label,
+    required this.averageLevel,
+    required this.count,
+  });
+
+  final DateTime date;
+  final String label;
+  final double? averageLevel;
+  final int count;
+}
+
 List<PrikkelDagSamenvatting> maakPrikkelWeekOverzicht(
   List<PrikkelMeting> metingen, {
   DateTime? vandaag,
@@ -437,6 +451,51 @@ List<PrikkelDagSamenvatting> maakPrikkelWeekOverzicht(
       date: date,
       averageLevel: average,
       count: count,
+    );
+  });
+}
+
+List<PrikkelGrafiekPunt> maakPrikkelGrafiekPunten(
+  List<PrikkelMeting> metingen, {
+  required int periode,
+  DateTime? vandaag,
+}) {
+  final now = vandaag ?? DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  const weekdays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+  const months = [
+    'jan', 'feb', 'mrt', 'apr', 'mei', 'jun',
+    'jul', 'aug', 'sep', 'okt', 'nov', 'dec',
+  ];
+  final monthly = periode == 2;
+  final count = periode == 0 ? 7 : (periode == 1 ? 30 : 12);
+  final firstDate = monthly
+      ? DateTime(today.year, today.month - count + 1, 1)
+      : today.subtract(Duration(days: count - 1));
+
+  return List.generate(count, (index) {
+    final date = monthly
+        ? DateTime(firstDate.year, firstDate.month + index, 1)
+        : firstDate.add(Duration(days: index));
+    final nextDate = monthly
+        ? DateTime(date.year, date.month + 1, 1)
+        : date.add(const Duration(days: 1));
+    final bucket = metingen.where((item) =>
+        !item.createdAt.isBefore(date) && item.createdAt.isBefore(nextDate));
+    final total = bucket.fold<int>(0, (sum, item) => sum + item.level);
+    final amount = bucket.length;
+    final label = monthly
+        ? months[date.month - 1]
+        : (periode == 0
+            ? weekdays[date.weekday - 1]
+            : (index % 5 == 0 || index == count - 1
+                ? date.day.toString()
+                : ''));
+    return PrikkelGrafiekPunt(
+      date: date,
+      label: label,
+      averageLevel: amount == 0 ? null : total / amount,
+      count: amount,
     );
   });
 }
@@ -4062,6 +4121,7 @@ class CalmStep {
 
 class _CalmPageState extends State<CalmPage> {
   int step = 0;
+  int _prikkelPeriode = 0;
   int? selectedLevel;
   final noteController = TextEditingController();
   static const steps = [
@@ -4091,106 +4151,140 @@ class _CalmPageState extends State<CalmPage> {
   }
 
   Widget _buildPrikkelWeekChart() {
-    final days = maakPrikkelWeekOverzicht(widget.controller.prikkelMetingen);
-    final hasMeasurements = days.any((day) => day.count > 0);
-    const weekdays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+    final points = maakPrikkelGrafiekPunten(
+      widget.controller.prikkelMetingen,
+      periode: _prikkelPeriode,
+    );
+    final hasMeasurements = points.any((point) => point.count > 0);
+    final title = _prikkelPeriode == 0
+        ? 'Prikkels deze week'
+        : (_prikkelPeriode == 1
+            ? 'Prikkels deze maand'
+            : 'Prikkels dit jaar');
+    final subtitle = _prikkelPeriode == 0
+        ? 'Gemiddeld niveau per dag · afgelopen 7 dagen'
+        : (_prikkelPeriode == 1
+            ? 'Gemiddeld niveau per dag · afgelopen 30 dagen'
+            : 'Gemiddeld niveau per maand · afgelopen 12 maanden');
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Prikkels deze week',
-              style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700),
+            Text(
+              title,
+              style: const TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Gemiddeld niveau per dag · afgelopen 7 dagen',
-              style: TextStyle(color: _muted, fontSize: 12),
+            Text(subtitle, style: const TextStyle(color: _muted, fontSize: 12)),
+            const SizedBox(height: 12),
+            SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 0, label: Text('Week')),
+                ButtonSegment(value: 1, label: Text('Maand')),
+                ButtonSegment(value: 2, label: Text('Jaar')),
+              ],
+              selected: {_prikkelPeriode},
+              onSelectionChanged: (selection) {
+                setState(() => _prikkelPeriode = selection.first);
+              },
+              showSelectedIcon: false,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             if (!hasMeasurements)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 22),
                 child: Text(
-                  'Zodra je metingen opslaat, verschijnt hier je weekoverzicht.',
+                  'Zodra je metingen opslaat, verschijnt hier je overzicht.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: _muted, height: 1.4),
                 ),
               )
             else
-              SizedBox(
-                height: 156,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: List.generate(days.length, (index) {
-                    final day = days[index];
-                    final average = day.averageLevel;
-                    final barHeight = average == null ? 0.0 : average * 20;
-                    final weekday = weekdays[day.date.weekday - 1];
-                    return Expanded(
-                      child: Semantics(
-                        label: average == null
-                            ? '${day.date.day} ${weekday}: geen metingen'
-                            : '${day.date.day} ${weekday}: gemiddeld ${average.toStringAsFixed(1)} van 5, ${day.count} metingen',
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            SizedBox(
-                              height: 112,
-                              child: Align(
-                                alignment: Alignment.bottomCenter,
-                                child: average == null
-                                    ? Container(
-                                        width: 14,
-                                        height: 3,
-                                        decoration: BoxDecoration(
-                                          color: _line,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                      )
-                                    : Container(
-                                        width: 20,
-                                        height: barHeight,
-                                        alignment: Alignment.topCenter,
-                                        decoration: BoxDecoration(
-                                          color: _green,
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(top: 4),
-                                          child: Text(
-                                            average.toStringAsFixed(1),
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.w700,
-                                            ),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: points.length * (_prikkelPeriode == 0 ? 42.0 : 34.0),
+                  height: 158,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: List.generate(points.length, (index) {
+                      final point = points[index];
+                      final average = point.averageLevel;
+                      final barHeight = average == null ? 0.0 : average * 20;
+                      final dateLabel = '${point.date.day}-${point.date.month}';
+                      return Expanded(
+                        child: Semantics(
+                          label: average == null
+                              ? '$dateLabel: geen metingen'
+                              : '$dateLabel: gemiddeld ${average.toStringAsFixed(1)} van 5, ${point.count} metingen',
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              SizedBox(
+                                height: 112,
+                                child: Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: average == null
+                                      ? Container(
+                                          width: 12,
+                                          height: 3,
+                                          decoration: BoxDecoration(
+                                            color: _line,
+                                            borderRadius: BorderRadius.circular(4),
                                           ),
+                                        )
+                                      : Container(
+                                          width: _prikkelPeriode == 0 ? 22 : 16,
+                                          height: barHeight,
+                                          alignment: Alignment.topCenter,
+                                          decoration: BoxDecoration(
+                                            color: _green,
+                                            borderRadius: BorderRadius.circular(5),
+                                          ),
+                                          child: _prikkelPeriode == 0
+                                              ? Padding(
+                                                  padding: const EdgeInsets.only(top: 4),
+                                                  child: Text(
+                                                    average.toStringAsFixed(1),
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 9,
+                                                      fontWeight: FontWeight.w700,
+                                                    ),
+                                                  ),
+                                                )
+                                              : null,
                                         ),
-                                      ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 7),
-                            Text(
-                              weekday,
-                              style: const TextStyle(color: _muted, fontSize: 11),
-                            ),
-                            Text(
-                              '${day.date.day}',
-                              style: const TextStyle(color: _ink, fontSize: 11, fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                              const SizedBox(height: 7),
+                              SizedBox(
+                                height: 16,
+                                child: Text(
+                                  point.label,
+                                  style: const TextStyle(color: _muted, fontSize: 10),
+                                ),
+                              ),
+                              Text(
+                                _prikkelPeriode == 2
+                                    ? point.date.year.toString()
+                                    : (point.label.isEmpty ? ' ' : dateLabel),
+                                style: const TextStyle(color: _ink, fontSize: 9),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
               ),
             const SizedBox(height: 8),
             const Text(
-              'Een hoger getal betekent dat je op die dag gemiddeld meer prikkels hebt aangegeven. Dit is alleen een terugblik, geen beoordeling.',
+              'Een hoger getal betekent dat je gemiddeld meer prikkels hebt aangegeven. Dit overzicht is bedoeld voor zelfinzicht, niet als medische beoordeling.',
               style: TextStyle(color: _muted, fontSize: 11, height: 1.4),
             ),
           ],
