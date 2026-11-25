@@ -78,7 +78,7 @@ jobs:
 
           encoded_icon = Path("assets/android/moodpress_launcher_foreground.png.b64").read_text(encoding="ascii").strip()
           icon_bytes = base64.b64decode(encoded_icon, validate=True)
-          if not icon_bytes.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+          if icon_bytes[:8] != bytes([137, 80, 78, 71, 13, 10, 26, 10]):
               raise SystemExit("MoodPress launcher icon is not a valid PNG file")
 
           resources = Path("android/app/src/main/res")
