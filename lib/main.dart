@@ -1822,44 +1822,153 @@ class TodayPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final greeting = now.hour < 12 ? 'Goedemorgen' : now.hour < 18 ? 'Goedemiddag' : 'Goedenavond';
+    final greeting = now.hour < 12
+        ? 'Goedemorgen'
+        : now.hour < 18
+            ? 'Goedemiddag'
+            : 'Goedenavond';
+    final weekday = _formatDutchWeekday(now);
+    final todayLabel =
+        weekday[0].toUpperCase() + weekday.substring(1) +
+        ' ' + _formatDutchDate(now) + ' ' + now.year.toString();
     final todayActivities = controller.activitiesFor(now);
     final upcoming = todayActivities.where((item) => !item.done).toList();
     final next = upcoming.isEmpty ? null : upcoming.first;
     final completedToday = todayActivities.where((item) => item.done).length;
-    final progressToday = todayActivities.isEmpty ? 0.0 : completedToday / todayActivities.length;
+    final progressToday = todayActivities.isEmpty
+        ? 0.0
+        : completedToday / todayActivities.length;
 
-    return PageFrame(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const BrandMark(),
-      const SizedBox(height: 28),
-      Semantics(
-        header: true,
-        child: Text(greeting + '.', style: Theme.of(context).textTheme.headlineLarge),
+    return PageFrame(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const BrandMark(),
+          const SizedBox(height: 25),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: _line),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.calendar_today_outlined, size: 16, color: _green),
+                const SizedBox(width: 9),
+                Semantics(
+                  label: 'Vandaag, $todayLabel',
+                  child: Text(
+                    todayLabel,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 19),
+          Semantics(
+            header: true,
+            child: Text(
+              greeting + '.',
+              style: Theme.of(context).textTheme.headlineLarge,
+            ),
+          ),
+          const SizedBox(height: 7),
+          const Text(
+            'We doen het rustig aan. Eén ding tegelijk.',
+            style: TextStyle(color: _muted, fontSize: 16, height: 1.4),
+          ),
+          const SizedBox(height: 25),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final nextCard = NextStepCard(
+                activity: next,
+                openPlan: openPlan,
+              );
+              final progressCard = ProgressCard(
+                done: completedToday,
+                total: todayActivities.length,
+                progress: progressToday,
+                openPlan: openPlan,
+              );
+              if (constraints.maxWidth > 650) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(flex: 6, child: nextCard),
+                    const SizedBox(width: 14),
+                    Expanded(flex: 4, child: progressCard),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  nextCard,
+                  const SizedBox(height: 14),
+                  progressCard,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 29),
+          Text(
+            'Hoe is het nu met je?',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Kies wat bij dit moment past. Je hoeft niets uit te leggen.',
+            style: TextStyle(color: _muted, height: 1.4),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 9,
+            runSpacing: 9,
+            children: [
+              FeelingChoice(
+                label: 'Rustig',
+                emoji: '🙂',
+                selected: controller.feeling == 'Rustig',
+                onTap: () => controller.setFeeling('Rustig'),
+              ),
+              FeelingChoice(
+                label: 'Wat onrustig',
+                emoji: '😐',
+                selected: controller.feeling == 'Wat onrustig',
+                onTap: () => controller.setFeeling('Wat onrustig'),
+              ),
+              FeelingChoice(
+                label: 'Een vol hoofd',
+                emoji: '😣',
+                selected: controller.feeling == 'Een vol hoofd',
+                onTap: () => controller.setFeeling('Een vol hoofd'),
+              ),
+            ],
+          ),
+          if (controller.feeling != null)
+            const Padding(
+              padding: EdgeInsets.only(top: 13),
+              child: Text(
+                'Dank je. Je hoeft hier verder niets mee te doen.',
+                style: TextStyle(color: _muted, fontSize: 13),
+              ),
+            ),
+          if (controller.storageNotice != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: StorageNotice(message: controller.storageNotice!),
+            ),
+          const SizedBox(height: 22),
+          const SmallDisclaimer(),
+        ],
       ),
-      const SizedBox(height: 8),
-      const Text('We doen het rustig aan. Eén ding tegelijk.', style: TextStyle(color: _muted, fontSize: 16)),
-      const SizedBox(height: 24),
-      LayoutBuilder(builder: (context, constraints) {
-        final nextCard = NextStepCard(activity: next, openPlan: openPlan);
-        final progressCard = ProgressCard(done: completedToday, total: todayActivities.length, progress: progressToday, openPlan: openPlan);
-        if (constraints.maxWidth > 650) return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(flex: 6, child: nextCard), const SizedBox(width: 14), Expanded(flex: 4, child: progressCard)]);
-        return Column(children: [nextCard, const SizedBox(height: 14), progressCard]);
-      }),
-      const SizedBox(height: 28),
-      Text('Hoe is het nu met je?', style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 6),
-      const Text('Kies wat bij dit moment past. Je hoeft niets uit te leggen.', style: TextStyle(color: _muted)),
-      const SizedBox(height: 14),
-      Wrap(spacing: 9, runSpacing: 9, children: [
-        FeelingChoice(label: 'Rustig', emoji: '🙂', selected: controller.feeling == 'Rustig', onTap: () => controller.setFeeling('Rustig')),
-        FeelingChoice(label: 'Wat onrustig', emoji: '😐', selected: controller.feeling == 'Wat onrustig', onTap: () => controller.setFeeling('Wat onrustig')),
-        FeelingChoice(label: 'Een vol hoofd', emoji: '😣', selected: controller.feeling == 'Een vol hoofd', onTap: () => controller.setFeeling('Een vol hoofd')),
-      ]),
-      if (controller.feeling != null) const Padding(padding: EdgeInsets.only(top: 13), child: Text('Dank je. Je hoeft hier verder niets mee te doen.', style: TextStyle(color: _muted, fontSize: 13))),
-      if (controller.storageNotice != null) Padding(padding: const EdgeInsets.only(top: 16), child: StorageNotice(message: controller.storageNotice!)),
-      const SizedBox(height: 22),
-      const SmallDisclaimer(),
-    ]));
+    );
   }
 }
 
