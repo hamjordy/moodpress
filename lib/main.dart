@@ -1312,6 +1312,36 @@ class MoodPressController extends ChangeNotifier {
     return true;
   }
 
+  Future<void> saveRustplanActiviteit(RustplanActiviteit activiteit) async {
+    final index = rustplanActiviteiten.indexWhere((item) => item.id == activiteit.id);
+    if (index < 0) {
+      rustplanActiviteiten.add(activiteit);
+    } else {
+      rustplanActiviteiten[index] = activiteit;
+    }
+    await _saveRustplanActiviteiten();
+  }
+
+  Future<bool> deleteRustplanActiviteit(String id) async {
+    final before = rustplanActiviteiten.length;
+    rustplanActiviteiten.removeWhere((item) => item.id == id);
+    if (rustplanActiviteiten.length == before) return false;
+    await _saveRustplanActiviteiten();
+    return true;
+  }
+
+  Future<void> _saveRustplanActiviteiten() async {
+    try {
+      await _storage.write(
+        key: _rustplanKey,
+        value: jsonEncode(rustplanActiviteiten.map((item) => item.toJson()).toList()),
+      );
+    } catch (_) {
+      storageNotice = 'Je rustplan kon niet veilig worden opgeslagen.';
+    }
+    notifyListeners();
+  }
+
   Future<void> _saveDagboekNotities() async {
     try {
       await _storage.write(
