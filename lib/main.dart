@@ -403,6 +403,37 @@ class PrikkelMeting {
   }
 }
 
+String maakPrikkelCsv(List<PrikkelMeting> metingen) {
+  String veld(String value) {
+    final escaped = value.replaceAll('"', '""');
+    return escaped.contains(';') || escaped.contains('"') ||
+            escaped.contains('\n') || escaped.contains('\r')
+        ? '"$escaped"'
+        : escaped;
+  }
+
+  final sorted = List<PrikkelMeting>.from(metingen)
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  final rows = <String>[
+    'Datum;Tijd;Niveau;Omschrijving;Notitie',
+    ...sorted.map((meting) {
+      final date = meting.createdAt;
+      final datum =
+          '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final tijd =
+          '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+      return [
+        datum,
+        tijd,
+        meting.level.toString(),
+        prikkelNiveaus[meting.level - 1],
+        meting.note,
+      ].map(veld).join(';');
+    }),
+  ];
+  return '${rows.join('\r\n')}\r\n';
+}
+
 class PrikkelInzichten {
   const PrikkelInzichten({
     required this.totalMeasurements,
@@ -4775,6 +4806,38 @@ class _CalmPageState extends State<CalmPage> {
     );
   }
 
+  Future<void> _exporteerPrikkelMetingen() async {
+    final metingen = widget.controller.prikkelMetingen;
+    if (metingen.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Er zijn nog geen prikkelmetingen om te exporteren.')),
+      );
+      return;
+    }
+    try {
+      final bytes = Uint8List.fromList(
+        utf8.encode('\uFEFF${maakPrikkelCsv(metingen)}'),
+      );
+      final saved = await FilePicker.saveFile(
+        dialogTitle: 'Bewaar je prikkelgeschiedenis',
+        fileName: 'moodpress-prikkelgeschiedenis.csv',
+        mimeType: 'text/csv',
+        type: FileType.custom,
+        allowedExtensions: ['csv'],
+        bytes: bytes,
+      );
+      if (!mounted || saved == null) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Je prikkelgeschiedenis is geëxporteerd.')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('De prikkelgeschiedenis kon niet worden geëxporteerd. Probeer het opnieuw.')),
+      );
+    }
+  }
+
   Widget _buildPrikkelInzichten() {
     final inzichten = berekenPrikkelInzichten(
       widget.controller.prikkelMetingen,
@@ -4889,6 +4952,17 @@ class _CalmPageState extends State<CalmPage> {
             }),
 
             const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: widget.controller.prikkelMetingen.isEmpty
+                    ? null
+                    : _exporteerPrikkelMetingen,
+                icon: const Icon(Icons.download_outlined),
+                label: const Text('Exporteer metingen als CSV'),
+              ),
+            ),
+            const SizedBox(height: 8),
             const Text('Dit zijn beschrijvingen van je geregistreerde metingen, geen voorspellingen of medische conclusies.', style: TextStyle(color: _muted, fontSize: 11, height: 1.35)),
           ],
         ),
