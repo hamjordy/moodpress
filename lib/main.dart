@@ -1199,6 +1199,7 @@ class MoodPressController extends ChangeNotifier {
       speechRate: preferences.speechRate,
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: value,
+      speechEnabled: preferences.speechEnabled,
     );
     // Update the visible switch immediately; disk persistence follows.
     notifyListeners();
