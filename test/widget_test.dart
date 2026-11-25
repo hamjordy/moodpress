@@ -1320,6 +1320,74 @@ void main() {
   });
 
 
+  test('prikkel month overview contains thirty daily buckets', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'month-one',
+        level: 2,
+        createdAt: DateTime(2026, 11, 25, 9),
+      ),
+      PrikkelMeting(
+        id: 'month-two',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 18),
+      ),
+      PrikkelMeting(
+        id: 'month-old',
+        level: 5,
+        createdAt: DateTime(2026, 10, 25, 12),
+      ),
+    ];
+
+    final month = maakPrikkelGrafiekPunten(
+      measurements,
+      periode: 1,
+      vandaag: today,
+    );
+
+    expect(month, hasLength(30));
+    expect(month.last.date, DateTime(2026, 11, 25));
+    expect(month.last.count, 2);
+    expect(month.last.averageLevel, 3);
+    expect(month.first.count, 0);
+  });
+
+  test('prikkel year overview groups measurements into twelve months', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'year-one',
+        level: 4,
+        createdAt: DateTime(2026, 11, 12),
+      ),
+      PrikkelMeting(
+        id: 'year-two',
+        level: 2,
+        createdAt: DateTime(2026, 10, 4),
+      ),
+      PrikkelMeting(
+        id: 'year-old',
+        level: 5,
+        createdAt: DateTime(2025, 11, 25),
+      ),
+    ];
+
+    final year = maakPrikkelGrafiekPunten(
+      measurements,
+      periode: 2,
+      vandaag: today,
+    );
+
+    expect(year, hasLength(12));
+    expect(year.first.date, DateTime(2025, 12, 1));
+    expect(year.last.date, DateTime(2026, 11, 1));
+    expect(year.last.count, 1);
+    expect(year.last.averageLevel, 4);
+    expect(year[10].count, 1);
+    expect(year[10].averageLevel, 2);
+  });
+
   test('prikkel week overview calculates daily averages for seven days', () {
     final today = DateTime(2026, 11, 25);
     final measurements = [
