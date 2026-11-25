@@ -195,7 +195,12 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
 
     final controller = MoodPressController()..ready = true;
-    await tester.pumpWidget(MaterialApp(home: MoodPressShell(controller: controller)));
+    await tester.pumpWidget(MaterialApp(
+      home: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => MoodPressShell(controller: controller),
+      ),
+    ));
     await tester.pumpAndSettle();
 
     await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
