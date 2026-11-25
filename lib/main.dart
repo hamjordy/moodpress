@@ -2440,8 +2440,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
     _reminderTimer?.cancel();
     super.dispose();
   }
-  static const labels = ['Vandaag', 'Planning', 'Even rust', 'Mijn steun', 'Instellingen', 'Dagboek'];
-  static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded, Icons.menu_book_outlined];
+  static const labels = ['Vandaag', 'Planning', 'Even rust', 'Mijn steun', 'Instellingen', 'Dagboek', 'Rustplan'];
+  static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded, Icons.menu_book_outlined, Icons.self_improvement_outlined];
 
   @override
   Widget build(BuildContext context) => Shortcuts(
@@ -2458,6 +2458,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
               _NavigateToPageIntent(4),
           SingleActivator(LogicalKeyboardKey.digit6, control: true):
               _NavigateToPageIntent(5),
+          SingleActivator(LogicalKeyboardKey.digit7, control: true):
+              _NavigateToPageIntent(6),
           SingleActivator(LogicalKeyboardKey.numpad1, control: true):
               _NavigateToPageIntent(0),
           SingleActivator(LogicalKeyboardKey.numpad2, control: true):
@@ -2470,6 +2472,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
               _NavigateToPageIntent(4),
           SingleActivator(LogicalKeyboardKey.numpad6, control: true):
               _NavigateToPageIntent(5),
+          SingleActivator(LogicalKeyboardKey.numpad7, control: true):
+              _NavigateToPageIntent(6),
         },
         child: Actions(
           actions: <Type, Action<Intent>>{
@@ -2496,6 +2500,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
           SupportPage(controller: widget.controller),
           SettingsPage(controller: widget.controller),
           DagboekPage(controller: widget.controller),
+          RustplanPage(controller: widget.controller),
         ];
         return Scaffold(
           body: Row(children: [
