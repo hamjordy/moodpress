@@ -723,6 +723,45 @@ void main() {
     expect(restored.toJson()['speechEnabled'], isFalse);
   });
 
+  test('changing one preference preserves every other preference', () async {
+    final controller = MoodPressController();
+    controller.preferences = const MoodPressPreferences(
+      textScale: 1.15,
+      speechRate: 0.48,
+      reduceMotion: false,
+      inAppRemindersEnabled: false,
+      speechEnabled: false,
+    );
+
+    await controller.setInAppRemindersEnabled(true);
+    expect(controller.preferences.inAppRemindersEnabled, isTrue);
+    expect(controller.preferences.speechEnabled, isFalse);
+    expect(controller.preferences.textScale, 1.15);
+    expect(controller.preferences.speechRate, 0.48);
+
+    await controller.setSpeechEnabled(true);
+    expect(controller.preferences.speechEnabled, isTrue);
+    expect(controller.preferences.inAppRemindersEnabled, isTrue);
+
+    await controller.setTextScale(1.3);
+    expect(controller.preferences.textScale, 1.3);
+    expect(controller.preferences.speechEnabled, isTrue);
+    expect(controller.preferences.inAppRemindersEnabled, isTrue);
+
+    await controller.setSpeechRate(0.6);
+    expect(controller.preferences.speechRate, 0.6);
+    expect(controller.preferences.textScale, 1.3);
+    expect(controller.preferences.speechEnabled, isTrue);
+    expect(controller.preferences.inAppRemindersEnabled, isTrue);
+
+    await controller.setReduceMotion(true);
+    expect(controller.preferences.reduceMotion, isTrue);
+    expect(controller.preferences.textScale, 1.3);
+    expect(controller.preferences.speechRate, 0.6);
+    expect(controller.preferences.speechEnabled, isTrue);
+    expect(controller.preferences.inAppRemindersEnabled, isTrue);
+  });
+
   test('older activities without image fields remain compatible', () {
     final restored = DayActivity.fromJson({
       'id': 'old',

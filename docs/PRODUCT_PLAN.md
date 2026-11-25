@@ -40,6 +40,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Activiteiten met herkenbare pictogrammen en eigen foto's die de gebruiker of begeleider toevoegt (lokaal op het apparaat).
 - [x] Rustige weergave met minder animaties, instelbaar en lokaal bewaard.
 - [x] Eén instelling om alle voorleesknoppen in de app uit en aan te zetten; de keuze blijft lokaal bewaard en oude instellingen blijven compatibel.
+- [x] Regressietest controleert dat tekstgrootte, voorleessnelheid, rustige weergave, herinneringen en voorlezen elkaars voorkeuren behouden.
 - [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
 - [x] Rustige herinneringen die volledig uit te zetten zijn (in-app, zolang MoodPress open is; standaard uit).
 - [x] Volledige lokale back-up en terugzetten van planning, sjablonen, weekritme, steunplan, voorkeuren en activiteitfoto’s, versleuteld met een eigen wachtwoord.
