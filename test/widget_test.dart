@@ -91,13 +91,24 @@ void main() {
       matching: find.byType(SwitchListTile),
     )).value, isFalse);
 
-    await tester.tap(reminderLabel);
+    final reminderTile = find.ancestor(
+      of: reminderLabel,
+      matching: find.byType(SwitchListTile),
+    );
+    final reminderSwitch = find.descendant(
+      of: reminderTile,
+      matching: find.byType(Switch),
+    );
+
+    await tester.tap(reminderSwitch);
     await tester.pumpAndSettle();
     expect(controller.preferences.inAppRemindersEnabled, isTrue);
+    expect(tester.widget<SwitchListTile>(reminderTile).value, isTrue);
 
-    await tester.tap(reminderLabel);
+    await tester.tap(reminderSwitch);
     await tester.pumpAndSettle();
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
+    expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
   });
 
   testWidgets('canceling local data deletion keeps the settings screen unchanged', (tester) async {
