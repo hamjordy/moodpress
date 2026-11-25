@@ -1389,7 +1389,7 @@ void main() {
   });
 
   test('highest prikkel chart point ignores empty periods', () {
-    const points = [
+    final points = [
       PrikkelGrafiekPunt(
         date: DateTime(2026, 11, 23),
         label: 'ma',
