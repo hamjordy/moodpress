@@ -1289,6 +1289,19 @@ void main() {
   });
 
 
+  test('prikkel history search matches notes, dates and levels and sorts newest first', () {
+    final measurements = [
+      PrikkelMeting(id: 'older', level: 5, createdAt: DateTime(2026, 11, 20, 9), note: 'Veel geluid op kantoor'),
+      PrikkelMeting(id: 'newer', level: 5, createdAt: DateTime(2026, 11, 25, 18), note: 'Veel geluid thuis'),
+      PrikkelMeting(id: 'quiet', level: 1, createdAt: DateTime(2026, 11, 25, 8), note: 'Rustige ochtend'),
+    ];
+    expect(filterPrikkelMetingen(measurements, query: 'veel geluid').map((item) => item.id), ['newer', 'older']);
+    expect(filterPrikkelMetingen(measurements, query: '25-11-2026').map((item) => item.id), ['newer', 'quiet']);
+    expect(filterPrikkelMetingen(measurements, niveau: 5).map((item) => item.id), ['newer', 'older']);
+    expect(filterPrikkelMetingen(measurements, query: 'thuis', niveau: 5).map((item) => item.id), ['newer']);
+    expect(filterPrikkelMetingen(measurements, query: 'bestaat niet'), isEmpty);
+  });
+
   test('prikkel meter levels and measurement data are safely represented', () {
     expect(prikkelNiveaus, [
       'Helemaal rustig',
