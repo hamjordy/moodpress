@@ -3521,6 +3521,29 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
+                  Icon(Icons.info_outline_rounded, color: _green),
+                  SizedBox(width: 10),
+                  Text('Waar MoodPress niet voor is', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 8),
+                const Text(
+                  'MoodPress helpt bij dagstructuur. Het stelt geen diagnose en vervangt geen behandeling, begeleider of professionele hulp.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'MoodPress is geen crisisdienst. Als je direct gevaar loopt, bel 112. Neem bij behoefte aan hulp contact op met iemand die je vertrouwt of met je hulpverlener.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
                   Icon(Icons.backup_outlined, color: _green),
                   SizedBox(width: 10),
                   Text('Back-up en terugzetten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),

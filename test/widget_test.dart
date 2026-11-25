@@ -41,6 +41,9 @@ void main() {
     expect(find.text('Privacy en jouw gegevens'), findsOneWidget);
     expect(find.textContaining('MoodPress gebruikt geen account of cloud.'), findsOneWidget);
     expect(find.textContaining('Je stemming-check-in is tijdelijk en wordt niet bewaard.'), findsOneWidget);
+    expect(find.text('Waar MoodPress niet voor is'), findsOneWidget);
+    expect(find.textContaining('MoodPress is geen crisisdienst.'), findsOneWidget);
+    expect(find.textContaining('Als je direct gevaar loopt, bel 112.'), findsOneWidget);
 
     await pressControlNumber(LogicalKeyboardKey.numpad2);
     expect(find.text('Mijn planning').last, findsOneWidget);

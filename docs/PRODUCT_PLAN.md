@@ -53,6 +53,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 
 ### Fase 3 — zorgvuldig testen
 - [x] In de app-instellingen staat in begrijpelijke taal welke gegevens lokaal blijven, wat tijdelijk is en dat foto's in een versleutelde back-up kunnen staan.
+- [x] In de app-instellingen staat duidelijk dat MoodPress geen diagnose, behandeling of crisisdienst vervangt, met een verwijzing naar 112 bij direct gevaar.
 - [x] Handmatig testplan opgesteld voor Android, Windows, toetsenbord, schermlezers, prikkelbelasting, privacy en veilige gebruikerstesten. Dit is een voorbereiding; de praktijktesten zelf zijn nog niet uitgevoerd.
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
 - Testen met schermlezers, toetsenbord, touch, Windows scaling en Android toegankelijkheidsinstellingen.
