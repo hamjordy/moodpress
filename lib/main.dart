@@ -766,7 +766,14 @@ List<PrikkelMeting> filterPrikkelMetingen(
   List<PrikkelMeting> metingen, {
   String query = '',
   int niveau = 0,
+  int periodeDagen = 0,
+  DateTime? vandaag,
 }) {
+  final dag = vandaag ?? DateTime.now();
+  final vandaagStart = DateTime(dag.year, dag.month, dag.day);
+  final vanaf = periodeDagen > 0
+      ? vandaagStart.subtract(Duration(days: periodeDagen - 1))
+      : null;
   final terms = query
       .trim()
       .toLowerCase()
@@ -775,6 +782,8 @@ List<PrikkelMeting> filterPrikkelMetingen(
       .toList();
   final results = metingen.where((meting) {
     if (niveau != 0 && meting.level != niveau) return false;
+    if (vanaf != null && meting.createdAt.isBefore(vanaf)) return false;
+    if (meting.createdAt.isAfter(vandaagStart.add(const Duration(days: 1)))) return false;
     final date = meting.createdAt;
     final dateText = [
       '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}',
@@ -4485,6 +4494,7 @@ class _CalmPageState extends State<CalmPage> {
   int _prikkelPeriode = 0;
   String _prikkelZoekterm = '';
   int _prikkelFilterNiveau = 0;
+  int _prikkelFilterPeriode = 0;
   int? selectedLevel;
   final noteController = TextEditingController();
   static const steps = [
@@ -4975,9 +4985,10 @@ class _CalmPageState extends State<CalmPage> {
       widget.controller.prikkelMetingen,
       query: _prikkelZoekterm,
       niveau: _prikkelFilterNiveau,
+      periodeDagen: _prikkelFilterPeriode,
     );
     final heeftFilters = _prikkelZoekterm.trim().isNotEmpty ||
-        _prikkelFilterNiveau != 0;
+        _prikkelFilterNiveau != 0 || _prikkelFilterPeriode != 0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -5021,12 +5032,28 @@ class _CalmPageState extends State<CalmPage> {
                 onPressed: () => setState(() {
                   _prikkelZoekterm = '';
                   _prikkelFilterNiveau = 0;
+                  _prikkelFilterPeriode = 0;
                 }),
                 icon: const Icon(Icons.filter_alt_off),
                 label: const Text('Wissen'),
               ),
             ],
           ],
+        ),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<int>(
+          value: _prikkelFilterPeriode,
+          decoration: const InputDecoration(
+            labelText: 'Periode',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 0, child: Text('Alle datums')),
+            DropdownMenuItem(value: 7, child: Text('Laatste 7 dagen')),
+            DropdownMenuItem(value: 30, child: Text('Laatste 30 dagen')),
+            DropdownMenuItem(value: 365, child: Text('Laatste 12 maanden')),
+          ],
+          onChanged: (value) => setState(() => _prikkelFilterPeriode = value ?? 0),
         ),
         const SizedBox(height: 8),
         Text('${metingen.length} ${metingen.length == 1 ? 'meting' : 'metingen'} gevonden', style: const TextStyle(color: _muted, fontSize: 12)),
