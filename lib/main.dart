@@ -1181,6 +1181,41 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> deleteAllLocalData() async {
+    // Delete only MoodPress-owned secure-storage keys.
+    for (final key in [
+      _dayPlansKey,
+      _legacyDayKey,
+      _supportKey,
+      _preferencesKey,
+      _templatesKey,
+      _weeklyRoutineKey,
+    ]) {
+      await _storage.delete(key: key);
+    }
+
+    final appDirectory = await getApplicationSupportDirectory();
+    final photoDirectory = Directory(
+      appDirectory.path + Platform.pathSeparator + 'activity_images',
+    );
+    if (await photoDirectory.exists()) {
+      await photoDirectory.delete(recursive: true);
+    }
+
+    _plansByDate.clear();
+    templates = [];
+    weeklyRoutine = const WeeklyRoutine();
+    support = {
+      'help': 'Ik wil even rust en één ding tegelijk doen.',
+      'place': 'Een rustige plek waar ik mij prettig voel.',
+      'person': '',
+    };
+    preferences = const MoodPressPreferences();
+    feeling = null;
+    storageNotice = null;
+    notifyListeners();
+  }
+
   Future<void> resetPreferences() async {
     preferences = const MoodPressPreferences();
     await _savePreferences();
@@ -3606,6 +3641,63 @@ class SettingsPage extends StatelessWidget {
                     icon: const Icon(Icons.play_arrow_rounded),
                     label: const Text('Luister naar een voorbeeld'),
                   ),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(19),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Row(children: [
+                  Icon(Icons.delete_forever_outlined, color: _green),
+                  SizedBox(width: 10),
+                  Text('Jouw gegevens verwijderen', style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w700)),
+                ]),
+                const SizedBox(height: 7),
+                const Text(
+                  'Verwijder je lokale planningen, dagindelingen, weekritme, steunplan, voorkeuren en activiteitfoto’s van dit apparaat. Eerder gemaakte back-ups worden niet verwijderd.',
+                  style: TextStyle(color: _muted, height: 1.45),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final confirmed = await showDialog<bool>(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        title: const Text('Alle gegevens verwijderen?'),
+                        content: const Text(
+                          'Dit verwijdert je MoodPress-gegevens en activiteitfoto’s van dit apparaat. Dit kan niet ongedaan worden gemaakt. Een losse back-up die je eerder hebt opgeslagen, blijft bestaan. Weet je het zeker?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext, false),
+                            child: const Text('Annuleren'),
+                          ),
+                          FilledButton(
+                            onPressed: () => Navigator.pop(dialogContext, true),
+                            child: const Text('Verwijder mijn gegevens'),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirmed != true || !context.mounted) return;
+                    try {
+                      await controller.deleteAllLocalData();
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Je lokale MoodPress-gegevens zijn verwijderd.')),
+                      );
+                    } catch (_) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Niet alle gegevens konden worden verwijderd. Probeer het opnieuw.')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  label: const Text('Wis alle gegevens op dit apparaat'),
                 ),
               ]),
             ),
