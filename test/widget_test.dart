@@ -340,6 +340,20 @@ void main() {
     expect(parseActivitySteps(tooMany), hasLength(12));
   });
 
+  test('restored activity data never contains more than 12 steps', () {
+    final restored = DayActivity.fromJson({
+      'id': 'too-many-steps',
+      'title': 'Activiteit',
+      'time': '10:00',
+      'steps': List<String>.generate(15, (index) => 'Stap ${index + 1}'),
+      'stepDone': List<bool>.filled(15, true),
+    });
+
+    expect(restored.steps, hasLength(12));
+    expect(restored.steps.last, 'Stap 12');
+    expect(restored.stepDone, List<bool>.filled(12, true));
+  });
+
   test('single-activity view keeps its selected index within the day plan', () {
     expect(safeFocusedActivityIndex(2, 5), 2);
     expect(safeFocusedActivityIndex(-4, 5), 0);

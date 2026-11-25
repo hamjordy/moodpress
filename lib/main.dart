@@ -236,7 +236,7 @@ class DayActivity {
   factory DayActivity.fromJson(Map<String, dynamic> json) {
     final rawSteps = json['steps'];
     final steps = rawSteps is List
-        ? rawSteps.whereType<String>().toList()
+        ? rawSteps.whereType<String>().take(12).toList()
         : <String>[];
     final rawProgress = json['stepDone'];
     final progress = rawProgress is List
