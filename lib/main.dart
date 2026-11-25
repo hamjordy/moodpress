@@ -527,6 +527,18 @@ List<PrikkelWeekTrendPunt> maakPrikkelWeekTrend(
   });
 }
 
+List<PrikkelMeting> prikkelMetingenVoorWeek(
+  List<PrikkelMeting> metingen,
+  PrikkelWeekTrendPunt week,
+) {
+  final weekEinde = week.weekStart.add(const Duration(days: 7));
+  return metingen.where((meting) {
+    return !meting.createdAt.isBefore(week.weekStart) &&
+        meting.createdAt.isBefore(weekEinde);
+  }).toList()
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+}
+
 class PrikkelDagSamenvatting {
   const PrikkelDagSamenvatting({
     required this.date,
@@ -4672,6 +4684,97 @@ class _CalmPageState extends State<CalmPage> {
     );
   }
 
+  Future<void> _toonPrikkelWeekDetails(
+    BuildContext context,
+    PrikkelWeekTrendPunt week,
+  ) async {
+    final metingen = prikkelMetingenVoorWeek(
+      widget.controller.prikkelMetingen,
+      week,
+    );
+    final weekEinde = week.weekStart.add(const Duration(days: 6));
+    const levelLabels = [
+      'Helemaal rustig',
+      'Een beetje prikkels',
+      'Best veel prikkels',
+      'Erg veel prikkels',
+      'Overprikkeld',
+    ];
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          'Week ' + week.weekStart.day.toString() + '-' +
+          week.weekStart.month.toString() + ' t/m ' +
+          weekEinde.day.toString() + '-' + weekEinde.month.toString(),
+        ),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (week.averageLevel == null)
+                  const Text('Voor deze week zijn geen metingen opgeslagen.')
+                else ...[
+                  Text(
+                    'Gemiddeld prikkelniveau: ' +
+                    week.averageLevel!.toStringAsFixed(1) + ' van 5',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text('Aantal metingen: ' + week.count.toString()),
+                  const SizedBox(height: 12),
+                ],
+                ...metingen.map((meting) {
+                  final time =
+                      meting.createdAt.day.toString() + '-' +
+                      meting.createdAt.month.toString() + ' · ' +
+                      meting.createdAt.hour.toString().padLeft(2, '0') + ':' +
+                      meting.createdAt.minute.toString().padLeft(2, '0');
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _paper,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            time + ' · ' + meting.level.toString() +
+                            '/5 · ' + levelLabels[meting.level - 1],
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            meting.note.trim().isEmpty
+                                ? 'Geen notitie toegevoegd.'
+                                : meting.note,
+                            style: const TextStyle(color: _muted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Sluiten'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPrikkelInzichten() {
     final inzichten = berekenPrikkelInzichten(
       widget.controller.prikkelMetingen,
@@ -4737,36 +4840,50 @@ class _CalmPageState extends State<CalmPage> {
               final datum = week.weekStart;
               final label =
                   '${datum.day.toString().padLeft(2, '0')}-${datum.month.toString().padLeft(2, '0')}';
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      child: Text(label, style: const TextStyle(color: _muted, fontSize: 11)),
-                    ),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(5),
-                        child: LinearProgressIndicator(
-                          value: (week.averageLevel ?? 0) / 5,
-                          minHeight: 9,
-                          backgroundColor: _paper,
+              return Semantics(
+                button: true,
+                label: week.averageLevel == null
+                    ? 'Week vanaf ' + label + ': geen metingen. Tik voor details.'
+                    : 'Week vanaf ' + label + ': gemiddeld ' +
+                        week.averageLevel!.toStringAsFixed(1) +
+                        ' van 5, ' + week.count.toString() +
+                        ' metingen. Tik voor details.',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(8),
+                  onTap: () => _toonPrikkelWeekDetails(context, week),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 48,
+                          child: Text(label, style: const TextStyle(color: _muted, fontSize: 11)),
                         ),
-                      ),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            child: LinearProgressIndicator(
+                              value: (week.averageLevel ?? 0) / 5,
+                              minHeight: 9,
+                              backgroundColor: _paper,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 76,
+                          child: Text(
+                            week.averageLevel == null
+                                ? 'Geen data'
+                                : week.averageLevel!.toStringAsFixed(1) +
+                                    ' / 5 · ' + week.count.toString(),
+                            textAlign: TextAlign.end,
+                            style: const TextStyle(color: _muted, fontSize: 10),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 76,
-                      child: Text(
-                        week.averageLevel == null
-                            ? 'Geen data'
-                            : '${week.averageLevel!.toStringAsFixed(1)} / 5 · ${week.count}',
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(color: _muted, fontSize: 10),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               );
             }),
