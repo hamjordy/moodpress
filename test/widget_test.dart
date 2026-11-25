@@ -16,7 +16,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(home: MoodPressShell(controller: controller)),
     );
-    await tester.pump();
+    await tester.pumpAndSettle();
 
     Future<void> pressControlNumber(LogicalKeyboardKey key) async {
       await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);

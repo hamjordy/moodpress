@@ -1339,14 +1339,15 @@ class _MoodPressShellState extends State<MoodPressShell> {
                   return null;
                 }
                 setState(() => selected = intent.index);
-                FocusScope.of(context).unfocus();
                 return null;
               },
             ),
           },
-          child: FocusTraversalGroup(
-            policy: ReadingOrderTraversalPolicy(),
-            child: LayoutBuilder(builder: (context, constraints) {
+          child: Focus(
+            autofocus: true,
+            child: FocusTraversalGroup(
+              policy: ReadingOrderTraversalPolicy(),
+              child: LayoutBuilder(builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 850;
         final pages = [
           TodayPage(controller: widget.controller, openPlan: () => setState(() => selected = 1)),
@@ -1374,7 +1375,8 @@ class _MoodPressShellState extends State<MoodPressShell> {
             destinations: List.generate(labels.length, (index) => NavigationDestination(icon: Icon(icons[index]), label: labels[index])),
           ),
         );
-            }),
+              }),
+            ),
           ),
         ),
       );}

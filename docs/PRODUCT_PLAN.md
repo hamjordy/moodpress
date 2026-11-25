@@ -49,7 +49,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Optionele één-activiteit-tegelijk-weergave met vorige/volgende navigatie, uitleg, foto's en afvinkbare stappen.
 - [x] Bij wisselen van dag begint de één-activiteit-tegelijk-weergave opnieuw bij activiteit 1.
 - [x] Schermlezers herkennen paginakoppen; de focusweergave kondigt het activiteitnummer en de titel aan als live regio.
-- [x] Hoofdnavigatie op Windows is rechtstreeks met Ctrl + 1 tot en met Ctrl + 5 bereikbaar; focusvolgorde volgt de leesvolgorde.
+- [x] Hoofdnavigatie op Windows is rechtstreeks met Ctrl + 1 tot en met Ctrl + 5 bereikbaar; focusvolgorde volgt de leesvolgorde. De app krijgt bij openen direct toetsenbordfocus zodat de sneltoetsen beschikbaar zijn.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
