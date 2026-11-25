@@ -333,6 +333,19 @@ void main() {
     expect(preferences.speechEnabled, isTrue);
   });
 
+  test('restoring malformed steps keeps each progress value with its original step', () {
+    final restored = DayActivity.fromJson({
+      'id': 'mixed-steps',
+      'title': 'Activiteit',
+      'time': '10:00',
+      'steps': ['Eerste stap', 42, 'Derde stap'],
+      'stepDone': [true, false, 'ongeldig'],
+    });
+
+    expect(restored.steps, ['Eerste stap', 'Derde stap']);
+    expect(restored.stepDone, [true, false]);
+  });
+
   test('activity data can be saved and restored', () {
     final original = DayActivity(
       id: 'activity-1',

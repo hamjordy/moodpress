@@ -235,13 +235,20 @@ class DayActivity {
 
   factory DayActivity.fromJson(Map<String, dynamic> json) {
     final rawSteps = json['steps'];
-    final steps = rawSteps is List
-        ? rawSteps.whereType<String>().take(12).toList()
-        : <String>[];
     final rawProgress = json['stepDone'];
-    final progress = rawProgress is List
-        ? rawProgress.whereType<bool>().toList()
-        : <bool>[];
+    final steps = <String>[];
+    final progress = <bool>[];
+    if (rawSteps is List) {
+      for (var index = 0; index < rawSteps.length && steps.length < 12; index++) {
+        final step = rawSteps[index];
+        if (step is! String) continue;
+        steps.add(step);
+        final savedProgress = rawProgress is List && index < rawProgress.length
+            ? rawProgress[index]
+            : null;
+        progress.add(savedProgress is bool ? savedProgress : false);
+      }
+    }
     return DayActivity(
       id: json['id'] is String && (json['id'] as String).isNotEmpty
           ? json['id'] as String
