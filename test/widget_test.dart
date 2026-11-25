@@ -24,6 +24,36 @@ void main() {
     expect(find.byType(MoodPressShell), findsOneWidget);
   });
 
+  testWidgets('first-time welcome can be completed and is not shown again', (tester) async {
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(MoodPressApp(controller: controller));
+
+    expect(find.byType(MoodPressWelcomeScreen), findsOneWidget);
+    expect(find.text('Welkom bij MoodPress'), findsOneWidget);
+    expect(find.text('Maak je dag overzichtelijk'), findsOneWidget);
+    expect(find.text('Kleine stappen zijn genoeg'), findsOneWidget);
+    expect(find.text('Ruimte voor rust'), findsOneWidget);
+
+    await tester.tap(find.text('Aan de slag'));
+    await tester.pumpAndSettle();
+
+    expect(controller.preferences.hasSeenWelcome, isTrue);
+    expect(find.byType(MoodPressWelcomeScreen), findsNothing);
+    expect(find.byType(MoodPressShell), findsOneWidget);
+  });
+
+  testWidgets('first-time welcome can be skipped', (tester) async {
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(MoodPressApp(controller: controller));
+
+    await tester.tap(find.text('Overslaan'));
+    await tester.pumpAndSettle();
+
+    expect(controller.preferences.hasSeenWelcome, isTrue);
+    expect(find.byType(MoodPressWelcomeScreen), findsNothing);
+    expect(find.byType(MoodPressShell), findsOneWidget);
+  });
+
   testWidgets('Ctrl plus number opens each main section on desktop', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
@@ -219,6 +249,7 @@ void main() {
   test('in-app reminders stay optional by default and restore safely', () {
     const defaults = MoodPressPreferences();
     expect(defaults.inAppRemindersEnabled, isFalse);
+    expect(defaults.hasSeenWelcome, isFalse);
 
     final olderPreferences = MoodPressPreferences.fromJson({
       'textScale': 1.0,
@@ -226,6 +257,7 @@ void main() {
       'reduceMotion': false,
     });
     expect(olderPreferences.inAppRemindersEnabled, isFalse);
+    expect(olderPreferences.hasSeenWelcome, isTrue);
 
     final enabledPreferences = MoodPressPreferences.fromJson({
       ...defaults.toJson(),
@@ -1045,6 +1077,7 @@ void main() {
     expect(controller.preferences.reduceMotion, isFalse);
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
     expect(controller.preferences.speechEnabled, isTrue);
+    expect(controller.preferences.hasSeenWelcome, isTrue);
   });
 
 }
