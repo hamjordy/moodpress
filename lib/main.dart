@@ -1254,6 +1254,19 @@ class MoodPressController extends ChangeNotifier {
       storageNotice ??= 'Je dagboeknotities konden niet worden gelezen.';
     }
 
+    try {
+      final savedRestPlan = await _storage.read(key: _rustplanKey);
+      if (savedRestPlan != null) {
+        final values = jsonDecode(savedRestPlan) as List<dynamic>;
+        rustplanActiviteiten
+          ..clear()
+          ..addAll(values.whereType<Map<String, dynamic>>().map(RustplanActiviteit.fromJson));
+      }
+    } catch (_) {
+      rustplanActiviteiten.clear();
+      storageNotice ??= 'Je rustplan kon niet worden gelezen.';
+    }
+
     ready = true;
     notifyListeners();
   }
