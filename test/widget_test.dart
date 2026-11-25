@@ -1087,4 +1087,27 @@ void main() {
     expect(controller.preferences.hasSeenWelcome, isTrue);
   });
 
+
+  testWidgets('today screen shows a clear date header and calm overview', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TodayPage(controller: controller, openPlan: () {}),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
+    expect(find.textContaining('Vandaag'), findsOneWidget);
+    expect(find.text('We doen het rustig aan. Eén ding tegelijk.'), findsOneWidget);
+    expect(find.text('DIT IS JE VOLGENDE STAP'), findsOneWidget);
+    expect(find.text('Hoe is het nu met je?'), findsOneWidget);
+  });
+
+
 }
