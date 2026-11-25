@@ -2505,6 +2505,14 @@ class TodayPage extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 24),
+          WeekOverviewCard(
+            controller: controller,
+            onOpenDay: (date) {
+              controller.selectDate(date);
+              openPlan();
+            },
+          ),
           const SizedBox(height: 29),
           Text(
             'Hoe is het nu met je?',
@@ -2556,6 +2564,190 @@ class TodayPage extends StatelessWidget {
           const SizedBox(height: 22),
           const SmallDisclaimer(),
         ],
+      ),
+    );
+  }
+}
+
+
+class WeekOverviewCard extends StatelessWidget {
+  const WeekOverviewCard({
+    super.key,
+    required this.controller,
+    required this.onOpenDay,
+  });
+
+  final MoodPressController controller;
+  final ValueChanged<DateTime> onOpenDay;
+
+  @override
+  Widget build(BuildContext context) {
+    final today = DateTime.now();
+    final monday = DateTime(today.year, today.month, today.day)
+        .subtract(Duration(days: today.weekday - 1));
+    final days = List<DateTime>.generate(
+      7,
+      (index) => monday.add(Duration(days: index)),
+    );
+    final totalActivities = days.fold<int>(
+      0,
+      (total, day) => total + controller.activitiesFor(day).length,
+    );
+    final plannedDays = days
+        .where((day) => controller.activitiesFor(day).isNotEmpty)
+        .length;
+
+    return Container(
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _line),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Deze week',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => onOpenDay(today),
+                child: const Text('Hele planning'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 3),
+          const Text(
+            'Kies een dag om de planning te bekijken.',
+            style: TextStyle(color: _muted, fontSize: 13),
+          ),
+          const SizedBox(height: 15),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (var index = 0; index < days.length; index++) ...[
+                  if (index > 0) const SizedBox(width: 8),
+                  _WeekOverviewDay(
+                    date: days[index],
+                    activities: controller.activitiesFor(days[index]),
+                    isToday: _dateKey(days[index]) == _dateKey(today),
+                    onTap: () => onOpenDay(days[index]),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            totalActivities == 0
+                ? 'Nog geen activiteiten ingepland deze week.'
+                : '$totalActivities activiteiten verdeeld over $plannedDays ${plannedDays == 1 ? 'dag' : 'dagen'}.',
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WeekOverviewDay extends StatelessWidget {
+  const _WeekOverviewDay({
+    required this.date,
+    required this.activities,
+    required this.isToday,
+    required this.onTap,
+  });
+
+  final DateTime date;
+  final List<DayActivity> activities;
+  final bool isToday;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final done = activities.where((activity) => activity.done).length;
+    final weekday = _formatDutchWeekday(date);
+    final label = '${weekday[0].toUpperCase()}${weekday[1]} ${date.day}, ${activities.length} activiteiten';
+
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: isToday ? _greenPale : _paper,
+        borderRadius: BorderRadius.circular(13),
+        child: InkWell(
+          key: ValueKey('week-day-${_dateKey(date)}'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(13),
+          child: Container(
+            width: 66,
+            padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 5),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(13),
+              border: Border.all(color: isToday ? _green : _line),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  weekday.substring(0, 2),
+                  style: TextStyle(
+                    color: isToday ? _green : _muted,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Text(
+                  date.day.toString(),
+                  style: const TextStyle(
+                    color: _ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 7),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 22),
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: activities.isEmpty ? Colors.white : _green,
+                    borderRadius: BorderRadius.circular(9),
+                  ),
+                  child: Text(
+                    activities.length.toString(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: activities.isEmpty ? _muted : Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (activities.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '$done/${activities.length}',
+                    style: const TextStyle(color: _muted, fontSize: 9),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
