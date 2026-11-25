@@ -1331,6 +1331,8 @@ class MoodPressController extends ChangeNotifier {
   }
 
   Future<void> _saveRustplanActiviteiten() async {
+    // Update the visible page immediately; secure storage may complete later.
+    notifyListeners();
     try {
       await _storage.write(
         key: _rustplanKey,
@@ -1338,8 +1340,8 @@ class MoodPressController extends ChangeNotifier {
       );
     } catch (_) {
       storageNotice = 'Je rustplan kon niet veilig worden opgeslagen.';
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> _saveDagboekNotities() async {
