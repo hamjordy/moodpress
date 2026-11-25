@@ -124,17 +124,77 @@ jobs:
               xml = xml.replace("<application", query + "    <application", 1)
               manifest.write_text(xml)
           PY
+      - name: Configure secure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_KEYSTORE_BASE64}" || -z "${ANDROID_KEYSTORE_PASSWORD}" || -z "${ANDROID_KEY_ALIAS}" || -z "${ANDROID_KEY_PASSWORD}" ]]; then
+            echo "Android signing secrets are missing. Configure all four repository secrets."
+            exit 1
+          fi
+          mkdir -p "$HOME/.moodpress-signing"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$HOME/.moodpress-signing/moodpress-upload.jks"
+          cat > android/key.properties <<EOF
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          storeFile=$HOME/.moodpress-signing/moodpress-upload.jks
+          EOF
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/build.gradle.kts")
+          if not path.exists():
+              raise SystemExit("Expected generated android/app/build.gradle.kts was not found")
+          content = path.read_text()
+          if "import java.util.Properties" not in content:
+              content = "import java.util.Properties\\nimport java.io.FileInputStream\\n\\n" + content
+          marker = "android {"
+          if marker not in content:
+              raise SystemExit("Could not find android block in generated Gradle file")
+          loader = """val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+
+          """
+          if "val keystoreProperties = Properties()" not in content:
+              content = content.replace(marker, loader + marker, 1)
+          signing = """    signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["keyPassword"] as String
+                      storeFile = file(keystoreProperties["storeFile"] as String)
+                      storePassword = keystoreProperties["storePassword"] as String
+                  }
+              }
+          """
+          if 'create("release")' not in content:
+              content = content.replace("    buildTypes {", signing + "    buildTypes {", 1)
+          content = content.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")',
+          )
+          if 'signingConfig = signingConfigs.getByName("release")' not in content:
+              raise SystemExit("Could not configure release signing")
+          path.write_text(content)
+          PY
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
-          name: moodpress-android-apk
+          name: moodpress-android-apk-signed
           path: build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
-      - name: Build Android App Bundle (preview; signing still required for Play Store)
+      - name: Build signed Android App Bundle for Google Play
         run: flutter build appbundle --release
       - uses: actions/upload-artifact@v4
         with:
-          name: moodpress-android-aab-preview
+          name: moodpress-android-aab-signed
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
