@@ -1266,7 +1266,9 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp(home: PlanningPage(controller: controller)),
+      MaterialApp(
+        home: Scaffold(body: PlanningPage(controller: controller)),
+      ),
     );
     await tester.pumpAndSettle();
 
