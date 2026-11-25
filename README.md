@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.11 — extra controles toegevoegd voor optionele herinneringen en het veilig annuleren van gegevensverwijdering.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Versie 0.15.12 — extra controle toegevoegd zodat herinneringen alleen bij geldige tijden afgaan.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).

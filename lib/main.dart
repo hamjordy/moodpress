@@ -346,7 +346,9 @@ bool isActivityDueAt(DayActivity activity, DateTime now) {
   if (parts.length != 2) return false;
   final hour = int.tryParse(parts[0]);
   final minute = int.tryParse(parts[1]);
-  return hour != null && minute != null && hour == now.hour && minute == now.minute;
+  return hour != null && minute != null &&
+      hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59 &&
+      hour == now.hour && minute == now.minute;
 }
 
 

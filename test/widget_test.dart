@@ -295,6 +295,20 @@ void main() {
       ),
       isFalse,
     );
+    expect(
+      isActivityDueAt(
+        DayActivity(id: 'invalid-hour', title: 'Ongeldig uur', time: '25:30'),
+        DateTime(2026, 11, 25, 8, 30),
+      ),
+      isFalse,
+    );
+    expect(
+      isActivityDueAt(
+        DayActivity(id: 'invalid-minute', title: 'Ongeldige minuut', time: '08:90'),
+        DateTime(2026, 11, 25, 8, 30),
+      ),
+      isFalse,
+    );
   });
 
   test('accessibility preferences stay within supported limits', () {

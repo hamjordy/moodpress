@@ -57,6 +57,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Gebruiker kan alle lokale MoodPress-gegevens en activiteitfoto’s bewust verwijderen, na een extra bevestiging. Losse back-upbestanden blijven buiten de app en worden niet verwijderd.
 - [x] Widgettest controleert dat de gebruiker het verwijderen van lokale gegevens kan annuleren zonder de wisactie te starten.
 - [x] Test controleert dat herinneringen standaard uitstaan, bij oudere instellingen uit blijven en alleen aanstaan als de gebruiker ze zelf inschakelt.
+- [x] Herinneringen negeren ongeldige activiteitstijden (uren buiten 0–23 en minuten buiten 0–59).
 - [x] Handmatig testplan opgesteld voor Android, Windows, toetsenbord, schermlezers, prikkelbelasting, privacy en veilige gebruikerstesten. Dit is een voorbereiding; de praktijktesten zelf zijn nog niet uitgevoerd.
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
 - Testen met schermlezers, toetsenbord, touch, Windows scaling en Android toegankelijkheidsinstellingen.
