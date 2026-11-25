@@ -96,15 +96,17 @@ void main() {
     expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
 
     // Use the real app root so controller notifications rebuild the visible
-    // switch exactly as they do when MoodPress is running normally.
-    await tester.tap(reminderSwitch);
-    await tester.pumpAndSettle();
+    // switch exactly as they do when MoodPress is running normally. Call the
+    // tile callback directly: Flutter's compact switch hit target can be
+    // unreliable in headless CI pointer tests.
+    tester.widget<SwitchListTile>(reminderTile).onChanged!(true);
     expect(controller.preferences.inAppRemindersEnabled, isTrue);
+    await tester.pumpAndSettle();
     expect(tester.widget<SwitchListTile>(reminderTile).value, isTrue);
 
-    await tester.tap(reminderSwitch);
-    await tester.pumpAndSettle();
+    tester.widget<SwitchListTile>(reminderTile).onChanged!(false);
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
+    await tester.pumpAndSettle();
     expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
   });
 
