@@ -369,6 +369,67 @@ String _formatDutchDate(DateTime date) =>
 
 String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
+
+class PlanningSearchResult {
+  const PlanningSearchResult({
+    required this.date,
+    required this.activity,
+  });
+
+  final DateTime date;
+  final DayActivity activity;
+}
+
+List<PlanningSearchResult> searchPlanningActivities(
+  Map<String, List<DayActivity>> plans,
+  String query,
+) {
+  final terms = query
+      .trim()
+      .toLowerCase()
+      .split(RegExp(r'\s+'))
+      .where((term) => term.isNotEmpty)
+      .toList();
+  if (terms.isEmpty) return const <PlanningSearchResult>[];
+
+  final results = <PlanningSearchResult>[];
+  final dateKeys = plans.keys.toList()..sort();
+
+  for (final dateKey in dateKeys) {
+    final date = DateTime.tryParse(dateKey);
+    if (date == null) continue;
+    final dateText = [
+      _formatDutchWeekday(date),
+      _formatDutchDate(date),
+      date.year.toString(),
+      date.month.toString().padLeft(2, '0'),
+      date.day.toString().padLeft(2, '0'),
+      dateKey,
+    ].join(' ');
+
+    for (final activity in plans[dateKey] ?? const <DayActivity>[]) {
+      final searchableText = [
+        activity.title,
+        activity.time,
+        activity.who,
+        activity.what,
+        activity.where,
+        activity.how,
+        activity.note,
+        ...activity.steps,
+        activity.done ? 'afgerond klaar voltooid' : 'openstaand niet afgerond',
+        dateText,
+      ].join(' ').toLowerCase();
+
+      if (terms.every(searchableText.contains)) {
+        results.add(PlanningSearchResult(date: date, activity: activity));
+      }
+    }
+  }
+
+  return results;
+}
+
 bool isActivityDueAt(DayActivity activity, DateTime now) {
   if (activity.done) return false;
   final parts = activity.time.split(':');
@@ -546,6 +607,9 @@ class MoodPressController extends ChangeNotifier {
   List<DayActivity> get activities => activitiesFor(selectedDate);
   int get completed => completedOn(selectedDate);
   double get progress => progressOn(selectedDate);
+
+  List<PlanningSearchResult> searchActivities(String query) =>
+      searchPlanningActivities(_plansByDate, query);
 
   List<DayActivity> activitiesFor(DateTime date) =>
       _plansByDate[_dateKey(date)] ?? const <DayActivity>[];
@@ -2070,6 +2134,8 @@ class _PlanningPageState extends State<PlanningPage> {
   bool _singleActivityMode = false;
   int _focusedActivityIndex = 0;
   late DateTime _weekStart;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -2251,6 +2317,12 @@ class _PlanningPageState extends State<PlanningPage> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) => PageFrame(
         title: 'Mijn planning',
         subtitle: _showWeek
@@ -2281,21 +2353,161 @@ class _PlanningPageState extends State<PlanningPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SegmentedButton<bool>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: true, label: Text('Weekoverzicht')),
-                ButtonSegment(value: false, label: Text('Dagplan')),
-              ],
-              selected: {_showWeek},
-              onSelectionChanged: (values) =>
-                  setState(() => _showWeek = values.first),
+            TextField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: InputDecoration(
+                hintText: 'Zoek in je hele planning',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _searchQuery.trim().isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Zoekopdracht wissen',
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: _line),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: _line),
+                ),
+              ),
             ),
-            const SizedBox(height: 18),
-            if (_showWeek) _buildWeek(context) else _buildDay(context),
+            const SizedBox(height: 16),
+            if (_searchQuery.trim().isNotEmpty)
+              _buildSearchResults()
+            else ...[
+              SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: true, label: Text('Weekoverzicht')),
+                  ButtonSegment(value: false, label: Text('Dagplan')),
+                ],
+                selected: {_showWeek},
+                onSelectionChanged: (values) =>
+                    setState(() => _showWeek = values.first),
+              ),
+              const SizedBox(height: 18),
+              if (_showWeek) _buildWeek(context) else _buildDay(context),
+            ],
           ],
         ),
       );
+
+  Widget _buildSearchResults() {
+    final results = widget.controller.searchActivities(_searchQuery);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            results.length.toString() +
+                (results.length == 1
+                    ? ' resultaat gevonden'
+                    : ' resultaten gevonden'),
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        if (results.isEmpty)
+          const Card(
+            child: Padding(
+              padding: EdgeInsets.all(18),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.search_off_rounded, color: _muted),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Geen activiteiten gevonden. Probeer een andere naam, datum, tijd of een woord uit de uitleg.',
+                      style: TextStyle(color: _ink, height: 1.4),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        for (final result in results) _buildSearchResultCard(result),
+      ],
+    );
+  }
+
+  Widget _buildSearchResultCard(PlanningSearchResult result) {
+    final activity = result.activity;
+    var detail = activity.what.trim();
+    if (detail.isEmpty) detail = activity.note.trim();
+    if (detail.isEmpty) detail = activity.where.trim();
+    if (detail.isEmpty) detail = activity.how.trim();
+    if (detail.isEmpty && activity.steps.isNotEmpty) {
+      detail = activity.steps.first;
+    }
+    if (detail.isEmpty) {
+      detail = activity.done ? 'Afgerond' : 'Nog te doen';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Card(
+        child: ListTile(
+          leading: CircleAvatar(
+            backgroundColor: _greenPale,
+            child: Text(
+              activity.symbol,
+              style: const TextStyle(fontSize: 20),
+            ),
+          ),
+          title: Text(
+            activity.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: _ink,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          subtitle: Text(
+            _formatDutchWeekday(result.date) + ' ' +
+                _formatDutchDate(result.date) + ' ' +
+                result.date.year.toString() + ' · ' + activity.time +
+                '\n' + detail,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: const Icon(Icons.chevron_right_rounded, color: _green),
+          onTap: () => _openSearchResult(result),
+        ),
+      ),
+    );
+  }
+
+  void _openSearchResult(PlanningSearchResult result) {
+    final items = widget.controller.activitiesFor(result.date);
+    final index = items.indexWhere(
+      (activity) => activity.id == result.activity.id,
+    );
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _showWeek = false;
+      _singleActivityMode = true;
+      _focusedActivityIndex = index < 0 ? 0 : index;
+    });
+    widget.controller.selectDate(result.date);
+  }
 
   Widget _buildWeek(BuildContext context) {
     return Column(
