@@ -157,6 +157,29 @@ Future<void> main() async {
   runApp(MoodPressApp(controller: controller));
 }
 
+List<bool> _normalizeStepProgress(List<String> steps, List<bool> progress) =>
+    List<bool>.generate(
+      steps.length,
+      (index) => index < progress.length ? progress[index] : false,
+    );
+
+List<String> parseActivitySteps(String value) => value
+    .split('\n')
+    .map((step) => step.trim())
+    .where((step) => step.isNotEmpty)
+    .take(12)
+    .toList();
+
+bool toggleDayActivityStep(DayActivity activity, int index) {
+  if (index < 0 || index >= activity.steps.length) return false;
+  activity.stepDone = _normalizeStepProgress(
+    activity.steps,
+    activity.stepDone,
+  );
+  activity.stepDone[index] = !activity.stepDone[index];
+  return true;
+}
+
 class DayActivity {
   DayActivity({
     required this.id,
@@ -170,6 +193,8 @@ class DayActivity {
     this.symbol = '📌',
     this.photoPath = '',
     this.done = false,
+    this.steps = const <String>[],
+    this.stepDone = const <bool>[],
   });
 
   final String id;
@@ -183,6 +208,8 @@ class DayActivity {
   String symbol;
   String photoPath;
   bool done;
+  List<String> steps;
+  List<bool> stepDone;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -196,23 +223,42 @@ class DayActivity {
         'symbol': symbol,
         'photoPath': photoPath,
         'done': done,
+        'steps': steps,
+        'stepDone': _normalizeStepProgress(steps, stepDone),
       };
 
-  factory DayActivity.fromJson(Map<String, dynamic> json) => DayActivity(
-        id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
-        title: json['title'] as String? ?? 'Nieuwe activiteit',
-        time: json['time'] as String? ?? '09:00',
-        who: json['who'] as String? ?? '',
-        what: json['what'] as String? ?? '',
-        where: json['where'] as String? ?? '',
-        how: json['how'] as String? ?? '',
-        note: json['note'] as String? ?? '',
-        symbol: json['symbol'] as String? ?? '📌',
-        photoPath: json['photoPath'] as String? ?? '',
-        done: json['done'] as bool? ?? false,
-      );
+  factory DayActivity.fromJson(Map<String, dynamic> json) {
+    final rawSteps = json['steps'];
+    final steps = rawSteps is List
+        ? rawSteps.whereType<String>().toList()
+        : <String>[];
+    final rawProgress = json['stepDone'];
+    final progress = rawProgress is List
+        ? rawProgress.whereType<bool>().toList()
+        : <bool>[];
+    return DayActivity(
+      id: json['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
+      title: json['title'] as String? ?? 'Nieuwe activiteit',
+      time: json['time'] as String? ?? '09:00',
+      who: json['who'] as String? ?? '',
+      what: json['what'] as String? ?? '',
+      where: json['where'] as String? ?? '',
+      how: json['how'] as String? ?? '',
+      note: json['note'] as String? ?? '',
+      symbol: json['symbol'] as String? ?? '📌',
+      photoPath: json['photoPath'] as String? ?? '',
+      done: json['done'] as bool? ?? false,
+      steps: steps,
+      stepDone: _normalizeStepProgress(steps, progress),
+    );
+  }
 
-  DayActivity copyWith({String? id, bool? done}) => DayActivity(
+  DayActivity copyWith({
+    String? id,
+    bool? done,
+    bool resetSteps = false,
+  }) =>
+      DayActivity(
         id: id ?? this.id,
         title: title,
         time: time,
@@ -224,6 +270,10 @@ class DayActivity {
         symbol: symbol,
         photoPath: photoPath,
         done: done ?? this.done,
+        steps: List<String>.from(steps),
+        stepDone: resetSteps
+            ? List<bool>.filled(steps.length, false)
+            : List<bool>.from(_normalizeStepProgress(steps, stepDone)),
       );
 }
 
@@ -258,6 +308,7 @@ class DayTemplate {
       (index) => activities[index].copyWith(
         id: prefix + '-' + index.toString(),
         done: false,
+        resetSteps: true,
       ),
     );
   }
@@ -302,6 +353,7 @@ List<DayActivity> copyDayActivities(
       (index) => source[index].copyWith(
         id: idPrefix + '-' + index.toString(),
         done: false,
+        resetSteps: true,
       ),
     );
 
@@ -309,7 +361,7 @@ DayActivity copyDayActivity(
   DayActivity source, {
   required String newId,
 }) =>
-    source.copyWith(id: newId, done: false);
+    source.copyWith(id: newId, done: false, resetSteps: true);
 
 bool moveDayActivityBetweenLists(
   List<DayActivity> source,
@@ -605,7 +657,7 @@ class MoodPressController extends ChangeNotifier {
           DateTime.now().microsecondsSinceEpoch.toString(),
       name: _dutchWeekdays[weekday - 1][0].toUpperCase() +
           _dutchWeekdays[weekday - 1].substring(1),
-      activities: source.map((item) => item.copyWith(done: false)).toList(),
+      activities: source.map((item) => item.copyWith(done: false, resetSteps: true)).toList(),
     );
     weeklyRoutine = weeklyRoutine.withDay(weekday, template);
     await _saveWeeklyRoutine();
@@ -749,6 +801,20 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> toggleActivityStep(String id, int stepIndex) async {
+    final dayActivities = _mutableActivitiesFor(selectedDate);
+    final activityIndex = dayActivities.indexWhere(
+      (activity) => activity.id == id,
+    );
+    if (activityIndex == -1) return;
+
+    final activity = dayActivities[activityIndex];
+    if (!toggleDayActivityStep(activity, stepIndex)) return;
+
+    await _saveDayPlans();
+    notifyListeners();
+  }
+
   Future<void> deleteActivity(String id) async {
     _mutableActivitiesFor(selectedDate)
         .removeWhere((activity) => activity.id == id);
@@ -763,7 +829,7 @@ class MoodPressController extends ChangeNotifier {
     templates.add(DayTemplate(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: name.trim(),
-      activities: source.map((item) => item.copyWith(done: false)).toList(),
+      activities: source.map((item) => item.copyWith(done: false, resetSteps: true)).toList(),
     ));
     await _saveTemplates();
     notifyListeners();
@@ -1958,6 +2024,8 @@ class _PlanningPageState extends State<PlanningPage> {
                   activity: item,
                   speechRate: widget.controller.preferences.speechRate,
                   toggle: () => widget.controller.toggleActivity(item.id),
+                  toggleStep: (stepIndex) =>
+                      widget.controller.toggleActivityStep(item.id, stepIndex),
                   edit: () => editActivity(context, widget.controller, existing: item),
                   delete: () => confirmDelete(context, widget.controller, item),
                   copy: () => _copyActivityToDate(context, date, item),
@@ -2325,10 +2393,23 @@ class _PlanningPageState extends State<PlanningPage> {
   }
 }
 class ActivityCard extends StatelessWidget {
-  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete, required this.copy, required this.move, required this.reorderHandle});
+  const ActivityCard({
+    super.key,
+    required this.activity,
+    required this.speechRate,
+    required this.toggle,
+    required this.toggleStep,
+    required this.edit,
+    required this.delete,
+    required this.copy,
+    required this.move,
+    required this.reorderHandle,
+  });
+
   final DayActivity activity;
   final double speechRate;
   final VoidCallback toggle;
+  final ValueChanged<int> toggleStep;
   final VoidCallback edit;
   final VoidCallback delete;
   final VoidCallback copy;
@@ -2336,31 +2417,144 @@ class ActivityCard extends StatelessWidget {
   final Widget reorderHandle;
 
   @override
-  Widget build(BuildContext context) => Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(width: 55, padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(12)), child: Text(activity.time, textAlign: TextAlign.center, style: const TextStyle(color: _green, fontWeight: FontWeight.w800, fontSize: 12))),
+  Widget build(BuildContext context) {
+    final completedSteps = activity.stepDone.where((value) => value).length;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 55,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: _greenPale,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                activity.time,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: _green,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ),
             const SizedBox(width: 13),
-            Expanded(child: InkWell(
-              onTap: edit,
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                  Text(activity.symbol, style: const TextStyle(fontSize: 24)),
-                  const SizedBox(width: 9),
-                  Expanded(child: Text(activity.title, style: TextStyle(color: activity.done ? _muted : _ink, fontSize: 16, fontWeight: FontWeight.w700, decoration: activity.done ? TextDecoration.lineThrough : null))),
-                ]),
-                if (activity.photoPath.isNotEmpty && File(activity.photoPath).existsSync()) ...[
-                  const SizedBox(height: 9),
-                  ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(File(activity.photoPath), height: 110, width: 150, fit: BoxFit.cover)),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  InkWell(
+                    onTap: edit,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(activity.symbol, style: const TextStyle(fontSize: 24)),
+                            const SizedBox(width: 9),
+                            Expanded(
+                              child: Text(
+                                activity.title,
+                                style: TextStyle(
+                                  color: activity.done ? _muted : _ink,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  decoration: activity.done
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (activity.photoPath.isNotEmpty &&
+                            File(activity.photoPath).existsSync()) ...[
+                          const SizedBox(height: 9),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.file(
+                              File(activity.photoPath),
+                              height: 110,
+                              width: 150,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ],
+                        if (activity.note.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 5),
+                            child: Text(
+                              activity.note,
+                              style: const TextStyle(color: _muted, fontSize: 13),
+                            ),
+                          ),
+                        const SizedBox(height: 7),
+                        const Text(
+                          'Tik om de vijf vragen te bekijken',
+                          style: TextStyle(
+                            color: _green,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (activity.steps.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Text(
+                      'Stappen: ' +
+                          completedSteps.toString() +
+                          ' van ' +
+                          activity.steps.length.toString() +
+                          ' klaar',
+                      style: const TextStyle(
+                        color: _green,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    for (var index = 0; index < activity.steps.length; index++)
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: index < activity.stepDone.length
+                                ? activity.stepDone[index]
+                                : false,
+                            visualDensity: VisualDensity.compact,
+                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            onChanged: (_) => toggleStep(index),
+                          ),
+                          Expanded(
+                            child: Text(
+                              activity.steps[index],
+                              style: const TextStyle(color: _ink, fontSize: 13),
+                            ),
+                          ),
+                        ],
+                      ),
+                  ],
                 ],
-                if (activity.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text(activity.note, style: const TextStyle(color: _muted, fontSize: 13))),
-                const SizedBox(height: 7),
-                const Text('Tik om de vijf vragen te bekijken', style: TextStyle(color: _green, fontSize: 11, fontWeight: FontWeight.w600)),
-              ]),
-            )),
+              ),
+            ),
             reorderHandle,
-            SpeakButton(text: activity.title + '. ' + activity.time + '. Wie: ' + activity.who + '. Wat: ' + activity.what + '. Waar: ' + activity.where + '. Hoe: ' + activity.how + '.', speechRate: speechRate),
+            SpeakButton(
+              text: activity.title +
+                  '. ' + activity.time +
+                  '. Wie: ' + activity.who +
+                  '. Wat: ' + activity.what +
+                  '. Waar: ' + activity.where +
+                  '. Hoe: ' + activity.how +
+                  (activity.steps.isEmpty
+                      ? ''
+                      : '. Stappen: ' + activity.steps.join('. ')),
+              speechRate: speechRate,
+            ),
             IconButton(tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond', onPressed: toggle, icon: Icon(activity.done ? Icons.check_circle : Icons.circle_outlined, color: activity.done ? _green : _muted)),
             PopupMenuButton<String>(
               tooltip: 'Meer opties',
@@ -2419,6 +2613,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
   late final TextEditingController where;
   late final TextEditingController how;
   late final TextEditingController note;
+  late final TextEditingController stepsText;
   String symbol = '📌';
   String photoPath = '';
 
@@ -2433,13 +2628,14 @@ class _ActivityEditorState extends State<ActivityEditor> {
     where = TextEditingController(text: item?.where ?? '');
     how = TextEditingController(text: item?.how ?? '');
     note = TextEditingController(text: item?.note ?? '');
+    stepsText = TextEditingController(text: item?.steps.join('\n') ?? '');
     symbol = item?.symbol ?? '📌';
     photoPath = item?.photoPath ?? '';
   }
 
   @override
   void dispose() {
-    title.dispose(); time.dispose(); who.dispose(); what.dispose(); where.dispose(); how.dispose(); note.dispose();
+    title.dispose(); time.dispose(); who.dispose(); what.dispose(); where.dispose(); how.dispose(); note.dispose(); stepsText.dispose();
     super.dispose();
   }
 
@@ -2480,6 +2676,15 @@ class _ActivityEditorState extends State<ActivityEditor> {
   void save() {
     if (!_formKey.currentState!.validate()) return;
     final old = widget.existing;
+    final nextSteps = parseActivitySteps(stepsText.text);
+    final nextStepDone = nextSteps.map((step) {
+      final oldIndex = old?.steps.indexOf(step) ?? -1;
+      return old != null &&
+              oldIndex >= 0 &&
+              oldIndex < old.stepDone.length
+          ? old.stepDone[oldIndex]
+          : false;
+    }).toList();
     Navigator.pop(context, DayActivity(
       id: old?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       title: title.text.trim(),
@@ -2492,6 +2697,8 @@ class _ActivityEditorState extends State<ActivityEditor> {
       symbol: symbol,
       photoPath: photoPath,
       done: old?.done ?? false,
+      steps: nextSteps,
+      stepDone: nextStepDone,
     ));
   }
 
@@ -2546,6 +2753,19 @@ class _ActivityEditorState extends State<ActivityEditor> {
                 field(what, 'Wat?', 'Wat ga je doen?'),
                 field(where, 'Waar?', 'Waar gebeurt het?'),
                 field(how, 'Hoe?', 'Welke kleine stappen helpen?'),
+                field(
+                  stepsText,
+                  'Stappenplan (optioneel)',
+                  'Zet iedere kleine stap op een aparte regel.',
+                  lines: 4,
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 5),
+                  child: Text(
+                    'Maximaal 12 stappen. Je kunt ze straks één voor één afvinken.',
+                    style: TextStyle(color: _muted, fontSize: 12),
+                  ),
+                ),
                 field(note, 'Extra uitleg (optioneel)', 'Wat is fijn om vooraf te weten?', lines: 2),
               ]),
             ),

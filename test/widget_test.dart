@@ -53,6 +53,8 @@ void main() {
       symbol: '🛒',
       photoPath: '/local/moodpress/winkel.jpg',
       done: true,
+      steps: ['Jas pakken', 'Tas meenemen', 'Naar de winkel lopen'],
+      stepDone: [true, false, true],
     );
 
     final restored = DayActivity.fromJson(original.toJson());
@@ -67,8 +69,36 @@ void main() {
     expect(restored.symbol, '🛒');
     expect(restored.photoPath, '/local/moodpress/winkel.jpg');
     expect(restored.done, isTrue);
+    expect(restored.steps, ['Jas pakken', 'Tas meenemen', 'Naar de winkel lopen']);
+    expect(restored.stepDone, [true, false, true]);
   });
   
+  test('activity steps are parsed as short non-empty lines with a maximum of 12', () {
+    final parsed = parseActivitySteps(
+      '  Jas pakken  \n\nTas meenemen\n Naar buiten gaan \n',
+    );
+    expect(parsed, ['Jas pakken', 'Tas meenemen', 'Naar buiten gaan']);
+
+    final tooMany = List<String>.generate(14, (index) => 'Stap ' + (index + 1).toString())
+        .join('\n');
+    expect(parseActivitySteps(tooMany), hasLength(12));
+  });
+
+  test('activity steps can be checked independently', () {
+    final activity = DayActivity(
+      id: 'steps',
+      title: 'Naar buiten gaan',
+      time: '10:00',
+      steps: ['Jas pakken', 'Sleutels pakken', 'Deur sluiten'],
+    );
+
+    expect(toggleDayActivityStep(activity, 1), isTrue);
+    expect(activity.stepDone, [false, true, false]);
+    expect(toggleDayActivityStep(activity, 1), isTrue);
+    expect(activity.stepDone, [false, false, false]);
+    expect(toggleDayActivityStep(activity, 9), isFalse);
+  });
+
   test('accessibility preferences can be saved and restored', () {
     const original = MoodPressPreferences(textScale: 1.3, speechRate: 0.5, reduceMotion: true);
     final restored = MoodPressPreferences.fromJson(original.toJson());
@@ -265,6 +295,8 @@ void main() {
         symbol: '🛒',
         photoPath: '/local/moodpress/winkel.jpg',
         done: true,
+        steps: ['Jas pakken', 'Tas meenemen'],
+        stepDone: [true, false],
       ),
       DayActivity(
         id: 'source-2',
@@ -291,6 +323,9 @@ void main() {
     expect(copied.first.note, source.first.note);
     expect(copied.first.symbol, source.first.symbol);
     expect(copied.first.photoPath, source.first.photoPath);
+    expect(copied.first.steps, source.first.steps);
+    expect(copied.first.stepDone, [false, false]);
+    expect(source.first.stepDone, [true, false]);
   });
 
   test('copying one activity creates a new unfinished copy and keeps the original', () {
@@ -306,6 +341,8 @@ void main() {
       symbol: '🛒',
       photoPath: '/local/moodpress/winkel.jpg',
       done: true,
+      steps: ['Jas pakken', 'Tas meenemen'],
+      stepDone: [true, false],
     );
 
     final copied = copyDayActivity(
@@ -325,6 +362,9 @@ void main() {
     expect(copied.note, original.note);
     expect(copied.symbol, original.symbol);
     expect(copied.photoPath, original.photoPath);
+    expect(copied.steps, ['Jas pakken', 'Tas meenemen']);
+    expect(copied.stepDone, [false, false]);
+    expect(original.stepDone, [true, false]);
     expect(original.done, isTrue);
     expect(original.id, 'original-activity');
   });
@@ -432,5 +472,7 @@ void main() {
 
     expect(restored.symbol, '📌');
     expect(restored.photoPath, isEmpty);
+    expect(restored.steps, isEmpty);
+    expect(restored.stepDone, isEmpty);
   });
 }

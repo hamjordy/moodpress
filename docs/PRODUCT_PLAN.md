@@ -45,6 +45,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Een bestaand dagplan rechtstreeks naar een andere datum kopiëren, met behoud van volgorde en terugzetten van alle activiteiten op niet-afgerond.
 - [x] Eén losse activiteit naar een andere datum verplaatsen; de overige activiteiten blijven staan en alle details van de verplaatste activiteit blijven behouden.
 - [x] Eén losse activiteit naar een andere datum kopiëren; het origineel blijft staan en de kopie begint als niet-afgerond.
+- [x] Optioneel stappenplan per activiteit met maximaal 12 korte stappen, afzonderlijk af te vinken en lokaal te bewaren.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
