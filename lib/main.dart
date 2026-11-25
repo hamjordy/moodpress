@@ -1376,9 +1376,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
             }),
           ),
         ),
-      ),
-    );
-}
+      );}
 
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key});

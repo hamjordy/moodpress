@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.0 — gebruik Ctrl + 1 tot en met Ctrl + 5 om met het toetsenbord tussen de vijf hoofdonderdelen te wisselen.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.15.1 — sneltoetsnavigatie met Ctrl + 1 tot en met Ctrl + 5; geneste Flutter-widgets gecontroleerd.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
