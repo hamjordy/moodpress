@@ -118,6 +118,62 @@ void main() {
     expect(find.text('Mijn planning').last, findsOneWidget);
   });
 
+  test('diary note keeps its date, feeling and text when serialized', () {
+    final note = DagboekNotitie(
+      date: DateTime(2026, 11, 25),
+      feeling: 'Goed',
+      text: 'Vandaag rustig gewandeld.',
+      updatedAt: DateTime(2026, 11, 25, 18, 30),
+    );
+
+    final restored = DagboekNotitie.fromJson(note.toJson());
+
+    expect(restored.date, DateTime(2026, 11, 25));
+    expect(restored.feeling, 'Goed');
+    expect(restored.text, 'Vandaag rustig gewandeld.');
+    expect(restored.updatedAt, DateTime(2026, 11, 25, 18, 30));
+  });
+
+  testWidgets('diary page opens from navigation and loads a saved note', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final date = DateTime(2026, 11, 24);
+    final controller = MoodPressController(
+      initialJournalEntries: [
+        DagboekNotitie(
+          date: date,
+          feeling: 'Goed',
+          text: 'Ik heb een fijne wandeling gemaakt.',
+          updatedAt: date,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit6);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit6);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mijn dagboek'), findsOneWidget);
+    expect(find.text('Eerdere notities'), findsOneWidget);
+    expect(find.textContaining('Ik heb een fijne wandeling gemaakt.'), findsOneWidget);
+
+    await tester.tap(find.textContaining('dinsdag 24 november'));
+    await tester.pumpAndSettle();
+
+    final textField = tester.widget<TextField>(find.byType(TextField).first);
+    expect(textField.controller!.text, 'Ik heb een fijne wandeling gemaakt.');
+  });
+
   testWidgets('branded splash screen is shown while local data loads', (tester) async {
     final controller = MoodPressController()
       ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
