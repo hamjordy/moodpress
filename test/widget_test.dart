@@ -1320,4 +1320,36 @@ void main() {
   });
 
 
+  test('prikkel week overview calculates daily averages for seven days', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'one',
+        level: 2,
+        createdAt: DateTime(2026, 11, 25, 9),
+      ),
+      PrikkelMeting(
+        id: 'two',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 18),
+      ),
+      PrikkelMeting(
+        id: 'three',
+        level: 5,
+        createdAt: DateTime(2026, 11, 24, 12),
+      ),
+    ];
+
+    final week = maakPrikkelWeekOverzicht(measurements, vandaag: today);
+
+    expect(week, hasLength(7));
+    expect(week.last.date, DateTime(2026, 11, 25));
+    expect(week.last.count, 2);
+    expect(week.last.averageLevel, 3);
+    expect(week[5].count, 1);
+    expect(week[5].averageLevel, 5);
+    expect(week.first.averageLevel, isNull);
+  });
+
+
 }
