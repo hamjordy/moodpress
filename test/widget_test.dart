@@ -8,7 +8,8 @@ import 'package:moodpress/main.dart';
 
 void main() {
   testWidgets('branded splash screen is shown while local data loads', (tester) async {
-    final controller = MoodPressController();
+    final controller = MoodPressController()
+      ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
     await tester.pumpWidget(MoodPressApp(controller: controller));
 
     expect(find.text('MoodPress'), findsOneWidget);
@@ -34,6 +35,7 @@ void main() {
     expect(find.text('Kleine stappen zijn genoeg'), findsOneWidget);
     expect(find.text('Ruimte voor rust'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Aan de slag'));
     await tester.tap(find.text('Aan de slag'));
     await tester.pumpAndSettle();
 
@@ -46,6 +48,7 @@ void main() {
     final controller = MoodPressController()..ready = true;
     await tester.pumpWidget(MoodPressApp(controller: controller));
 
+    await tester.ensureVisible(find.text('Overslaan'));
     await tester.tap(find.text('Overslaan'));
     await tester.pumpAndSettle();
 
@@ -119,7 +122,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final controller = MoodPressController()..ready = true;
+    final controller = MoodPressController()
+      ..ready = true
+      ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
     await tester.pumpWidget(MoodPressApp(controller: controller));
     await tester.pumpAndSettle();
 
@@ -159,7 +164,9 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final controller = MoodPressController()..ready = true;
+    final controller = MoodPressController()
+      ..ready = true
+      ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
     await tester.pumpWidget(MoodPressApp(controller: controller));
     await tester.pumpAndSettle();
 
