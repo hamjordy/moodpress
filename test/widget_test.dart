@@ -62,6 +62,62 @@ void main() {
     expect(searchPlanningActivities(plans, 'bestaat niet'), isEmpty);
   });
 
+  testWidgets('dashboard week overview summarizes days and opens selected date', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final today = DateTime.now();
+    final monday = DateTime(today.year, today.month, today.day)
+        .subtract(Duration(days: today.weekday - 1));
+    final tuesday = monday.add(const Duration(days: 1));
+    final controller = MoodPressController(
+      initialPlans: {
+        monday: [
+          DayActivity(
+            id: 'monday-1',
+            title: 'Ontbijten',
+            time: '08:00',
+            done: true,
+          ),
+        ],
+        tuesday: [
+          DayActivity(
+            id: 'tuesday-1',
+            title: 'Wandelen',
+            time: '10:00',
+          ),
+          DayActivity(
+            id: 'tuesday-2',
+            title: 'Boodschappen',
+            time: '14:00',
+          ),
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Deze week'), findsOneWidget);
+    expect(find.text('3 activiteiten verdeeld over 2 dagen.'), findsOneWidget);
+    expect(find.text('1/1'), findsOneWidget);
+    expect(find.text('0/2'), findsOneWidget);
+
+    final dateKey =
+        '${tuesday.year.toString().padLeft(4, '0')}-'
+        '${tuesday.month.toString().padLeft(2, '0')}-'
+        '${tuesday.day.toString().padLeft(2, '0')}';
+    await tester.tap(find.byKey(ValueKey('week-day-$dateKey')));
+    await tester.pumpAndSettle();
+
+    expect(controller.selectedDate, DateTime(tuesday.year, tuesday.month, tuesday.day));
+    expect(find.text('Mijn planning').last, findsOneWidget);
+  });
+
   testWidgets('branded splash screen is shown while local data loads', (tester) async {
     final controller = MoodPressController()
       ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
