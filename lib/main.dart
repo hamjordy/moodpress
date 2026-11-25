@@ -595,6 +595,36 @@ const prikkelNiveaus = <String>[
   'Overprikkeld',
 ];
 
+List<PrikkelMeting> filterPrikkelMetingen(
+  List<PrikkelMeting> metingen, {
+  String query = '',
+  int niveau = 0,
+}) {
+  final terms = query
+      .trim()
+      .toLowerCase()
+      .split(RegExp(r'\\s+'))
+      .where((term) => term.isNotEmpty)
+      .toList();
+  final results = metingen.where((meting) {
+    if (niveau != 0 && meting.level != niveau) return false;
+    final date = meting.createdAt;
+    final dateText = [
+      date.day.toString().padLeft(2, '0'),
+      date.month.toString().padLeft(2, '0'),
+      date.year.toString(),
+      date.toIso8601String(),
+      'niveau ${meting.level}',
+      meting.level.toString(),
+      prikkelNiveaus[meting.level - 1],
+      meting.note,
+    ].join(' ').toLowerCase();
+    return terms.every(dateText.contains);
+  }).toList()
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return results;
+}
+
 class PlanningSearchResult {
   const PlanningSearchResult({
     required this.date,
@@ -4287,6 +4317,8 @@ class _PrikkelInzichtCard extends StatelessWidget {
 class _CalmPageState extends State<CalmPage> {
   int step = 0;
   int _prikkelPeriode = 0;
+  String _prikkelZoekterm = '';
+  int _prikkelFilterNiveau = 0;
   int? selectedLevel;
   final noteController = TextEditingController();
   static const steps = [
@@ -4514,6 +4546,115 @@ class _CalmPageState extends State<CalmPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPrikkelGeschiedenis() {
+    final metingen = filterPrikkelMetingen(
+      widget.controller.prikkelMetingen,
+      query: _prikkelZoekterm,
+      niveau: _prikkelFilterNiveau,
+    );
+    final heeftFilters = _prikkelZoekterm.trim().isNotEmpty ||
+        _prikkelFilterNiveau != 0;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Prikkelgeschiedenis', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        TextField(
+          onChanged: (value) => setState(() => _prikkelZoekterm = value),
+          decoration: InputDecoration(
+            labelText: 'Zoek in je metingen',
+            hintText: 'Zoek op notitie, datum of niveau',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _prikkelZoekterm.isEmpty ? null : IconButton(
+              tooltip: 'Zoekopdracht wissen',
+              onPressed: () => setState(() => _prikkelZoekterm = ''),
+              icon: const Icon(Icons.clear),
+            ),
+            border: const OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<int>(
+                value: _prikkelFilterNiveau,
+                decoration: const InputDecoration(labelText: 'Prikkelniveau', border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 0, child: Text('Alle niveaus')),
+                  DropdownMenuItem(value: 1, child: Text('1 · Helemaal rustig')),
+                  DropdownMenuItem(value: 2, child: Text('2 · Een beetje prikkels')),
+                  DropdownMenuItem(value: 3, child: Text('3 · Best veel prikkels')),
+                  DropdownMenuItem(value: 4, child: Text('4 · Erg veel prikkels')),
+                  DropdownMenuItem(value: 5, child: Text('5 · Overprikkeld')),
+                ],
+                onChanged: (value) => setState(() => _prikkelFilterNiveau = value ?? 0),
+              ),
+            ),
+            if (heeftFilters) ...[
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => setState(() {
+                  _prikkelZoekterm = '';
+                  _prikkelFilterNiveau = 0;
+                }),
+                icon: const Icon(Icons.filter_alt_off),
+                label: const Text('Wissen'),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text('${metingen.length} ${metingen.length == 1 ? 'meting' : 'metingen'} gevonden', style: const TextStyle(color: _muted, fontSize: 12)),
+        const SizedBox(height: 6),
+        if (widget.controller.prikkelMetingen.isEmpty)
+          const Text('Je hebt nog geen metingen opgeslagen.', style: TextStyle(color: _muted))
+        else if (metingen.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            child: Text('Geen metingen gevonden. Pas je zoekopdracht of filter aan.', style: TextStyle(color: _muted)),
+          )
+        else
+          ...metingen.map((measurement) {
+            final date = measurement.createdAt;
+            final dateLabel = '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year} om ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+            return Card(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: CircleAvatar(backgroundColor: _greenPale, child: Text('${measurement.level}', style: const TextStyle(color: _green, fontWeight: FontWeight.w700))),
+                      title: Text(prikkelNiveaus[measurement.level - 1]),
+                      subtitle: Text(measurement.note.isEmpty ? dateLabel : '$dateLabel\\n${measurement.note}'),
+                      isThreeLine: measurement.note.isNotEmpty,
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => _bewerkPrikkelMeting(measurement),
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: const Text('Bewerken'),
+                        ),
+                        TextButton.icon(
+                          onPressed: () => _verwijderPrikkelMeting(measurement),
+                          icon: const Icon(Icons.delete_outline, size: 16),
+                          label: const Text('Verwijderen'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }),
+      ],
     );
   }
 
@@ -4809,23 +4950,7 @@ class _CalmPageState extends State<CalmPage> {
         const SizedBox(height: 18),
         _buildPrikkelWeekChart(),
         const SizedBox(height: 18),
-        const Text('Eerdere metingen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 8),
-        if (widget.controller.prikkelMetingen.isEmpty)
-          const Text('Je hebt nog geen metingen opgeslagen.', style: TextStyle(color: _muted))
-        else
-          ...widget.controller.prikkelMetingen.take(10).map((measurement) {
-            final date = measurement.createdAt;
-            final dateLabel = '${date.day}-${date.month}-${date.year} om ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-            return Card(
-              child: ListTile(
-                leading: CircleAvatar(backgroundColor: _greenPale, child: Text('${measurement.level}', style: const TextStyle(color: _green, fontWeight: FontWeight.w700))),
-                title: Text(prikkelNiveaus[measurement.level - 1]),
-                subtitle: Text(measurement.note.isEmpty ? dateLabel : '$dateLabel\n${measurement.note}'),
-                isThreeLine: measurement.note.isNotEmpty,
-              ),
-            );
-          }),
+        _buildPrikkelGeschiedenis(),
         const SizedBox(height: 12),
         const Card(child: Padding(padding: EdgeInsets.all(17), child: Text('Je prikkelniveau is persoonlijk en kan per moment verschillen. Deze meter is bedoeld voor zelfinzicht, niet als medische beoordeling. Je gegevens blijven op dit apparaat.', style: TextStyle(color: _muted, height: 1.45)))),
         if (widget.controller.storageNotice != null)
