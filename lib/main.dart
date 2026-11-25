@@ -1237,6 +1237,7 @@ class MoodPressController extends ChangeNotifier {
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
       speechEnabled: value,
+      hasSeenWelcome: preferences.hasSeenWelcome,
     );
     notifyListeners();
     await _savePreferences();
@@ -1304,8 +1305,9 @@ class MoodPressController extends ChangeNotifier {
       speechEnabled: preferences.speechEnabled,
       hasSeenWelcome: true,
     );
-    await _savePreferences();
+    // Switch to the app immediately; saving locally may take a moment.
     notifyListeners();
+    await _savePreferences();
   }
 
   Future<void> resetPreferences() async {
