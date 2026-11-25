@@ -1501,6 +1501,43 @@ void main() {
     expect(insights.previousAverage, isNull);
   });
 
+  test('eight-week prikkel trend groups measurements by Monday-based weeks', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(id: 'before', level: 5, createdAt: DateTime(2026, 10, 4, 23)),
+      PrikkelMeting(id: 'first-a', level: 2, createdAt: DateTime(2026, 10, 6, 9)),
+      PrikkelMeting(id: 'first-b', level: 4, createdAt: DateTime(2026, 10, 8, 18)),
+      PrikkelMeting(id: 'middle', level: 5, createdAt: DateTime(2026, 10, 20, 12)),
+      PrikkelMeting(id: 'current', level: 3, createdAt: DateTime(2026, 11, 25, 10)),
+      PrikkelMeting(id: 'future', level: 1, createdAt: DateTime(2026, 11, 30, 10)),
+    ];
+
+    final trend = maakPrikkelWeekTrend(measurements, vandaag: today);
+
+    expect(trend, hasLength(8));
+    expect(trend.first.weekStart, DateTime(2026, 10, 5));
+    expect(trend.first.averageLevel, 3);
+    expect(trend.first.count, 2);
+    expect(trend[2].averageLevel, 5);
+    expect(trend[2].count, 1);
+    expect(trend[6].averageLevel, isNull);
+    expect(trend[6].count, 0);
+    expect(trend.last.weekStart, DateTime(2026, 11, 23));
+    expect(trend.last.averageLevel, 3);
+    expect(trend.last.count, 1);
+  });
+
+  test('eight-week prikkel trend returns empty weeks without measurements', () {
+    final trend = maakPrikkelWeekTrend(
+      const [],
+      vandaag: DateTime(2026, 11, 25),
+    );
+
+    expect(trend, hasLength(8));
+    expect(trend.every((week) => week.averageLevel == null), isTrue);
+    expect(trend.every((week) => week.count == 0), isTrue);
+  });
+
   test('prikkel week overview calculates daily averages for seven days', () {
     final today = DateTime(2026, 11, 25);
     final measurements = [
