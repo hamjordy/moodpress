@@ -1198,6 +1198,7 @@ class MoodPressController extends ChangeNotifier {
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
       speechEnabled: preferences.speechEnabled,
+      hasSeenWelcome: preferences.hasSeenWelcome,
     );
     await _savePreferences();
     notifyListeners();
@@ -1210,6 +1211,7 @@ class MoodPressController extends ChangeNotifier {
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
       speechEnabled: preferences.speechEnabled,
+      hasSeenWelcome: preferences.hasSeenWelcome,
     );
     await _savePreferences();
     notifyListeners();
@@ -1222,6 +1224,7 @@ class MoodPressController extends ChangeNotifier {
       reduceMotion: value,
       inAppRemindersEnabled: preferences.inAppRemindersEnabled,
       speechEnabled: preferences.speechEnabled,
+      hasSeenWelcome: preferences.hasSeenWelcome,
     );
     await _savePreferences();
     notifyListeners();
@@ -1247,6 +1250,7 @@ class MoodPressController extends ChangeNotifier {
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: value,
       speechEnabled: preferences.speechEnabled,
+      hasSeenWelcome: preferences.hasSeenWelcome,
     );
     // Update the visible switch immediately; disk persistence follows.
     notifyListeners();
