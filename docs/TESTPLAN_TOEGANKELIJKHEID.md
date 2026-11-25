@@ -20,6 +20,10 @@ Dit document helpt om MoodPress zorgvuldig te testen voordat de app met echte pe
 - [ ] Knoppen en invoervelden zijn groot genoeg en hebben begrijpelijke namen.
 - [ ] De gebruiker kan tekst invoeren, opslaan, aanpassen en annuleren.
 - [ ] De gebruiker kan een activiteit afronden en een stap weer uitvinken.
+- [ ] De prikkelmeter kan een niveau en optionele notitie opslaan; de gebruiker kan een meting terugvinden, aanpassen en verwijderen.
+- [ ] De prikkelgeschiedenis kan worden doorzocht en gefilterd; grafiekperioden en bijbehorende details zijn begrijpelijk.
+- [ ] Dagboeknotities kunnen per datum worden opgeslagen, geopend en verwijderd.
+- [ ] Rustplanactiviteiten kunnen worden toegevoegd, aangepast en verwijderd.
 - [ ] Dag, week en datum zijn duidelijk herkenbaar.
 - [ ] De app blijft bruikbaar met grotere systeemtekst en schermzoom.
 - [ ] Controleer TalkBack: volgorde, knopnamen, koppen, statusmeldingen en focus.
@@ -32,8 +36,8 @@ Dit document helpt om MoodPress zorgvuldig te testen voordat de app met echte pe
 - [ ] Alle belangrijke functies zijn met Tab en Shift+Tab bereikbaar.
 - [ ] De focusvolgorde volgt de zichtbare leesvolgorde.
 - [ ] De focus is steeds zichtbaar.
-- [ ] Ctrl+1 tot en met Ctrl+5 werken.
-- [ ] Ctrl+1 tot en met Ctrl+5 werken ook met het numerieke toetsenblok.
+- [ ] Ctrl+1 tot en met Ctrl+7 werken (Vandaag, Planning, Even rust, Mijn steun, Instellingen, Dagboek en Rustplan).
+- [ ] Ctrl+1 tot en met Ctrl+7 werken ook met het numerieke toetsenblok.
 - [ ] Enter en spatie activeren de juiste knoppen.
 - [ ] De app blijft bruikbaar bij 125%, 150% en 200% Windows-schaling.
 - [ ] Controleer NVDA of Narrator op koppen, knoppen, invoervelden en statusmeldingen.
@@ -58,8 +62,8 @@ Vraag de tester niet om persoonlijke medische informatie. Observeer alleen of de
 
 Voer deze controles uitsluitend uit met fictieve testgegevens.
 
-- [ ] Plannen, voorkeuren en steuninformatie blijven na opnieuw starten beschikbaar.
-- [ ] Een versleutelde back-up kan worden gemaakt.
+- [ ] Plannen, voorkeuren, steuninformatie, prikkelmetingen, dagboeknotities en rustplanactiviteiten blijven na opnieuw starten beschikbaar.
+- [ ] Een versleutelde back-up kan worden gemaakt en bevat ook prikkelmetingen, dagboeknotities en rustplanactiviteiten.
 - [ ] Een back-up kan met het juiste wachtwoord worden teruggezet.
 - [ ] Een verkeerd wachtwoord geeft een begrijpelijke foutmelding.
 - [ ] Een beschadigd of niet-ondersteund bestand wordt veilig geweigerd.
