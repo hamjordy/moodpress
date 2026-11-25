@@ -6,7 +6,7 @@ Deze checklist beschrijft wanneer een versie als releaseklaar mag worden aangeme
 
 - [ ] De gewenste releasecode staat op `main`; de pull request is beoordeeld en samengevoegd.
 - [ ] De versie in `pubspec.yaml` is bewust gekozen en komt overeen met de releasetag en release-notities.
-- [ ] De app heeft een definitieve, unieke Android application ID (geen standaard `com.example...`).
+- [x] De vaste Android application ID is gekozen: `nl.moodpress.app`. De gegenereerde Android-build stelt zowel `namespace` als `applicationId` hierop in.
 - [ ] De Android-release is ondertekend met een eigen releasekeystore; sleutels en wachtwoorden staan niet in Git of buildlogs.
 - [ ] De Windows-build heeft de juiste productnaam, versie, app-icoon en distributiebestanden.
 - [ ] De licenties, gebruikte afhankelijkheden en privacy-/veiligheidsclaims zijn gecontroleerd.
@@ -18,7 +18,9 @@ Deze checklist beschrijft wanneer een versie als releaseklaar mag worden aangeme
 - [ ] `flutter analyze` slaagt.
 - [ ] Alle automatische tests slagen.
 - [ ] Android release-build slaagt en het APK-bestand wordt als artifact opgeslagen.
+- [ ] Android App Bundle (AAB) wordt gebouwd; vóór Play Store-upload moet deze met de eigen uploadkeystore worden ondertekend.
 - [ ] Windows release-build slaagt en alle benodigde runtimebestanden worden als artifact opgeslagen.
+- [ ] Windows Release-map wordt als ZIP verpakt en op een schone pc getest.
 - [ ] De artifacts zijn afkomstig van dezelfde releasecommit en zijn opnieuw te downloaden.
 
 ## 3. Android — praktijktest
@@ -56,7 +58,8 @@ Deze checklist beschrijft wanneer een versie als releaseklaar mag worden aangeme
 
 - [ ] Alleen publiceren nadat alle blokkerende punten hierboven zijn afgevinkt.
 - [ ] Een getagde GitHub-release maken met versie, wijzigingen, bekende beperkingen en installatie-instructies.
-- [ ] Android APK en Windows distributiebestand(en) aan dezelfde release toevoegen.
+- [ ] Android AAB (ondertekend) en Windows ZIP aan dezelfde release toevoegen.
+- [ ] Microsoft Store MSIX-pakket voorbereiden en Store-validatie uitvoeren als we via de Microsoft Store publiceren.
 - [ ] Downloads na publicatie controleren en installatie nogmaals uitvoeren.
 
 ## Huidige status
