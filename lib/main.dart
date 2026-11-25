@@ -603,16 +603,15 @@ List<PrikkelMeting> filterPrikkelMetingen(
   final terms = query
       .trim()
       .toLowerCase()
-      .split(RegExp(r'\\s+'))
+      .split(RegExp(r'\s+'))
       .where((term) => term.isNotEmpty)
       .toList();
   final results = metingen.where((meting) {
     if (niveau != 0 && meting.level != niveau) return false;
     final date = meting.createdAt;
     final dateText = [
-      date.day.toString().padLeft(2, '0'),
-      date.month.toString().padLeft(2, '0'),
-      date.year.toString(),
+      '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}',
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
       date.toIso8601String(),
       'niveau ${meting.level}',
       meting.level.toString(),
