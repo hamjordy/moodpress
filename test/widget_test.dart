@@ -1388,6 +1388,34 @@ void main() {
     expect(year[10].averageLevel, 2);
   });
 
+  test('highest prikkel chart point ignores empty periods', () {
+    const points = [
+      PrikkelGrafiekPunt(
+        date: DateTime(2026, 11, 23),
+        label: 'ma',
+        averageLevel: null,
+        count: 0,
+      ),
+      PrikkelGrafiekPunt(
+        date: DateTime(2026, 11, 24),
+        label: 'di',
+        averageLevel: 3,
+        count: 2,
+      ),
+      PrikkelGrafiekPunt(
+        date: DateTime(2026, 11, 25),
+        label: 'wo',
+        averageLevel: 4.5,
+        count: 2,
+      ),
+    ];
+
+    final highest = hoogstePrikkelGrafiekPunt(points);
+
+    expect(highest, points.last);
+    expect(hoogstePrikkelGrafiekPunt(const []), isNull);
+  });
+
   test('prikkel week overview calculates daily averages for seven days', () {
     final today = DateTime(2026, 11, 25);
     final measurements = [
