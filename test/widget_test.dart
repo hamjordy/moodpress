@@ -174,6 +174,53 @@ void main() {
     expect(textField.controller!.text, 'Ik heb een fijne wandeling gemaakt.');
   });
 
+  test('rest plan activity keeps its details when serialized', () {
+    const item = RustplanActiviteit(
+      id: 'rust-1',
+      title: 'Even naar buiten',
+      category: 'Beweging',
+      description: 'Een klein rondje wandelen.',
+    );
+    final restored = RustplanActiviteit.fromJson(item.toJson());
+    expect(restored.id, 'rust-1');
+    expect(restored.title, 'Even naar buiten');
+    expect(restored.category, 'Beweging');
+    expect(restored.description, 'Een klein rondje wandelen.');
+  });
+
+  testWidgets('rest plan opens from navigation and allows adding an activity', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(MaterialApp(home: MoodPressShell(controller: controller)));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit7);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit7);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mijn rustplan'), findsOneWidget);
+    expect(find.text('Je rustplan is nog leeg'), findsOneWidget);
+
+    await tester.tap(find.text('Rustactiviteit toevoegen'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Even naar buiten');
+    await tester.enterText(find.byType(TextField).last, 'Een klein rondje wandelen.');
+    await tester.tap(find.text('Opslaan'));
+    await tester.pumpAndSettle();
+
+    expect(controller.rustplanActiviteiten, hasLength(1));
+    expect(controller.rustplanActiviteiten.single.title, 'Even naar buiten');
+    expect(controller.rustplanActiviteiten.single.description, 'Een klein rondje wandelen.');
+    expect(find.text('Even naar buiten'), findsOneWidget);
+    expect(find.text('Ontspanning'), findsOneWidget);
+  });
+
   testWidgets('branded splash screen is shown while local data loads', (tester) async {
     final controller = MoodPressController()
       ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
