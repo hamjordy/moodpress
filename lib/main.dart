@@ -500,6 +500,25 @@ List<PrikkelGrafiekPunt> maakPrikkelGrafiekPunten(
   });
 }
 
+List<PrikkelMeting> prikkelMetingenVoorGrafiekPunt(
+  List<PrikkelMeting> metingen,
+  PrikkelGrafiekPunt point, {
+  required bool perMaand,
+}) {
+  final start = perMaand
+      ? DateTime(point.date.year, point.date.month, 1)
+      : DateTime(point.date.year, point.date.month, point.date.day);
+  final end = perMaand
+      ? DateTime(point.date.year, point.date.month + 1, 1)
+      : start.add(const Duration(days: 1));
+  final matches = metingen
+      .where((item) =>
+          !item.createdAt.isBefore(start) && item.createdAt.isBefore(end))
+      .toList()
+    ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  return matches;
+}
+
 PrikkelGrafiekPunt? hoogstePrikkelGrafiekPunt(
   List<PrikkelGrafiekPunt> punten,
 ) {
@@ -4273,17 +4292,83 @@ class _CalmPageState extends State<CalmPage> {
         ? '${point.label} ${point.date.year}'
         : '${_formatDutchWeekday(point.date)} ${_formatDutchDate(point.date)}';
     final average = point.averageLevel;
+    final metingen = prikkelMetingenVoorGrafiekPunt(
+      widget.controller.prikkelMetingen,
+      point,
+      perMaand: _prikkelPeriode == 2,
+    );
+    const levelLabels = [
+      'Helemaal rustig',
+      'Een beetje prikkels',
+      'Best veel prikkels',
+      'Erg veel prikkels',
+      'Overprikkeld',
+    ];
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: Text(dateTitle),
-        content: average == null
-            ? const Text('Voor deze periode zijn nog geen metingen opgeslagen.')
-            : Text(
-                'Gemiddeld prikkelniveau: ${average.toStringAsFixed(1)} van 5\\n'
-                'Aantal metingen: ${point.count}\\n\\n'
-                'Dit is het gemiddelde van de metingen die je in deze periode hebt opgeslagen.',
-              ),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (average == null)
+                  const Text('Voor deze periode zijn nog geen metingen opgeslagen.')
+                else ...[
+                  Text(
+                    'Gemiddeld prikkelniveau: ${average.toStringAsFixed(1)} van 5',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Text('Aantal metingen: ${point.count}'),
+                ],
+                if (metingen.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Jouw metingen en notities',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  ...metingen.map((meting) {
+                    final time = '${meting.createdAt.hour.toString().padLeft(2, '0')}:${meting.createdAt.minute.toString().padLeft(2, '0')}';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _paper,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${time} · ${meting.level}/5 · ${levelLabels[meting.level - 1]}',
+                              style: const TextStyle(
+                                color: _ink,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              meting.note.trim().isEmpty
+                                  ? 'Geen notitie toegevoegd.'
+                                  : meting.note,
+                              style: const TextStyle(color: _muted),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ],
+            ),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
