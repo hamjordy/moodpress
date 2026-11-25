@@ -847,4 +847,30 @@ void main() {
     );
   });
 
+  test('step progress is normalized before toggling and invalid indexes are ignored', () {
+    final activity = DayActivity(
+      id: 'partial-steps',
+      title: 'Rustig beginnen',
+      time: '09:00',
+      steps: ['Gordijnen openen', 'Aankleden', 'Ontbijten'],
+      // Simulate older or incomplete saved progress.
+      stepDone: [true],
+    );
+
+    expect(toggleDayActivityStep(activity, 2), isTrue);
+    expect(activity.stepDone, [true, false, true]);
+
+    expect(toggleDayActivityStep(activity, -1), isFalse);
+    expect(toggleDayActivityStep(activity, 3), isFalse);
+    expect(activity.stepDone, [true, false, true]);
+
+    final noSteps = DayActivity(
+      id: 'no-steps',
+      title: 'Vrije activiteit',
+      time: '10:00',
+    );
+    expect(toggleDayActivityStep(noSteps, 0), isFalse);
+    expect(noSteps.stepDone, isEmpty);
+  });
+
 }
