@@ -4119,6 +4119,53 @@ class CalmStep {
   final IconData icon;
 }
 
+class _PrikkelInzichtCard extends StatelessWidget {
+  const _PrikkelInzichtCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: _surface,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: _line),
+    ),
+    child: Row(
+      children: [
+        Icon(icon, color: _green, size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                value,
+                style: const TextStyle(
+                  color: _ink,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                label,
+                style: const TextStyle(color: _muted, fontSize: 11),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _CalmPageState extends State<CalmPage> {
   int step = 0;
   int _prikkelPeriode = 0;
@@ -4193,6 +4240,43 @@ class _CalmPageState extends State<CalmPage> {
               showSelectedIcon: false,
             ),
             const SizedBox(height: 14),
+            if (hasMeasurements) ...[
+              Builder(
+                builder: (context) {
+                  final totalMeasurements = points.fold<int>(
+                    0,
+                    (total, point) => total + point.count,
+                  );
+                  final weightedTotal = points.fold<double>(
+                    0,
+                    (total, point) =>
+                        total + (point.averageLevel ?? 0) * point.count,
+                  );
+                  final overallAverage =
+                      weightedTotal / totalMeasurements;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: _PrikkelInzichtCard(
+                          label: 'Gemiddeld niveau',
+                          value: '${overallAverage.toStringAsFixed(1)} / 5',
+                          icon: Icons.insights_outlined,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _PrikkelInzichtCard(
+                          label: 'Aantal metingen',
+                          value: totalMeasurements.toString(),
+                          icon: Icons.checklist_outlined,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 14),
+            ],
             if (!hasMeasurements)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 22),
