@@ -1528,6 +1528,12 @@ void main() {
         createdAt: DateTime(2026, 10, 30, 10),
         note: 'Deze maand',
       ),
+      PrikkelMeting(
+        id: 'future',
+        level: 5,
+        createdAt: DateTime(2026, 11, 26, 10),
+        note: 'Toekomstige datum',
+      ),
     ];
 
     final lastSevenDays = filterPrikkelMetingen(
@@ -1544,9 +1550,10 @@ void main() {
       vandaag: today,
     );
     expect(combined.map((item) => item.id), ['today', 'outside-week']);
+    expect(lastSevenDays.any((item) => item.id == 'future'), isFalse);
 
     final all = filterPrikkelMetingen(measurements, vandaag: today);
-    expect(all, hasLength(4));
+    expect(all, hasLength(5));
   });
 
   test('prikkel CSV export includes headers, sorts newest first and escapes notes', () {
