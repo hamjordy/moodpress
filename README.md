@@ -13,6 +13,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Activiteit kopiëren** — zet een kopie van één activiteit op een andere datum. Het origineel blijft staan; de nieuwe kopie is nog niet afgerond.
 - **Stappenplan per activiteit** — deel een activiteit op in maximaal 12 korte stappen. Vink iedere stap apart af; de voortgang blijft lokaal bewaard en gaat mee in de versleutelde back-up.
 - **Eén activiteit tegelijk** — bekijk één activiteit met de uitleg, foto en kleine stappen. Ga zelf naar de vorige of volgende activiteit, zonder de hele dag tegelijk te hoeven bekijken.
+- **Schermlezerondersteuning** — belangrijke paginakoppen zijn als kop herkenbaar; bij vorige of volgende activiteit wordt de titel met het activiteitnummer aangekondigd.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
 - **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan, schakel animaties uit en zet optionele herinneringen aan of uit.
@@ -76,4 +77,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.13.1 — datumwisselen start de weergave met één activiteit tegelijk weer bij de eerste activiteit.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.14.0 — schermlezers herkennen belangrijke koppen en krijgen een aankondiging bij een andere activiteit.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.

@@ -1,9 +1,33 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  testWidgets('focused activity is announced as a live screen-reader heading', (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: FocusedActivityAnnouncement(
+            index: 1,
+            total: 4,
+            activityTitle: 'Naar buiten gaan',
+          ),
+        ),
+      ),
+    );
+
+    final node = tester.getSemantics(
+      find.byType(FocusedActivityAnnouncement),
+    );
+    expect(node.label, 'Activiteit 2 van 4: Naar buiten gaan');
+    expect(node.hasFlag(SemanticsFlag.isHeader), isTrue);
+    expect(node.hasFlag(SemanticsFlag.isLiveRegion), isTrue);
+    semanticsHandle.dispose();
+  });
+
 
   test('backup files encrypt data and require the correct password', () async {
     final source = <String, dynamic>{

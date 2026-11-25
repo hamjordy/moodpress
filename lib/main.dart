@@ -1366,7 +1366,10 @@ class PageFrame extends StatelessWidget {
               if (title != null) ...[
                 LayoutBuilder(builder: (context, constraints) {
                   final heading = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(title!, style: Theme.of(context).textTheme.headlineMedium),
+                    Semantics(
+                      header: true,
+                      child: Text(title!, style: Theme.of(context).textTheme.headlineMedium),
+                    ),
                     if (subtitle != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(subtitle!)),
                   ]);
                   if (action == null) return heading;
@@ -1377,6 +1380,39 @@ class PageFrame extends StatelessWidget {
               ],
               child,
             ]),
+          ),
+        ),
+      );
+}
+
+class FocusedActivityAnnouncement extends StatelessWidget {
+  const FocusedActivityAnnouncement({
+    super.key,
+    required this.index,
+    required this.total,
+    required this.activityTitle,
+  });
+
+  final int index;
+  final int total;
+  final String activityTitle;
+
+  String get announcement =>
+      'Activiteit ${index + 1} van $total: $activityTitle';
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+        header: true,
+        liveRegion: true,
+        label: announcement,
+        child: ExcludeSemantics(
+          child: Text(
+            'Activiteit ${index + 1} van $total',
+            style: const TextStyle(
+              color: _muted,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       );
@@ -1400,7 +1436,10 @@ class TodayPage extends StatelessWidget {
     return PageFrame(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       const BrandMark(),
       const SizedBox(height: 28),
-      Text(greeting + '.', style: Theme.of(context).textTheme.headlineLarge),
+      Semantics(
+        header: true,
+        child: Text(greeting + '.', style: Theme.of(context).textTheme.headlineLarge),
+      ),
       const SizedBox(height: 8),
       const Text('We doen het rustig aan. Eén ding tegelijk.', style: TextStyle(color: _muted, fontSize: 16)),
       const SizedBox(height: 24),
@@ -1995,14 +2034,10 @@ class _PlanningPageState extends State<PlanningPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Activiteit ' + (index + 1).toString() +
-                  ' van ' + items.length.toString(),
-              style: const TextStyle(
-                color: _muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+            FocusedActivityAnnouncement(
+              index: index,
+              total: items.length,
+              activityTitle: activity.title,
             ),
             const SizedBox(height: 15),
             Center(

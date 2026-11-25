@@ -48,6 +48,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Optioneel stappenplan per activiteit met maximaal 12 korte stappen, afzonderlijk af te vinken en lokaal te bewaren.
 - [x] Optionele één-activiteit-tegelijk-weergave met vorige/volgende navigatie, uitleg, foto's en afvinkbare stappen.
 - [x] Bij wisselen van dag begint de één-activiteit-tegelijk-weergave opnieuw bij activiteit 1.
+- [x] Schermlezers herkennen paginakoppen; de focusweergave kondigt het activiteitnummer en de titel aan als live regio.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
