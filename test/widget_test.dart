@@ -1088,6 +1088,39 @@ void main() {
   });
 
 
+  testWidgets('mood check-in choices expose selected state to screen readers', (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+    var selected = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => FeelingChoice(
+              label: 'Rustig',
+              emoji: '🙂',
+              selected: selected,
+              onTap: () => setState(() => selected = !selected),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    var node = tester.getSemantics(find.byType(FeelingChoice));
+    expect(node.label, 'Rustig');
+    expect(node.flagsCollection.isButton, isTrue);
+    expect(node.flagsCollection.isSelected, isFalse);
+    expect(node.hasAction(SemanticsAction.tap), isTrue);
+
+    await tester.tap(find.text('Rustig'));
+    await tester.pump();
+
+    node = tester.getSemantics(find.byType(FeelingChoice));
+    expect(node.flagsCollection.isSelected, isTrue);
+    semanticsHandle.dispose();
+  });
+
   testWidgets('today screen shows a clear date header and calm overview', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
