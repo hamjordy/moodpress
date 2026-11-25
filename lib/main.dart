@@ -370,6 +370,47 @@ String _formatDutchDate(DateTime date) =>
 String _formatDutchWeekday(DateTime date) => _dutchWeekdays[date.weekday - 1];
 
 
+
+class PrikkelMeting {
+  const PrikkelMeting({
+    required this.id,
+    required this.level,
+    required this.createdAt,
+    this.note = '',
+  });
+
+  final String id;
+  final int level;
+  final DateTime createdAt;
+  final String note;
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'level': level,
+    'createdAt': createdAt.toIso8601String(),
+    'note': note,
+  };
+
+  factory PrikkelMeting.fromJson(Map<String, dynamic> json) {
+    final level = json['level'];
+    final date = DateTime.tryParse(json['createdAt']?.toString() ?? '');
+    return PrikkelMeting(
+      id: json['id'] is String ? json['id'] as String : '',
+      level: level is int ? level.clamp(1, 5) : 1,
+      createdAt: date ?? DateTime.now(),
+      note: json['note'] is String ? json['note'] as String : '',
+    );
+  }
+}
+
+const prikkelNiveaus = <String>[
+  'Helemaal rustig',
+  'Een beetje prikkels',
+  'Best veel prikkels',
+  'Erg veel prikkels',
+  'Overprikkeld',
+];
+
 class PlanningSearchResult {
   const PlanningSearchResult({
     required this.date,
@@ -597,6 +638,7 @@ class MoodPressController extends ChangeNotifier {
   static const _preferencesKey = 'moodpress.preferences.v1';
   static const _templatesKey = 'moodpress.templates.v1';
   static const _weeklyRoutineKey = 'moodpress.weeklyroutine.v1';
+  static const _prikkelMetingenKey = 'moodpress.prikkelmetingen.v1';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final Map<String, List<DayActivity>> _plansByDate = {};
@@ -604,6 +646,7 @@ class MoodPressController extends ChangeNotifier {
 
   List<DayTemplate> templates = [];
   WeeklyRoutine weeklyRoutine = const WeeklyRoutine();
+  List<PrikkelMeting> prikkelMetingen = [];
   Map<String, String> support = {
     'help': 'Ik wil even rust en één ding tegelijk doen.',
     'place': 'Een rustige plek waar ik mij prettig voel.',
@@ -735,7 +778,44 @@ class MoodPressController extends ChangeNotifier {
       storageNotice ??= 'Je vaste weekritme kon niet worden gelezen.';
     }
 
+    try {
+      final savedMetingen = await _storage.read(key: _prikkelMetingenKey);
+      if (savedMetingen != null) {
+        final values = jsonDecode(savedMetingen) as List<dynamic>;
+        prikkelMetingen = values
+            .whereType<Map<String, dynamic>>()
+            .map(PrikkelMeting.fromJson)
+            .toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      }
+    } catch (_) {
+      prikkelMetingen = [];
+      storageNotice ??= 'Je prikkelmetergegevens konden niet worden gelezen.';
+    }
+
     ready = true;
+    notifyListeners();
+  }
+
+  Future<void> savePrikkelMeting(int level, String note) async {
+    if (level < 1 || level > 5) return;
+    prikkelMetingen.insert(0, PrikkelMeting(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      level: level,
+      createdAt: DateTime.now(),
+      note: note.trim(),
+    ));
+    if (prikkelMetingen.length > 200) {
+      prikkelMetingen = prikkelMetingen.take(200).toList();
+    }
+    try {
+      await _storage.write(
+        key: _prikkelMetingenKey,
+        value: jsonEncode(prikkelMetingen.map((item) => item.toJson()).toList()),
+      );
+    } catch (_) {
+      storageNotice = 'Je prikkelmetergegevens konden niet veilig worden opgeslagen.';
+    }
     notifyListeners();
   }
 
@@ -1343,6 +1423,7 @@ class MoodPressController extends ChangeNotifier {
       _preferencesKey,
       _templatesKey,
       _weeklyRoutineKey,
+      _prikkelMetingenKey,
     ]) {
       await _storage.delete(key: key);
     }
@@ -1358,6 +1439,7 @@ class MoodPressController extends ChangeNotifier {
     _plansByDate.clear();
     templates = [];
     weeklyRoutine = const WeeklyRoutine();
+    prikkelMetingen = [];
     support = {
       'help': 'Ik wil even rust en één ding tegelijk doen.',
       'place': 'Een rustige plek waar ik mij prettig voel.',
@@ -1773,7 +1855,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
         final pages = [
           TodayPage(controller: widget.controller, openPlan: () => setState(() => selected = 1)),
           PlanningPage(controller: widget.controller),
-          const CalmPage(),
+          CalmPage(controller: widget.controller),
           SupportPage(controller: widget.controller),
           SettingsPage(controller: widget.controller),
         ];
@@ -3913,7 +3995,9 @@ class _ActivityEditorState extends State<ActivityEditor> {
 }
 
 class CalmPage extends StatefulWidget {
-  const CalmPage({super.key});
+  const CalmPage({super.key, required this.controller});
+  final MoodPressController controller;
+
   @override
   State<CalmPage> createState() => _CalmPageState();
 }
@@ -3927,6 +4011,8 @@ class CalmStep {
 
 class _CalmPageState extends State<CalmPage> {
   int step = 0;
+  int? selectedLevel;
+  final noteController = TextEditingController();
   static const steps = [
     CalmStep(title: 'Voel de grond', description: 'Zet je voeten neer. Voel waar je voeten de grond raken.', icon: Icons.place_outlined),
     CalmStep(title: 'Kijk rustig om je heen', description: 'Noem voor jezelf drie dingen die je ziet. Je hoeft niets hardop te zeggen.', icon: Icons.remove_red_eye_outlined),
@@ -3934,40 +4020,123 @@ class _CalmPageState extends State<CalmPage> {
   ];
 
   @override
+  void dispose() {
+    noteController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveMeasurement() async {
+    final level = selectedLevel;
+    if (level == null) return;
+    await widget.controller.savePrikkelMeting(level, noteController.text);
+    if (!mounted) return;
+    setState(() {
+      selectedLevel = null;
+      noteController.clear();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Je meting is lokaal opgeslagen.')),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) => PageFrame(
-        title: 'Even rust',
-        subtitle: 'Een rustig moment. Je hoeft niets goed te doen.',
-        child: Center(child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
+    title: 'Even rust',
+    subtitle: 'Een rustig moment. Je hoeft niets goed te doen.',
+    child: Center(child: ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 700),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(26),
+          decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(23)),
           child: Column(children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(26),
-              decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(23)),
-              child: Column(children: [
-                CircleAvatar(radius: 33, backgroundColor: Colors.white, child: Icon(steps[step].icon, color: _green, size: 29)),
-                const SizedBox(height: 18),
-                Text('STAP ' + (step + 1).toString() + ' VAN 3', style: const TextStyle(color: _green, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 11),
-                Text(steps[step].title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 10),
-                Text(steps[step].description, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, height: 1.5)),
-                const SizedBox(height: 23),
-                Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _green : _line, borderRadius: BorderRadius.circular(5)))))),
-                const SizedBox(height: 22),
-                Row(children: [
-                  Expanded(child: OutlinedButton(onPressed: step == 0 ? null : () => setState(() => step--), child: const Text('Vorige'))),
-                  const SizedBox(width: 10),
-                  Expanded(child: FilledButton(onPressed: () => setState(() => step = step == 2 ? 0 : step + 1), child: Text(step == 2 ? 'Opnieuw' : 'Volgende'))),
-                ]),
-                TextButton(onPressed: () => setState(() => step = 0), child: const Text('Stop met deze oefening')),
-              ]),
-            ),
-            const SizedBox(height: 14),
-            const Card(child: Padding(padding: EdgeInsets.all(17), child: Text('Je mag een stap overslaan of stoppen. Als dit niet prettig voelt, kies dan iets anders dat voor jou veilig en vertrouwd is.', style: TextStyle(color: _muted, height: 1.45)))),
+            CircleAvatar(radius: 33, backgroundColor: Colors.white, child: Icon(steps[step].icon, color: _green, size: 29)),
+            const SizedBox(height: 18),
+            Text('STAP ${step + 1} VAN 3', style: const TextStyle(color: _green, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 11),
+            Text(steps[step].title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
+            const SizedBox(height: 10),
+            Text(steps[step].description, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, height: 1.5)),
+            const SizedBox(height: 23),
+            Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _green : _line, borderRadius: BorderRadius.circular(5)))))),
+            const SizedBox(height: 22),
+            Row(children: [
+              Expanded(child: OutlinedButton(onPressed: step == 0 ? null : () => setState(() => step--), child: const Text('Vorige'))),
+              const SizedBox(width: 10),
+              Expanded(child: FilledButton(onPressed: () => setState(() => step = step == 2 ? 0 : step + 1), child: Text(step == 2 ? 'Opnieuw' : 'Volgende'))),
+            ]),
+            TextButton(onPressed: () => setState(() => step = 0), child: const Text('Stop met deze oefening')),
           ]),
-        )),
-      );
+        ),
+        const SizedBox(height: 22),
+        const Text('Prikkelmeter', style: TextStyle(color: _ink, fontSize: 20, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 6),
+        const Text('Hoeveel prikkels ervaar je op dit moment? Kies wat bij je past. Je hoeft niets te kiezen of uit te leggen.', style: TextStyle(color: _muted, height: 1.45)),
+        const SizedBox(height: 13),
+        ...List.generate(5, (index) {
+          final level = index + 1;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Semantics(
+              button: true,
+              selected: selectedLevel == level,
+              label: 'Niveau $level: ${prikkelNiveaus[index]}',
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
+                  backgroundColor: selectedLevel == level ? _greenPale : Colors.white,
+                  side: BorderSide(color: selectedLevel == level ? _green : _line, width: selectedLevel == level ? 2 : 1),
+                ),
+                onPressed: () => setState(() => selectedLevel = level),
+                child: Row(children: [
+                  CircleAvatar(radius: 14, backgroundColor: _greenPale, child: Text('$level', style: const TextStyle(color: _green, fontWeight: FontWeight.w700))),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(prikkelNiveaus[index], style: const TextStyle(color: _ink))),
+                  if (selectedLevel == level) const Icon(Icons.check_circle, color: _green),
+                ]),
+              ),
+            ),
+          );
+        }),
+        TextField(
+          controller: noteController,
+          maxLines: 2,
+          maxLength: 240,
+          decoration: const InputDecoration(labelText: 'Notitie (optioneel)', hintText: 'Bijvoorbeeld: veel geluid om me heen'),
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          onPressed: selectedLevel == null ? null : _saveMeasurement,
+          icon: const Icon(Icons.save_outlined),
+          label: const Text('Meting opslaan'),
+        ),
+        const SizedBox(height: 18),
+        const Text('Eerdere metingen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+        const SizedBox(height: 8),
+        if (widget.controller.prikkelMetingen.isEmpty)
+          const Text('Je hebt nog geen metingen opgeslagen.', style: TextStyle(color: _muted))
+        else
+          ...widget.controller.prikkelMetingen.take(10).map((measurement) {
+            final date = measurement.createdAt;
+            final dateLabel = '${date.day}-${date.month}-${date.year} om ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+            return Card(
+              child: ListTile(
+                leading: CircleAvatar(backgroundColor: _greenPale, child: Text('${measurement.level}', style: const TextStyle(color: _green, fontWeight: FontWeight.w700))),
+                title: Text(prikkelNiveaus[measurement.level - 1]),
+                subtitle: Text(measurement.note.isEmpty ? dateLabel : '$dateLabel\n${measurement.note}'),
+                isThreeLine: measurement.note.isNotEmpty,
+              ),
+            );
+          }),
+        const SizedBox(height: 12),
+        const Card(child: Padding(padding: EdgeInsets.all(17), child: Text('Je prikkelniveau is persoonlijk en kan per moment verschillen. Deze meter is bedoeld voor zelfinzicht, niet als medische beoordeling. Je gegevens blijven op dit apparaat.', style: TextStyle(color: _muted, height: 1.45)))),
+        if (widget.controller.storageNotice != null)
+          Padding(padding: const EdgeInsets.only(top: 12), child: StorageNotice(message: widget.controller.storageNotice!)),
+      ]),
+    )),
+  );
 }
 
 class SupportPage extends StatelessWidget {
