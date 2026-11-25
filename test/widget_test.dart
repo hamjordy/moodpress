@@ -7,6 +7,61 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  test('planning search checks all saved days and activity details', () {
+    final plans = <String, List<DayActivity>>{
+      '2026-11-25': [
+        DayActivity(
+          id: 'pharmacy',
+          title: 'Apotheek bezoeken',
+          time: '10:30',
+          who: 'Samen met Sam',
+          what: 'Medicatie ophalen',
+          where: 'Apotheek in de buurt',
+          how: 'Rustig wandelen',
+          note: 'Neem de boodschappenlijst mee',
+          steps: ['Sleutels pakken', 'Naar buiten gaan'],
+        ),
+      ],
+      '2026-11-26': [
+        DayActivity(
+          id: 'meeting',
+          title: 'Werkafspraak',
+          time: '13:00',
+          who: 'Met het team',
+          what: 'Overleg over de planning',
+          where: 'Op kantoor',
+          how: 'Aantekeningen meenemen',
+        ),
+      ],
+    };
+
+    expect(
+      searchPlanningActivities(plans, 'APOTHEEK')
+          .map((result) => result.activity.id)
+          .toList(),
+      ['pharmacy'],
+    );
+    expect(
+      searchPlanningActivities(plans, 'medicatie boodschappenlijst')
+          .map((result) => result.activity.id)
+          .toList(),
+      ['pharmacy'],
+    );
+    expect(
+      searchPlanningActivities(plans, 'donderdag 26 november')
+          .map((result) => result.activity.id)
+          .toList(),
+      ['meeting'],
+    );
+    expect(
+      searchPlanningActivities(plans, '13:00')
+          .single.activity.id,
+      'meeting',
+    );
+    expect(searchPlanningActivities(plans, '   '), isEmpty);
+    expect(searchPlanningActivities(plans, 'bestaat niet'), isEmpty);
+  });
+
   testWidgets('branded splash screen is shown while local data loads', (tester) async {
     final controller = MoodPressController()
       ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
@@ -1184,6 +1239,49 @@ void main() {
 
     final titleSize = tester.getSize(find.text(activityTitle));
     expect(titleSize.width, greaterThan(150));
+  });
+
+
+  testWidgets('planning search opens the matching activity', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController();
+    controller.selectDate(DateTime(2026, 11, 26));
+    await controller.saveActivity(
+      DayActivity(
+        id: 'search-ui-activity',
+        title: 'Medicatie ophalen',
+        time: '09:45',
+        who: 'Zelf',
+        what: 'Medicatie ophalen bij de apotheek',
+        where: 'Apotheek',
+        how: 'Rustig wandelen',
+        note: 'Neem de herhaalbrief mee',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: PlanningPage(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    final searchField = find.byType(TextField).first;
+    await tester.enterText(searchField, 'herhaalbrief');
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 resultaat gevonden'), findsOneWidget);
+    expect(find.text('Medicatie ophalen'), findsOneWidget);
+
+    await tester.tap(find.text('Medicatie ophalen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Medicatie ophalen'), findsOneWidget);
+    expect(find.text('Apotheek'), findsOneWidget);
+    expect(find.text('Herhaalbrief'), findsNothing);
+    expect(find.text('Neem de herhaalbrief mee'), findsOneWidget);
   });
 
 
