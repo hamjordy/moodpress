@@ -77,4 +77,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.14.0 — schermlezers herkennen belangrijke koppen en krijgen een aankondiging bij een andere activiteit.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.14.1 — de schermlezertest gebruikt de actuele Flutter-semantics-API.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.

@@ -23,8 +23,8 @@ void main() {
       find.byType(FocusedActivityAnnouncement),
     );
     expect(node.label, 'Activiteit 2 van 4: Naar buiten gaan');
-    expect(node.hasFlag(SemanticsFlag.isHeader), isTrue);
-    expect(node.hasFlag(SemanticsFlag.isLiveRegion), isTrue);
+    expect(node.flagsCollection.isHeader, isTrue);
+    expect(node.flagsCollection.isLiveRegion, isTrue);
     semanticsHandle.dispose();
   });
 
