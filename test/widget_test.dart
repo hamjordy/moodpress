@@ -1501,6 +1501,54 @@ void main() {
     expect(insights.previousAverage, isNull);
   });
 
+  test('prikkel history period filter keeps selected recent days and combines filters', () {
+    final today = DateTime(2026, 11, 25, 12);
+    final measurements = [
+      PrikkelMeting(
+        id: 'today',
+        level: 5,
+        createdAt: DateTime(2026, 11, 25, 9),
+        note: 'Vandaag',
+      ),
+      PrikkelMeting(
+        id: 'week',
+        level: 4,
+        createdAt: DateTime(2026, 11, 19, 10),
+        note: 'Deze week',
+      ),
+      PrikkelMeting(
+        id: 'outside-week',
+        level: 5,
+        createdAt: DateTime(2026, 11, 18, 10),
+        note: 'Buiten week',
+      ),
+      PrikkelMeting(
+        id: 'month',
+        level: 3,
+        createdAt: DateTime(2026, 10, 30, 10),
+        note: 'Deze maand',
+      ),
+    ];
+
+    final lastSevenDays = filterPrikkelMetingen(
+      measurements,
+      periodeDagen: 7,
+      vandaag: today,
+    );
+    expect(lastSevenDays.map((item) => item.id), ['today', 'week']);
+
+    final combined = filterPrikkelMetingen(
+      measurements,
+      niveau: 5,
+      periodeDagen: 30,
+      vandaag: today,
+    );
+    expect(combined.map((item) => item.id), ['today', 'outside-week']);
+
+    final all = filterPrikkelMetingen(measurements, vandaag: today);
+    expect(all, hasLength(4));
+  });
+
   test('prikkel CSV export includes headers, sorts newest first and escapes notes', () {
     final measurements = [
       PrikkelMeting(
