@@ -1063,12 +1063,14 @@ class MoodPressController extends ChangeNotifier {
     Map<DateTime, List<DayActivity>> initialPlans =
         const <DateTime, List<DayActivity>>{},
     List<DagboekNotitie> initialJournalEntries = const <DagboekNotitie>[],
+    List<RustplanActiviteit> initialRustplanItems = const <RustplanActiviteit>[],
   }) {
     for (final entry in initialPlans.entries) {
       _plansByDate[_dateKey(entry.key)] =
           List<DayActivity>.from(entry.value);
     }
     dagboekNotities.addAll(initialJournalEntries);
+    rustplanActiviteiten.addAll(initialRustplanItems);
   }
 
   static const _dayPlansKey = 'moodpress.dayplans.v1';
@@ -1089,6 +1091,7 @@ class MoodPressController extends ChangeNotifier {
   WeeklyRoutine weeklyRoutine = const WeeklyRoutine();
   List<PrikkelMeting> prikkelMetingen = [];
   final List<DagboekNotitie> dagboekNotities = <DagboekNotitie>[];
+  final List<RustplanActiviteit> rustplanActiviteiten = <RustplanActiviteit>[];
   Map<String, String> support = {
     'help': 'Ik wil even rust en één ding tegelijk doen.',
     'place': 'Een rustige plek waar ik mij prettig voel.',
