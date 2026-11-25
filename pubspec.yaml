@@ -1,7 +1,7 @@
 name: moodpress
 description: Een rustige, persoonlijke dagstructuur-app voor meer overzicht en houvast.
 publish_to: 'none'
-version: 0.15.18+36
+version: 0.15.19+37
 
 environment:
   sdk: '>=3.8.0 <4.0.0'

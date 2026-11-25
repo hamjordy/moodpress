@@ -1179,7 +1179,10 @@ class MoodPressController extends ChangeNotifier {
       reduceMotion: preferences.reduceMotion,
       inAppRemindersEnabled: value,
     );
+    // Update the visible switch immediately; disk persistence follows.
+    notifyListeners();
     await _savePreferences();
+    // Refresh again so a storage warning is also visible if saving failed.
     notifyListeners();
   }
 
