@@ -483,6 +483,50 @@ PrikkelInzichten berekenPrikkelInzichten(
   );
 }
 
+class PrikkelWeekTrendPunt {
+  const PrikkelWeekTrendPunt({
+    required this.weekStart,
+    required this.averageLevel,
+    required this.count,
+  });
+
+  final DateTime weekStart;
+  final double? averageLevel;
+  final int count;
+}
+
+List<PrikkelWeekTrendPunt> maakPrikkelWeekTrend(
+  List<PrikkelMeting> metingen, {
+  DateTime? vandaag,
+  int aantalWeken = 8,
+}) {
+  final reference = vandaag ?? DateTime.now();
+  final startDezeWeek = DateTime(
+    reference.year,
+    reference.month,
+    reference.day,
+  ).subtract(Duration(days: reference.weekday - 1));
+  return List<PrikkelWeekTrendPunt>.generate(aantalWeken, (index) {
+    final weekStart = startDezeWeek.subtract(
+      Duration(days: (aantalWeken - index - 1) * 7),
+    );
+    final weekEinde = weekStart.add(const Duration(days: 7));
+    final weekMetingen = metingen.where((meting) {
+      final datum = meting.createdAt;
+      return !datum.isBefore(weekStart) && datum.isBefore(weekEinde);
+    }).toList();
+    final count = weekMetingen.length;
+    final average = count == 0
+        ? null
+        : weekMetingen.fold<int>(0, (sum, item) => sum + item.level) / count;
+    return PrikkelWeekTrendPunt(
+      weekStart: weekStart,
+      averageLevel: average,
+      count: count,
+    );
+  });
+}
+
 class PrikkelDagSamenvatting {
   const PrikkelDagSamenvatting({
     required this.date,
@@ -4680,6 +4724,53 @@ class _CalmPageState extends State<CalmPage> {
             ),
             const SizedBox(height: 12),
             Text(trendText, style: const TextStyle(color: _muted, height: 1.4)),
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 12),
+            const Text(
+              'Gemiddelde per week · laatste 8 weken',
+              style: TextStyle(color: _ink, fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 8),
+            ...maakPrikkelWeekTrend(widget.controller.prikkelMetingen)
+                .map((week) {
+              final datum = week.weekStart;
+              final label =
+                  '${datum.day.toString().padLeft(2, '0')}-${datum.month.toString().padLeft(2, '0')}';
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  children: [
+                    SizedBox(
+                      width: 48,
+                      child: Text(label, style: const TextStyle(color: _muted, fontSize: 11)),
+                    ),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: LinearProgressIndicator(
+                          value: (week.averageLevel ?? 0) / 5,
+                          minHeight: 9,
+                          backgroundColor: _paper,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 76,
+                      child: Text(
+                        week.averageLevel == null
+                            ? 'Geen data'
+                            : '${week.averageLevel!.toStringAsFixed(1)} / 5 · ${week.count}',
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(color: _muted, fontSize: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
             const SizedBox(height: 6),
             const Text('Dit zijn beschrijvingen van je geregistreerde metingen, geen voorspellingen of medische conclusies.', style: TextStyle(color: _muted, fontSize: 11, height: 1.35)),
           ],
