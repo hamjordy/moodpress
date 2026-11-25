@@ -1248,19 +1248,21 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final controller = MoodPressController();
-    controller.selectDate(DateTime(2026, 11, 26));
-    await controller.saveActivity(
-      DayActivity(
-        id: 'search-ui-activity',
-        title: 'Medicatie ophalen',
-        time: '09:45',
-        who: 'Zelf',
-        what: 'Medicatie ophalen bij de apotheek',
-        where: 'Apotheek',
-        how: 'Rustig wandelen',
-        note: 'Neem de herhaalbrief mee',
-      ),
+    final controller = MoodPressController(
+      initialPlans: {
+        DateTime(2026, 11, 26): [
+          DayActivity(
+            id: 'search-ui-activity',
+            title: 'Medicatie ophalen',
+            time: '09:45',
+            who: 'Zelf',
+            what: 'Medicatie ophalen bij de apotheek',
+            where: 'Apotheek',
+            how: 'Rustig wandelen',
+            note: 'Neem de herhaalbrief mee',
+          ),
+        ],
+      },
     );
 
     await tester.pumpWidget(
