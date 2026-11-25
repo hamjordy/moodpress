@@ -2191,7 +2191,7 @@ class _PlanningPageState extends State<PlanningPage> {
                 IconButton(
                   tooltip: 'Vorige dag',
                   onPressed: () =>
-                      widget.controller.selectDate(date.subtract(const Duration(days: 1))),
+                      _selectDay(date.subtract(const Duration(days: 1))),
                   icon: const Icon(Icons.chevron_left_rounded),
                 ),
                 Expanded(
@@ -2215,7 +2215,7 @@ class _PlanningPageState extends State<PlanningPage> {
                 IconButton(
                   tooltip: 'Volgende dag',
                   onPressed: () =>
-                      widget.controller.selectDate(date.add(const Duration(days: 1))),
+                      _selectDay(date.add(const Duration(days: 1))),
                   icon: const Icon(Icons.chevron_right_rounded),
                 ),
               ],

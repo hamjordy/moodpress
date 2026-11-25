@@ -76,4 +76,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.13.0 — gebruik een optionele weergave met één activiteit tegelijk, inclusief uitleg en checklist.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.13.1 — datumwisselen start de weergave met één activiteit tegelijk weer bij de eerste activiteit.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.

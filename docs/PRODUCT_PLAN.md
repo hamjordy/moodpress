@@ -47,6 +47,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Eén losse activiteit naar een andere datum kopiëren; het origineel blijft staan en de kopie begint als niet-afgerond.
 - [x] Optioneel stappenplan per activiteit met maximaal 12 korte stappen, afzonderlijk af te vinken en lokaal te bewaren.
 - [x] Optionele één-activiteit-tegelijk-weergave met vorige/volgende navigatie, uitleg, foto's en afvinkbare stappen.
+- [x] Bij wisselen van dag begint de één-activiteit-tegelijk-weergave opnieuw bij activiteit 1.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
