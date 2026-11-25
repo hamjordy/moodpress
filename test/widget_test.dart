@@ -550,6 +550,27 @@ void main() {
     expect(applied.single.id, isNot('old-id'));
   });
 
+  test('restoring a backup template safely handles invalid id and name types', () {
+    final restored = buildRestoredDayTemplate(
+      {'id': 42, 'name': false},
+      [DayActivity(id: 'activity-1', title: 'Ontbijten', time: '08:00')],
+    );
+
+    expect(restored.id, isNotEmpty);
+    expect(restored.name, 'Dagindeling');
+    expect(restored.activities.single.title, 'Ontbijten');
+  });
+
+  test('restoring a backup template keeps valid id and name values', () {
+    final restored = buildRestoredDayTemplate(
+      {'id': 'template-1', 'name': 'Rustige dag'},
+      [],
+    );
+
+    expect(restored.id, 'template-1');
+    expect(restored.name, 'Rustige dag');
+  });
+
   test('weekly routines can be saved and restored by weekday', () {
     final original = WeeklyRoutine().withDay(
       DateTime.monday,

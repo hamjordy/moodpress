@@ -331,6 +331,24 @@ class DayTemplate {
   }
 }
 
+DayTemplate buildRestoredDayTemplate(
+  dynamic raw,
+  List<DayActivity> activities,
+) {
+  if (raw is! Map<String, dynamic>) {
+    throw FormatException('Een dagindeling in deze back-up is niet geldig.');
+  }
+  final rawId = raw['id'];
+  final rawName = raw['name'];
+  return DayTemplate(
+    id: rawId is String && rawId.isNotEmpty
+        ? rawId
+        : DateTime.now().microsecondsSinceEpoch.toString(),
+    name: rawName is String ? rawName : 'Dagindeling',
+    activities: activities,
+  );
+}
+
 String _dateKey(DateTime date) =>
     date.year.toString().padLeft(4, '0') + '-' +
     date.month.toString().padLeft(2, '0') + '-' +
@@ -1042,12 +1060,11 @@ class MoodPressController extends ChangeNotifier {
 
       DayTemplate restoreTemplate(dynamic raw) {
         if (raw is! Map<String, dynamic>) {
-          throw FormatException('Een dagindeling in de back-up is niet geldig.');
+          throw FormatException('Een dagindeling in deze back-up is niet geldig.');
         }
-        return DayTemplate(
-          id: raw['id'] as String? ?? DateTime.now().microsecondsSinceEpoch.toString(),
-          name: raw['name'] as String? ?? 'Dagindeling',
-          activities: restoreActivities(raw['activities']),
+        return buildRestoredDayTemplate(
+          raw,
+          restoreActivities(raw['activities']),
         );
       }
 
