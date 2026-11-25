@@ -509,6 +509,65 @@ PrikkelGrafiekPunt? hoogstePrikkelGrafiekPunt(
       huidig.averageLevel! > hoogste.averageLevel! ? huidig : hoogste);
 }
 
+class PrikkelPeriodeVergelijking {
+  const PrikkelPeriodeVergelijking({
+    required this.huidigGemiddelde,
+    required this.vorigGemiddelde,
+    required this.huidigAantal,
+    required this.vorigAantal,
+  });
+
+  final double? huidigGemiddelde;
+  final double? vorigGemiddelde;
+  final int huidigAantal;
+  final int vorigAantal;
+}
+
+PrikkelPeriodeVergelijking vergelijkPrikkelPeriodes(
+  List<PrikkelMeting> metingen, {
+  required int periode,
+  DateTime? vandaag,
+}) {
+  final now = vandaag ?? DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final dagen = periode == 0 ? 7 : 30;
+  final huidigBegin = periode == 2
+      ? DateTime(today.year, today.month - 11, 1)
+      : today.subtract(Duration(days: dagen - 1));
+  final huidigEinde = periode == 2
+      ? DateTime(today.year, today.month + 1, 1)
+      : today.add(const Duration(days: 1));
+  final vorigBegin = periode == 2
+      ? DateTime(huidigBegin.year, huidigBegin.month - 12, 1)
+      : huidigBegin.subtract(Duration(days: dagen));
+  final vorigEinde = huidigBegin;
+
+  double? gemiddelde(DateTime begin, DateTime einde) {
+    final geselecteerd = metingen.where((meting) =>
+        !meting.createdAt.isBefore(begin) &&
+        meting.createdAt.isBefore(einde)).toList();
+    if (geselecteerd.isEmpty) return null;
+    final totaal = geselecteerd.fold<int>(
+      0,
+      (som, meting) => som + meting.level,
+    );
+    return totaal / geselecteerd.length;
+  }
+
+  final huidig = metingen.where((meting) =>
+      !meting.createdAt.isBefore(huidigBegin) &&
+      meting.createdAt.isBefore(huidigEinde)).length;
+  final vorig = metingen.where((meting) =>
+      !meting.createdAt.isBefore(vorigBegin) &&
+      meting.createdAt.isBefore(vorigEinde)).length;
+  return PrikkelPeriodeVergelijking(
+    huidigGemiddelde: gemiddelde(huidigBegin, huidigEinde),
+    vorigGemiddelde: gemiddelde(vorigBegin, vorigEinde),
+    huidigAantal: huidig,
+    vorigAantal: vorig,
+  );
+}
+
 const prikkelNiveaus = <String>[
   'Helemaal rustig',
   'Een beetje prikkels',
@@ -4241,6 +4300,10 @@ class _CalmPageState extends State<CalmPage> {
       periode: _prikkelPeriode,
     );
     final hasMeasurements = points.any((point) => point.count > 0);
+    final vergelijking = vergelijkPrikkelPeriodes(
+      widget.controller.prikkelMetingen,
+      periode: _prikkelPeriode,
+    );
     final highestPoint = hoogstePrikkelGrafiekPunt(points);
     final highestDateLabel = highestPoint == null
         ? ''
@@ -4329,6 +4392,17 @@ class _CalmPageState extends State<CalmPage> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
+              const SizedBox(height: 5),
+              Text(
+                vergelijking.vorigGemiddelde == null
+                    ? 'Vergelijking: nog geen metingen in de vorige periode.'
+                    : 'Vorige periode: ${vergelijking.vorigGemiddelde!.toStringAsFixed(1)} / 5 (${vergelijking.vorigAantal} metingen) · nu: ${vergelijking.huidigGemiddelde!.toStringAsFixed(1)} / 5',
+                style: const TextStyle(
+                  color: _muted,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 14),
             ],
             if (!hasMeasurements)
