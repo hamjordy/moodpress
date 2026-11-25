@@ -1918,6 +1918,9 @@ class MoodPressController extends ChangeNotifier {
         _dagboekKey: jsonEncode(
           restoredJournalEntries.map((item) => item.toJson()).toList(),
         ),
+        _rustplanKey: jsonEncode(
+          restoredRestPlanItems.map((item) => item.toJson()).toList(),
+        ),
       };
       final previousStorage = <String, String?>{};
       for (final key in nextStorage.keys) {
