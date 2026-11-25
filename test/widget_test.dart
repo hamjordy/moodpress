@@ -1,10 +1,47 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  testWidgets('Ctrl plus number opens each main section on desktop', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController();
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pump();
+
+    Future<void> pressControlNumber(LogicalKeyboardKey key) async {
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(key);
+      await tester.sendKeyUpEvent(key);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+    }
+
+    await pressControlNumber(LogicalKeyboardKey.digit2);
+    expect(find.text('Mijn planning'), findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.digit3);
+    expect(find.text('Even rust'), findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.digit4);
+    expect(find.text('Mijn steun'), findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.digit5);
+    expect(find.text('Instellingen'), findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.digit1);
+    expect(find.text('DIT IS JE VOLGENDE STAP'), findsOneWidget);
+  });
+
   testWidgets('focused activity is announced as a live screen-reader heading', (tester) async {
     final semanticsHandle = tester.ensureSemantics();
     await tester.pumpWidget(

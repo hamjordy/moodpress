@@ -1261,6 +1261,12 @@ class MoodPressShell extends StatefulWidget {
   State<MoodPressShell> createState() => _MoodPressShellState();
 }
 
+class _NavigateToPageIntent extends Intent {
+  const _NavigateToPageIntent(this.index);
+
+  final int index;
+}
+
 class _MoodPressShellState extends State<MoodPressShell> {
   int selected = 0;
   Timer? _reminderTimer;
@@ -1301,7 +1307,45 @@ class _MoodPressShellState extends State<MoodPressShell> {
   static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.spa_outlined, Icons.favorite_border, Icons.tune_rounded];
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(builder: (context, constraints) {
+  Widget build(BuildContext context) => Shortcuts(
+        shortcuts: const <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.digit1, control: true):
+              _NavigateToPageIntent(0),
+          SingleActivator(LogicalKeyboardKey.digit2, control: true):
+              _NavigateToPageIntent(1),
+          SingleActivator(LogicalKeyboardKey.digit3, control: true):
+              _NavigateToPageIntent(2),
+          SingleActivator(LogicalKeyboardKey.digit4, control: true):
+              _NavigateToPageIntent(3),
+          SingleActivator(LogicalKeyboardKey.digit5, control: true):
+              _NavigateToPageIntent(4),
+          SingleActivator(LogicalKeyboardKey.numpad1, control: true):
+              _NavigateToPageIntent(0),
+          SingleActivator(LogicalKeyboardKey.numpad2, control: true):
+              _NavigateToPageIntent(1),
+          SingleActivator(LogicalKeyboardKey.numpad3, control: true):
+              _NavigateToPageIntent(2),
+          SingleActivator(LogicalKeyboardKey.numpad4, control: true):
+              _NavigateToPageIntent(3),
+          SingleActivator(LogicalKeyboardKey.numpad5, control: true):
+              _NavigateToPageIntent(4),
+        },
+        child: Actions(
+          actions: <Type, Action<Intent>>{
+            _NavigateToPageIntent: CallbackAction<_NavigateToPageIntent>(
+              onInvoke: (intent) {
+                if (intent.index < 0 || intent.index >= labels.length) {
+                  return null;
+                }
+                setState(() => selected = intent.index);
+                FocusScope.of(context).unfocus();
+                return null;
+              },
+            ),
+          },
+          child: FocusTraversalGroup(
+            policy: ReadingOrderTraversalPolicy(),
+            child: LayoutBuilder(builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 850;
         final pages = [
           TodayPage(controller: widget.controller, openPlan: () => setState(() => selected = 1)),
@@ -1329,7 +1373,11 @@ class _MoodPressShellState extends State<MoodPressShell> {
             destinations: List.generate(labels.length, (index) => NavigationDestination(icon: Icon(icons[index]), label: labels[index])),
           ),
         );
-      });
+            }),
+          ),
+        ),
+      ),
+    );
 }
 
 class BrandMark extends StatelessWidget {
