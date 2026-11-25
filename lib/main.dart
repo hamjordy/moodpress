@@ -1957,6 +1957,9 @@ class MoodPressController extends ChangeNotifier {
       dagboekNotities
         ..clear()
         ..addAll(restoredJournalEntries);
+      rustplanActiviteiten
+        ..clear()
+        ..addAll(restoredRestPlanItems);
       storageNotice = null;
       notifyListeners();
     } catch (_) {
@@ -2051,6 +2054,7 @@ class MoodPressController extends ChangeNotifier {
       _weeklyRoutineKey,
       _prikkelMetingenKey,
       _dagboekKey,
+      _rustplanKey,
     ]) {
       await _storage.delete(key: key);
     }
@@ -2068,6 +2072,7 @@ class MoodPressController extends ChangeNotifier {
     weeklyRoutine = const WeeklyRoutine();
     prikkelMetingen = [];
     dagboekNotities.clear();
+    rustplanActiviteiten.clear();
     support = {
       'help': 'Ik wil even rust en één ding tegelijk doen.',
       'place': 'Een rustige plek waar ik mij prettig voel.',
