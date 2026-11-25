@@ -476,6 +476,7 @@ class MoodPressPreferences {
     this.reduceMotion = false,
     this.inAppRemindersEnabled = false,
     this.speechEnabled = true,
+    this.hasSeenWelcome = false,
   });
 
   final double textScale;
@@ -483,6 +484,7 @@ class MoodPressPreferences {
   final bool reduceMotion;
   final bool inAppRemindersEnabled;
   final bool speechEnabled;
+  final bool hasSeenWelcome;
 
   Map<String, dynamic> toJson() => {
         'textScale': textScale,
@@ -490,6 +492,7 @@ class MoodPressPreferences {
         'reduceMotion': reduceMotion,
         'inAppRemindersEnabled': inAppRemindersEnabled,
         'speechEnabled': speechEnabled,
+        'hasSeenWelcome': hasSeenWelcome,
       };
 
   factory MoodPressPreferences.fromJson(Map<String, dynamic> json) {
@@ -508,6 +511,10 @@ class MoodPressPreferences {
           : false,
       // Existing preference files did not contain this field; keep speech on.
       speechEnabled: json['speechEnabled'] is bool ? json['speechEnabled'] as bool : true,
+      // Older installations already know the app; do not show onboarding after an update.
+      hasSeenWelcome: json['hasSeenWelcome'] is bool
+          ? json['hasSeenWelcome'] as bool
+          : true,
     );
   }
 }
@@ -565,9 +572,11 @@ class MoodPressController extends ChangeNotifier {
 
   Future<void> load() async {
     final todayKey = _dateKey(selectedDate);
+    var hasExistingLocalData = false;
     try {
       final savedPlans = await _storage.read(key: _dayPlansKey);
       if (savedPlans != null) {
+        hasExistingLocalData = true;
         final decoded = jsonDecode(savedPlans) as Map<String, dynamic>;
         for (final entry in decoded.entries) {
           final rawItems = entry.value;
@@ -582,6 +591,7 @@ class MoodPressController extends ChangeNotifier {
         // Migrate an existing single-day plan without losing the user's data.
         final legacyPlan = await _storage.read(key: _legacyDayKey);
         if (legacyPlan != null) {
+          hasExistingLocalData = true;
           final decoded = jsonDecode(legacyPlan) as List<dynamic>;
           _plansByDate[todayKey] = decoded
               .whereType<Map<String, dynamic>>()
@@ -600,6 +610,7 @@ class MoodPressController extends ChangeNotifier {
     try {
       final savedSupport = await _storage.read(key: _supportKey);
       if (savedSupport != null) {
+        hasExistingLocalData = true;
         final values = jsonDecode(savedSupport) as Map<String, dynamic>;
         support = values.map((key, value) => MapEntry(key, value.toString()));
       }
@@ -613,9 +624,15 @@ class MoodPressController extends ChangeNotifier {
         preferences = MoodPressPreferences.fromJson(
           jsonDecode(savedPreferences) as Map<String, dynamic>,
         );
+      } else {
+        preferences = MoodPressPreferences(
+          hasSeenWelcome: hasExistingLocalData,
+        );
       }
     } catch (_) {
-      preferences = const MoodPressPreferences();
+      preferences = MoodPressPreferences(
+        hasSeenWelcome: hasExistingLocalData,
+      );
     }
 
     try {
@@ -1273,8 +1290,22 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> completeWelcome() async {
+    if (preferences.hasSeenWelcome) return;
+    preferences = MoodPressPreferences(
+      textScale: preferences.textScale,
+      speechRate: preferences.speechRate,
+      reduceMotion: preferences.reduceMotion,
+      inAppRemindersEnabled: preferences.inAppRemindersEnabled,
+      speechEnabled: preferences.speechEnabled,
+      hasSeenWelcome: true,
+    );
+    await _savePreferences();
+    notifyListeners();
+  }
+
   Future<void> resetPreferences() async {
-    preferences = const MoodPressPreferences();
+    preferences = const MoodPressPreferences(hasSeenWelcome: true);
     await _savePreferences();
     notifyListeners();
   }
@@ -1340,9 +1371,11 @@ class MoodPressApp extends StatelessWidget {
             enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
           ),
         ),
-        home: controller.ready
-            ? MoodPressShell(controller: controller)
-            : const MoodPressSplashScreen(),
+        home: !controller.ready
+            ? const MoodPressSplashScreen()
+            : controller.preferences.hasSeenWelcome
+                ? MoodPressShell(controller: controller)
+                : MoodPressWelcomeScreen(controller: controller),
       ),
     );
   }
@@ -1417,6 +1450,147 @@ class MoodPressSplashScreen extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      );
+}
+
+class MoodPressWelcomeScreen extends StatelessWidget {
+  const MoodPressWelcomeScreen({super.key, required this.controller});
+
+  final MoodPressController controller;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        backgroundColor: _paper,
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          color: _greenPale,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Icon(Icons.spa_rounded, color: _green, size: 40),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Welkom bij MoodPress',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _ink,
+                        fontSize: 29,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.7,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Een rustige plek om overzicht te maken, op een manier die bij jou past.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _muted, fontSize: 16, height: 1.5),
+                    ),
+                    const SizedBox(height: 28),
+                    const _WelcomeFeature(
+                      icon: Icons.calendar_month_rounded,
+                      title: 'Maak je dag overzichtelijk',
+                      description: 'Zet activiteiten op een rij en kijk wat voor jou werkt.',
+                    ),
+                    const SizedBox(height: 12),
+                    const _WelcomeFeature(
+                      icon: Icons.format_list_numbered_rounded,
+                      title: 'Kleine stappen zijn genoeg',
+                      description: 'Deel een activiteit op in stappen. Je mag het rustig aan doen.',
+                    ),
+                    const SizedBox(height: 12),
+                    const _WelcomeFeature(
+                      icon: Icons.spa_rounded,
+                      title: 'Ruimte voor rust',
+                      description: 'Neem een pauze wanneer je die nodig hebt. Je hoeft niets af te maken.',
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Je gegevens blijven op dit apparaat. MoodPress gebruikt geen account of cloud.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: _muted, fontSize: 13, height: 1.45),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton(
+                      onPressed: () => controller.completeWelcome(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 13),
+                        child: Text('Aan de slag'),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => controller.completeWelcome(),
+                      child: const Text('Overslaan'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+}
+
+class _WelcomeFeature extends StatelessWidget {
+  const _WelcomeFeature({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: _line),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: _green, size: 25),
+            const SizedBox(width: 13),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: _ink,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: const TextStyle(color: _muted, height: 1.4, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       );
 }
