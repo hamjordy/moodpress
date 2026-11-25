@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.14 — de widgettest bedient de herinneringsschakelaar rechtstreeks en controleert beide standen.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Versie 0.15.15 — de widgettest controleert de aan/uit-callback en beide weergegeven standen van herinneringen.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).

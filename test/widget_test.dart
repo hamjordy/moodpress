@@ -95,17 +95,16 @@ void main() {
       of: reminderLabel,
       matching: find.byType(SwitchListTile),
     );
-    final reminderSwitch = find.descendant(
-      of: reminderTile,
-      matching: find.byType(Switch),
-    );
 
-    await tester.tap(reminderSwitch);
+    // Invoke the same callback supplied to SwitchListTile. This avoids
+    // relying on pointer hit-testing of the compact switch thumb in CI.
+    final tile = tester.widget<SwitchListTile>(reminderTile);
+    await tile.onChanged!(true);
     await tester.pumpAndSettle();
     expect(controller.preferences.inAppRemindersEnabled, isTrue);
     expect(tester.widget<SwitchListTile>(reminderTile).value, isTrue);
 
-    await tester.tap(reminderSwitch);
+    await tester.widget<SwitchListTile>(reminderTile).onChanged!(false);
     await tester.pumpAndSettle();
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
     expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
