@@ -1388,6 +1388,43 @@ void main() {
     expect(year[10].averageLevel, 2);
   });
 
+  test('prikkel period comparison compares with previous equal period', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'current-one',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 9),
+      ),
+      PrikkelMeting(
+        id: 'current-two',
+        level: 2,
+        createdAt: DateTime(2026, 11, 24, 9),
+      ),
+      PrikkelMeting(
+        id: 'previous-one',
+        level: 1,
+        createdAt: DateTime(2026, 11, 18, 9),
+      ),
+      PrikkelMeting(
+        id: 'outside',
+        level: 5,
+        createdAt: DateTime(2026, 11, 10, 9),
+      ),
+    ];
+
+    final comparison = vergelijkPrikkelPeriodes(
+      measurements,
+      periode: 0,
+      vandaag: today,
+    );
+
+    expect(comparison.huidigAantal, 2);
+    expect(comparison.huidigGemiddelde, 3);
+    expect(comparison.vorigAantal, 1);
+    expect(comparison.vorigGemiddelde, 1);
+  });
+
   test('highest prikkel chart point ignores empty periods', () {
     final points = [
       PrikkelGrafiekPunt(
