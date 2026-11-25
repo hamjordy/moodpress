@@ -1513,16 +1513,16 @@ void main() {
         id: 'newer',
         level: 5,
         createdAt: DateTime(2026, 11, 25, 19, 30),
-        note: 'Druk; zei "te veel"\\nEven rust',
+        note: 'Druk; zei "te veel"\nEven rust',
       ),
     ];
 
     final csv = maakPrikkelCsv(measurements);
 
-    expect(csv.split('\\r\\n').first, 'Datum;Tijd;Niveau;Omschrijving;Notitie');
+    expect(csv.split('\r\n').first, 'Datum;Tijd;Niveau;Omschrijving;Notitie');
     expect(
       csv,
-      contains('2026-11-25;19:30;5;Overprikkeld;"Druk; zei ""te veel""\\nEven rust"'),
+      contains('2026-11-25;19:30;5;Overprikkeld;"Druk; zei ""te veel""\nEven rust"'),
     );
     expect(csv.indexOf('2026-11-25'), lessThan(csv.indexOf('2026-11-24')));
   });
@@ -1530,7 +1530,7 @@ void main() {
   test('prikkel CSV export returns a header for an empty history', () {
     expect(
       maakPrikkelCsv(const []),
-      'Datum;Tijd;Niveau;Omschrijving;Notitie\\r\\n',
+      'Datum;Tijd;Niveau;Omschrijving;Notitie\r\n',
     );
   });
 
