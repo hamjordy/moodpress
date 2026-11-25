@@ -38,6 +38,21 @@ void main() {
     await pressControlNumber(LogicalKeyboardKey.digit5);
     expect(find.text('Instellingen').last, findsOneWidget);
 
+    await pressControlNumber(LogicalKeyboardKey.numpad2);
+    expect(find.text('Mijn planning').last, findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.numpad3);
+    expect(find.text('Even rust').last, findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.numpad4);
+    expect(find.text('Mijn steun').last, findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.numpad5);
+    expect(find.text('Instellingen').last, findsOneWidget);
+
+    await pressControlNumber(LogicalKeyboardKey.numpad1);
+    expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
+
     await pressControlNumber(LogicalKeyboardKey.digit1);
     expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
   });

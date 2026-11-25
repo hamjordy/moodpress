@@ -17,7 +17,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
 - **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan, schakel animaties uit en zet optionele herinneringen aan of uit.
-- **Toetsenbordbediening** — op Windows wissel je met Ctrl + 1 tot en met Ctrl + 5 tussen Vandaag, Planning, Even rust, Mijn steun en Instellingen. De focusvolgorde volgt de leesvolgorde. De app houdt de toetsenbordfocus vast zodat meerdere sneltoetsen achter elkaar werken.
+- **Toetsenbordbediening** — op Windows wissel je met Ctrl + 1 tot en met Ctrl + 5 (ook via het numerieke toetsenblok) tussen Vandaag, Planning, Even rust, Mijn steun en Instellingen. De focusvolgorde volgt de leesvolgorde. De app houdt de toetsenbordfocus vast zodat meerdere sneltoetsen achter elkaar werken.
 - **Rustige herinneringen** — een melding op het geplande tijdstip zolang MoodPress open is; standaard uit en altijd uit te zetten.
 - **Back-up en terugzetten** — bewaar al je dagplannen, sjablonen, weekritme, steunplan, instellingen en activiteitfoto’s in één wachtwoord-beveiligd bestand. Je kunt dit lokaal bewaren of naar een ander toestel meenemen.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.4 — sneltoetstest controleert de zichtbare paginaheading zonder verwarring met de navigatielabels.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.15.5 — sneltoetsen op het numerieke toetsenblok zijn aanvullend getest.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
