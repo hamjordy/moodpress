@@ -783,6 +783,7 @@ List<PrikkelMeting> filterPrikkelMetingen(
   final results = metingen.where((meting) {
     if (niveau != 0 && meting.level != niveau) return false;
     if (vanaf != null && meting.createdAt.isBefore(vanaf)) return false;
+    if (periodeDagen > 0 && !meting.createdAt.isBefore(vandaagStart.add(const Duration(days: 1)))) return false;
     final date = meting.createdAt;
     final dateText = [
       '${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}',
