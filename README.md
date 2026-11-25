@@ -2,7 +2,7 @@
 
 **Rust en overzicht in je dag.** Een zelfstandige, Nederlandstalige dagstructuur-app voor Android en Windows 11.
 
-MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te plannen. De eerste versie bevat:
+MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te plannen. Bij het opstarten verschijnt een rustig, herkenbaar splash screen terwijl de lokale gegevens worden geladen. De eerste versie bevat:
 
 - **Vandaag** — eerstvolgende stap, voortgang en een vrijwillige check-in.
 - **Planning** — weekoverzicht, een apart dagplan per datum, activiteiten afronden en de volgorde zelf verslepen.
@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Huidige ontwikkelversie: 0.15.35+53.** De automatische Flutter-controles voor code-analyse, tests en Android- en Windows-builds zijn geslaagd. De volgende stap is handmatig testen op echte Android- en Windows-apparaten, inclusief toegankelijkheid, gegevensbehoud en back-up/herstel. Deze praktijktests en doelgroepbeoordeling zijn nog niet afgerond. Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Huidige ontwikkelversie: 0.15.36+54.** De automatische Flutter-controles voor code-analyse, tests en Android- en Windows-builds zijn geslaagd. De volgende stap is handmatig testen op echte Android- en Windows-apparaten, inclusief toegankelijkheid, gegevensbehoud en back-up/herstel. Deze praktijktests en doelgroepbeoordeling zijn nog niet afgerond. Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
