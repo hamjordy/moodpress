@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.3 — sneltoetsnavigatie behoudt toetsenbordfocus en start met een expliciete focusdoelwidget.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.15.4 — sneltoetstest controleert de zichtbare paginaheading zonder verwarring met de navigatielabels.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.

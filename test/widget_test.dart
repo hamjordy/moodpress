@@ -27,19 +27,19 @@ void main() {
     }
 
     await pressControlNumber(LogicalKeyboardKey.digit2);
-    expect(find.text('Mijn planning'), findsOneWidget);
+    expect(find.text('Mijn planning').last, findsOneWidget);
 
     await pressControlNumber(LogicalKeyboardKey.digit3);
-    expect(find.text('Even rust'), findsOneWidget);
+    expect(find.text('Even rust').last, findsOneWidget);
 
     await pressControlNumber(LogicalKeyboardKey.digit4);
-    expect(find.text('Mijn steun'), findsOneWidget);
+    expect(find.text('Mijn steun').last, findsOneWidget);
 
     await pressControlNumber(LogicalKeyboardKey.digit5);
-    expect(find.text('Instellingen'), findsOneWidget);
+    expect(find.text('Instellingen').last, findsOneWidget);
 
     await pressControlNumber(LogicalKeyboardKey.digit1);
-    expect(find.text('DIT IS JE VOLGENDE STAP'), findsOneWidget);
+    expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
   });
 
   testWidgets('focused activity is announced as a live screen-reader heading', (tester) async {
