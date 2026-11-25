@@ -8,6 +8,7 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Planning** — weekoverzicht, een apart dagplan per datum, activiteiten afronden en de volgorde zelf verslepen.
 - **Dagindelingen** — bewaar een dag als sjabloon en gebruik die opnieuw op een andere datum.
 - **Vast weekritme** — bewaar een vaste indeling per weekdag en vul daarmee lege dagen in.
+- **Dagplan kopiëren** — kopieer een bestaande dag naar een andere datum. De volgorde en uitleg blijven behouden; activiteiten beginnen op de nieuwe dag opnieuw als niet afgerond.
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
 - **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan, schakel animaties uit en zet optionele herinneringen aan of uit.
@@ -71,4 +72,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.8.0 — wachtwoord-beveiligde back-ups en terugzetten zijn toegevoegd; er is geen account, server of hosting nodig.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
+**Versie 0.9.0 — je kunt nu een dagplan rechtstreeks naar een andere datum kopiëren, naast de bestaande sjablonen en het vaste weekritme.** Zie [het productplan](docs/PRODUCT_PLAN.md) voor vervolgstappen.
