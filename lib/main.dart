@@ -403,6 +403,44 @@ class PrikkelMeting {
   }
 }
 
+class PrikkelDagSamenvatting {
+  const PrikkelDagSamenvatting({
+    required this.date,
+    required this.averageLevel,
+    required this.count,
+  });
+
+  final DateTime date;
+  final double? averageLevel;
+  final int count;
+}
+
+List<PrikkelDagSamenvatting> maakPrikkelWeekOverzicht(
+  List<PrikkelMeting> metingen, {
+  DateTime? vandaag,
+}) {
+  final now = vandaag ?? DateTime.now();
+  final start = DateTime(now.year, now.month, now.day)
+      .subtract(const Duration(days: 6));
+  return List.generate(7, (index) {
+    final date = start.add(Duration(days: index));
+    final dayMeasurements = metingen.where((item) =>
+        item.createdAt.year == date.year &&
+        item.createdAt.month == date.month &&
+        item.createdAt.day == date.day);
+    final count = dayMeasurements.length;
+    final average = count == 0
+        ? null
+        : dayMeasurements.fold<int>(0, (sum, item) => sum + item.level) /
+            count;
+    return PrikkelDagSamenvatting(
+      date: date,
+      averageLevel: average,
+      count: count,
+    );
+  });
+}
+
 const prikkelNiveaus = <String>[
   'Helemaal rustig',
   'Een beetje prikkels',
@@ -4052,6 +4090,115 @@ class _CalmPageState extends State<CalmPage> {
     );
   }
 
+  Widget _buildPrikkelWeekChart() {
+    final days = maakPrikkelWeekOverzicht(widget.controller.prikkelMetingen);
+    final hasMeasurements = days.any((day) => day.count > 0);
+    const weekdays = ['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Prikkels deze week',
+              style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Gemiddeld niveau per dag · afgelopen 7 dagen',
+              style: TextStyle(color: _muted, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            if (!hasMeasurements)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 22),
+                child: Text(
+                  'Zodra je metingen opslaat, verschijnt hier je weekoverzicht.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: _muted, height: 1.4),
+                ),
+              )
+            else
+              SizedBox(
+                height: 156,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: List.generate(days.length, (index) {
+                    final day = days[index];
+                    final average = day.averageLevel;
+                    final barHeight = average == null ? 0.0 : average * 20;
+                    final weekday = weekdays[day.date.weekday - 1];
+                    return Expanded(
+                      child: Semantics(
+                        label: average == null
+                            ? '${day.date.day} ${weekday}: geen metingen'
+                            : '${day.date.day} ${weekday}: gemiddeld ${average.toStringAsFixed(1)} van 5, ${day.count} metingen',
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            SizedBox(
+                              height: 112,
+                              child: Align(
+                                alignment: Alignment.bottomCenter,
+                                child: average == null
+                                    ? Container(
+                                        width: 14,
+                                        height: 3,
+                                        decoration: BoxDecoration(
+                                          color: _line,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                      )
+                                    : Container(
+                                        width: 20,
+                                        height: barHeight,
+                                        alignment: Alignment.topCenter,
+                                        decoration: BoxDecoration(
+                                          color: _green,
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(top: 4),
+                                          child: Text(
+                                            average.toStringAsFixed(1),
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            ),
+                            const SizedBox(height: 7),
+                            Text(
+                              weekday,
+                              style: const TextStyle(color: _muted, fontSize: 11),
+                            ),
+                            Text(
+                              '${day.date.day}',
+                              style: const TextStyle(color: _ink, fontSize: 11, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            const SizedBox(height: 8),
+            const Text(
+              'Een hoger getal betekent dat je op die dag gemiddeld meer prikkels hebt aangegeven. Dit is alleen een terugblik, geen beoordeling.',
+              style: TextStyle(color: _muted, fontSize: 11, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => PageFrame(
     title: 'Even rust',
@@ -4125,6 +4272,8 @@ class _CalmPageState extends State<CalmPage> {
           icon: const Icon(Icons.save_outlined),
           label: const Text('Meting opslaan'),
         ),
+        const SizedBox(height: 18),
+        _buildPrikkelWeekChart(),
         const SizedBox(height: 18),
         const Text('Eerdere metingen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
         const SizedBox(height: 8),
