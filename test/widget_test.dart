@@ -65,6 +65,41 @@ void main() {
     expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
   });
 
+  testWidgets('in-app reminder switch can be enabled and disabled in settings', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController();
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    final reminderLabel = find.text('Herinneringen in de app');
+    await tester.ensureVisible(reminderLabel);
+    expect(controller.preferences.inAppRemindersEnabled, isFalse);
+    expect(tester.widget<SwitchListTile>(find.ancestor(
+      of: reminderLabel,
+      matching: find.byType(SwitchListTile),
+    )).value, isFalse);
+
+    await tester.tap(reminderLabel);
+    await tester.pumpAndSettle();
+    expect(controller.preferences.inAppRemindersEnabled, isTrue);
+
+    await tester.tap(reminderLabel);
+    await tester.pumpAndSettle();
+    expect(controller.preferences.inAppRemindersEnabled, isFalse);
+  });
+
   testWidgets('canceling local data deletion keeps the settings screen unchanged', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
