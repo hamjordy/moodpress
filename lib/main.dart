@@ -1079,6 +1079,7 @@ class MoodPressController extends ChangeNotifier {
   static const _weeklyRoutineKey = 'moodpress.weeklyroutine.v1';
   static const _prikkelMetingenKey = 'moodpress.prikkelmetingen.v1';
   static const _dagboekKey = 'moodpress.dagboek.v1';
+  static const _rustplanKey = 'moodpress.rustplan.v1';
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   final Map<String, List<DayActivity>> _plansByDate = {};
