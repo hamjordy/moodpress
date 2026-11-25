@@ -19,6 +19,17 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  msix: ^3.18.0
+
+msix_config:
+  display_name: MoodPress
+  publisher_display_name: hamjordy
+  identity_name: hamjordy.MoodPress
+  publisher: "CN=36577445-3505-488A-A526-EB882DDF7D63"
+  msix_version: 0.15.37.0
+  store: true
+  sign_msix: false
+  install_certificate: false
 
 flutter:
   uses-material-design: true
