@@ -42,6 +42,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Activiteiten in de dagplanning verslepen; de gekozen volgorde blijft bewaard.
 - [x] Rustige herinneringen die volledig uit te zetten zijn (in-app, zolang MoodPress open is; standaard uit).
 - [x] Volledige lokale back-up en terugzetten van planning, sjablonen, weekritme, steunplan, voorkeuren en activiteitfoto’s, versleuteld met een eigen wachtwoord.
+- [x] Een bestaand dagplan rechtstreeks naar een andere datum kopiëren, met behoud van volgorde en terugzetten van alle activiteiten op niet-afgerond.
 
 ### Fase 3 — zorgvuldig testen
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
