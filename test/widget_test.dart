@@ -1143,4 +1143,48 @@ void main() {
   });
 
 
+  testWidgets('planning activity text uses the available width on compact screens', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const activityTitle =
+        'Een lange activiteitstitel die netjes moet doorlopen';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 360,
+              child: ActivityCard(
+                activity: DayActivity(
+                  id: 'responsive-test',
+                  title: activityTitle,
+                  time: '09:00',
+                  note:
+                      'Deze extra uitleg moet de beschikbare ruimte gebruiken en normaal doorlopen.',
+                ),
+                speechRate: 1,
+                speechEnabled: false,
+                toggle: () {},
+                toggleStep: (_) {},
+                edit: () {},
+                delete: () {},
+                copy: () {},
+                move: () {},
+                reorderHandle: const SizedBox(width: 24, height: 24),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final titleSize = tester.getSize(find.text(activityTitle));
+    expect(titleSize.width, greaterThan(150));
+  });
+
+
 }
