@@ -500,6 +500,15 @@ List<PrikkelGrafiekPunt> maakPrikkelGrafiekPunten(
   });
 }
 
+PrikkelGrafiekPunt? hoogstePrikkelGrafiekPunt(
+  List<PrikkelGrafiekPunt> punten,
+) {
+  final metingen = punten.where((punt) => punt.averageLevel != null);
+  if (metingen.isEmpty) return null;
+  return metingen.reduce((hoogste, huidig) =>
+      huidig.averageLevel! > hoogste.averageLevel! ? huidig : hoogste);
+}
+
 const prikkelNiveaus = <String>[
   'Helemaal rustig',
   'Een beetje prikkels',
@@ -4203,6 +4212,12 @@ class _CalmPageState extends State<CalmPage> {
       periode: _prikkelPeriode,
     );
     final hasMeasurements = points.any((point) => point.count > 0);
+    final highestPoint = hoogstePrikkelGrafiekPunt(points);
+    final highestDateLabel = highestPoint == null
+        ? ''
+        : (_prikkelPeriode == 2
+            ? '${highestPoint.label} ${highestPoint.date.year}'
+            : '${highestPoint.date.day}-${highestPoint.date.month}');
     final title = _prikkelPeriode == 0
         ? 'Prikkels deze week'
         : (_prikkelPeriode == 1
@@ -4275,6 +4290,16 @@ class _CalmPageState extends State<CalmPage> {
                   );
                 },
               ),
+              const SizedBox(height: 8),
+              if (highestPoint != null)
+                Text(
+                  'Hoogste gemiddelde: ${highestPoint.averageLevel!.toStringAsFixed(1)} / 5 · $highestDateLabel (${highestPoint.count} metingen)',
+                  style: const TextStyle(
+                    color: _muted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               const SizedBox(height: 14),
             ],
             if (!hasMeasurements)
