@@ -1103,7 +1103,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
-    expect(find.textContaining('Vandaag'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Vandaag,')), findsOneWidget);
     expect(find.text('We doen het rustig aan. Eén ding tegelijk.'), findsOneWidget);
     expect(find.text('DIT IS JE VOLGENDE STAP'), findsOneWidget);
     expect(find.text('Hoe is het nu met je?'), findsOneWidget);
