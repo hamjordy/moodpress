@@ -2034,16 +2034,24 @@ class FeelingChoice extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: selected ? _greenPale : Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? _green : _line)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [Text(emoji, style: const TextStyle(fontSize: 18)), const SizedBox(width: 8), Text(label, style: TextStyle(color: _ink, fontWeight: selected ? FontWeight.w700 : FontWeight.w500))]),
+  Widget build(BuildContext context) => Semantics(
+        label: label,
+        button: true,
+        selected: selected,
+        onTap: onTap,
+        child: ExcludeSemantics(
+          child: Material(
+            color: selected ? _greenPale : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? _green : _line)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [Text(emoji, style: const TextStyle(fontSize: 18)), const SizedBox(width: 8), Text(label, style: TextStyle(color: _ink, fontWeight: selected ? FontWeight.w700 : FontWeight.w500))]),
+              ),
+            ),
           ),
         ),
       );
