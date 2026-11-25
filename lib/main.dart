@@ -6061,6 +6061,7 @@ class _DagboekPageState extends State<DagboekPage> {
       text: _textController.text,
     );
     if (!mounted) return;
+    setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Je dagboeknotitie is opgeslagen.')),
     );
