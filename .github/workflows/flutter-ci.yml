@@ -69,6 +69,53 @@ jobs:
           channel: stable
           cache: true
       - run: flutter create --platforms=android .
+      - name: Apply MoodPress Android launcher icon
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          from pathlib import Path
+
+          encoded_icon = Path("assets/android/moodpress_launcher_foreground.png.b64").read_text(encoding="ascii").strip()
+          icon_bytes = base64.b64decode(encoded_icon, validate=True)
+          if not icon_bytes.startswith(b"\\x89PNG\\r\\n\\x1a\\n"):
+              raise SystemExit("MoodPress launcher icon is not a valid PNG file")
+
+          resources = Path("android/app/src/main/res")
+          foreground = resources / "drawable-nodpi" / "ic_launcher_foreground.png"
+          foreground.parent.mkdir(parents=True, exist_ok=True)
+          foreground.write_bytes(icon_bytes)
+
+          # Fallback icons for Android versions that do not support adaptive icons.
+          legacy = resources / "mipmap-xxxhdpi"
+          legacy.mkdir(parents=True, exist_ok=True)
+          (legacy / "ic_launcher.png").write_bytes(icon_bytes)
+          (legacy / "ic_launcher_round.png").write_bytes(icon_bytes)
+
+          # Adaptive icons are used by Android 8.0 and newer.
+          adaptive = resources / "mipmap-anydpi-v26"
+          adaptive.mkdir(parents=True, exist_ok=True)
+          adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          """
+          (adaptive / "ic_launcher.xml").write_text(adaptive_xml, encoding="utf-8")
+          (adaptive / "ic_launcher_round.xml").write_text(adaptive_xml, encoding="utf-8")
+
+          values = resources / "values"
+          values.mkdir(parents=True, exist_ok=True)
+          (values / "ic_launcher_background.xml").write_text(
+              """<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#4612CF</color>
+          </resources>
+          """,
+              encoding="utf-8",
+          )
+          print("MoodPress launcher icon installed in Android resources.")
+          PY
       - name: Set permanent Android application ID and configure API
         shell: bash
         run: |
