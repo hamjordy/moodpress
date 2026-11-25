@@ -7,6 +7,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  testWidgets('branded splash screen is shown while local data loads', (tester) async {
+    final controller = MoodPressController();
+    await tester.pumpWidget(MoodPressApp(controller: controller));
+
+    expect(find.text('MoodPress'), findsOneWidget);
+    expect(find.text('Rust en overzicht in je dag.'), findsOneWidget);
+    expect(find.text('Je omgeving wordt klaargemaakt…'), findsOneWidget);
+    expect(find.byType(MoodPressSplashScreen), findsOneWidget);
+
+    controller.ready = true;
+    controller.notifyListeners();
+    await tester.pump();
+
+    expect(find.byType(MoodPressSplashScreen), findsNothing);
+    expect(find.byType(MoodPressShell), findsOneWidget);
+  });
+
   testWidgets('Ctrl plus number opens each main section on desktop', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
