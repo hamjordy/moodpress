@@ -873,4 +873,21 @@ void main() {
     expect(noSteps.stepDone, isEmpty);
   });
 
+
+  test('backup rejects empty and oversized files before decoding', () async {
+    const header = 'MOODPRESS_BACKUP_V1\\n';
+    final headerOnly = Uint8List.fromList(utf8.encode(header));
+
+    await expectLater(
+      decryptMoodPressBackup(headerOnly, 'mijn-veilig-wachtwoord'),
+      throwsA(isA<FormatException>()),
+    );
+
+    final oversized = Uint8List(30 * 1024 * 1024 + 1);
+    await expectLater(
+      decryptMoodPressBackup(oversized, 'mijn-veilig-wachtwoord'),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
 }

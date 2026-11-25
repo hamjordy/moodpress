@@ -63,6 +63,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] Widgettest roept de herinneringscallback aan binnen de echte appstructuur en controleert na beide acties zowel de opgeslagen voorkeur als de zichtbare schakelstand. De schakelaar ververst direct; lokale opslag volgt daarna.
 - [x] Back-uptests controleren dat aangepaste versleutelde inhoud, onbekende bestandsheaders, ongeldige JSON en niet-ondersteunde metadata worden geweigerd.
 - [x] Test controleert dat gedeeltelijk opgeslagen voortgang van stappenplannen veilig wordt aangevuld en ongeldige stapnummers niets wijzigen.
+- [x] Back-uptest controleert dat lege en te grote bestanden vóór het decoderen worden geweigerd.
 - [x] Handmatig testplan opgesteld voor Android, Windows, toetsenbord, schermlezers, prikkelbelasting, privacy en veilige gebruikerstesten. Dit is een voorbereiding; de praktijktesten zelf zijn nog niet uitgevoerd.
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
 - Testen met schermlezers, toetsenbord, touch, Windows scaling en Android toegankelijkheidsinstellingen.
