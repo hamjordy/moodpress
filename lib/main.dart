@@ -4134,7 +4134,7 @@ class _PrikkelInzichtCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(12),
     decoration: BoxDecoration(
-      color: _surface,
+      color: _paper,
       borderRadius: BorderRadius.circular(14),
       border: Border.all(color: _line),
     ),
