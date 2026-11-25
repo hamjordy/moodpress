@@ -99,7 +99,7 @@ jobs:
                   )
                   content = re.sub(
                       r"minSdk\s*=\s*flutter\.minSdkVersion",
-                      "minSdk = 23",
+                      "minSdk = 24",
                       content,
                   )
                   if ns_count and app_count:
@@ -117,7 +117,7 @@ jobs:
                   )
                   content = re.sub(
                       r"minSdkVersion\s+flutter\.minSdkVersion",
-                      "minSdkVersion 23",
+                      "minSdkVersion 24",
                       content,
                   )
                   if ns_count and app_count:
@@ -126,6 +126,27 @@ jobs:
 
           if not configured:
               raise SystemExit("Could not set Android namespace and applicationId to " + app_id)
+
+          # flutter create generates MainActivity with the temporary example package.
+          # The manifest resolves .MainActivity against the namespace above, so the
+          # Kotlin package must be changed to the same permanent application ID.
+          activity_files = list(Path("android/app/src/main").rglob("MainActivity.kt"))
+          if len(activity_files) != 1:
+              raise SystemExit(
+                  "Expected exactly one generated MainActivity.kt, found "
+                  + str(len(activity_files))
+              )
+          activity = activity_files[0]
+          activity_content = activity.read_text()
+          activity_content, package_count = re.subn(
+              r"(?m)^package\s+[^\s]+",
+              "package " + app_id,
+              activity_content,
+              count=1,
+          )
+          if package_count != 1:
+              raise SystemExit("Could not update the generated MainActivity package")
+          activity.write_text(activity_content)
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           xml = manifest.read_text()
