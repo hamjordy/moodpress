@@ -1010,4 +1010,24 @@ void main() {
     );
   });
 
+
+  test('resetting preferences restores every accessible default', () async {
+    final controller = MoodPressController();
+    controller.preferences = const MoodPressPreferences(
+      textScale: 1.35,
+      speechRate: 0.58,
+      reduceMotion: true,
+      inAppRemindersEnabled: true,
+      speechEnabled: false,
+    );
+
+    await controller.resetPreferences();
+
+    expect(controller.preferences.textScale, 1.0);
+    expect(controller.preferences.speechRate, 0.42);
+    expect(controller.preferences.reduceMotion, isFalse);
+    expect(controller.preferences.inAppRemindersEnabled, isFalse);
+    expect(controller.preferences.speechEnabled, isTrue);
+  });
+
 }
