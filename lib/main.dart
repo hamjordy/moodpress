@@ -404,6 +404,21 @@ class DagboekNotitie {
   }
 }
 
+class RustplanActiviteit {
+  const RustplanActiviteit({required this.id, required this.title, required this.category, required this.description});
+  final String id;
+  final String title;
+  final String category;
+  final String description;
+  Map<String, dynamic> toJson() => {'id': id, 'title': title, 'category': category, 'description': description};
+  factory RustplanActiviteit.fromJson(Map<String, dynamic> json) => RustplanActiviteit(
+    id: json['id'] is String && (json['id'] as String).isNotEmpty ? json['id'] as String : DateTime.now().microsecondsSinceEpoch.toString(),
+    title: json['title'] is String ? json['title'] as String : '',
+    category: json['category'] is String ? json['category'] as String : 'Anders',
+    description: json['description'] is String ? json['description'] as String : '',
+  );
+}
+
 class PrikkelMeting {
   const PrikkelMeting({
     required this.id,
