@@ -87,11 +87,6 @@ void main() {
       of: reminderLabel,
       matching: find.byType(SwitchListTile),
     );
-    final reminderSwitch = find.descendant(
-      of: reminderTile,
-      matching: find.byType(Switch),
-    );
-
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
     expect(tester.widget<SwitchListTile>(reminderTile).value, isFalse);
 

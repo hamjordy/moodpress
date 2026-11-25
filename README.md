@@ -78,4 +78,4 @@ Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor e
 
 ## Ontwikkelstatus
 
-**Versie 0.15.17 — de widgettest controleert de herinneringscallback en de vernieuwde schakelstand binnen de echte appstructuur.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
+**Versie 0.15.18 — een resterende analyzer-waarschuwing in de herinneringstest is opgeruimd.** Zie [het productplan](docs/PRODUCT_PLAN.md) en het [toegankelijkheidstestplan](docs/TESTPLAN_TOEGANKELIJKHEID.md).
