@@ -65,6 +65,39 @@ void main() {
     expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
   });
 
+  testWidgets('canceling local data deletion keeps the settings screen unchanged', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController();
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit5);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    final deleteButton = find.text('Wis alle gegevens op dit apparaat');
+    await tester.ensureVisible(deleteButton);
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alle gegevens verwijderen?'), findsOneWidget);
+    expect(find.text('Verwijder mijn gegevens'), findsOneWidget);
+
+    await tester.tap(find.text('Annuleren'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Alle gegevens verwijderen?'), findsNothing);
+    expect(deleteButton, findsOneWidget);
+  });
+
   testWidgets('focused activity is announced as a live screen-reader heading', (tester) async {
     final semanticsHandle = tester.ensureSemantics();
     await tester.pumpWidget(

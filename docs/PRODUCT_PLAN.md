@@ -55,6 +55,7 @@ De gebruiker helpen de dag in kleine, begrijpelijke en voorspelbare stappen te v
 - [x] In de app-instellingen staat in begrijpelijke taal welke gegevens lokaal blijven, wat tijdelijk is en dat foto's in een versleutelde back-up kunnen staan.
 - [x] In de app-instellingen staat duidelijk dat MoodPress geen diagnose, behandeling of crisisdienst vervangt, met een verwijzing naar 112 bij direct gevaar.
 - [x] Gebruiker kan alle lokale MoodPress-gegevens en activiteitfoto’s bewust verwijderen, na een extra bevestiging. Losse back-upbestanden blijven buiten de app en worden niet verwijderd.
+- [x] Widgettest controleert dat de gebruiker het verwijderen van lokale gegevens kan annuleren zonder de wisactie te starten.
 - [x] Handmatig testplan opgesteld voor Android, Windows, toetsenbord, schermlezers, prikkelbelasting, privacy en veilige gebruikerstesten. Dit is een voorbereiding; de praktijktesten zelf zijn nog niet uitgevoerd.
 - Co-designsessies met autistische deelnemers, mensen met LVB en mensen met PTSS.
 - Testen met schermlezers, toetsenbord, touch, Windows scaling en Android toegankelijkheidsinstellingen.
