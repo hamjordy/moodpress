@@ -292,6 +292,19 @@ bool isActivityDueAt(DayActivity activity, DateTime now) {
   return hour != null && minute != null && hour == now.hour && minute == now.minute;
 }
 
+
+List<DayActivity> copyDayActivities(
+  List<DayActivity> source, {
+  required String idPrefix,
+}) =>
+    List<DayActivity>.generate(
+      source.length,
+      (index) => source[index].copyWith(
+        id: idPrefix + '-' + index.toString(),
+        done: false,
+      ),
+    );
+
 void reorderDayActivities(List<DayActivity> activities, int oldIndex, int newIndex) {
   if (oldIndex < 0 || oldIndex >= activities.length ||
       newIndex < 0 || newIndex > activities.length) return;
@@ -601,6 +614,30 @@ class MoodPressController extends ChangeNotifier {
       notifyListeners();
     }
     return dates.length;
+  }
+
+
+  Future<int> copyDayPlan(
+    DateTime sourceDate,
+    DateTime targetDate, {
+    bool replaceExisting = false,
+  }) async {
+    final sourceKey = _dateKey(sourceDate);
+    final targetKey = _dateKey(targetDate);
+    if (sourceKey == targetKey) return 0;
+
+    final source = activitiesFor(sourceDate);
+    if (source.isEmpty) return 0;
+    if (_plansByDate.containsKey(targetKey) && !replaceExisting) return 0;
+
+    final prefix = 'copy-' + DateTime.now().microsecondsSinceEpoch.toString();
+    _plansByDate[targetKey] = copyDayActivities(
+      source,
+      idPrefix: prefix,
+    );
+    await _saveDayPlans();
+    notifyListeners();
+    return source.length;
   }
 
   void selectDate(DateTime date) {
@@ -1346,6 +1383,74 @@ class _PlanningPageState extends State<PlanningPage> {
         _formatDutchDate(lastDay) + ' ' + lastDay.year.toString();
   }
 
+
+  Future<void> _copyDayToDate(
+    BuildContext context,
+    DateTime sourceDate,
+  ) async {
+    final targetDate = await showDatePicker(
+      context: context,
+      initialDate: sourceDate.add(const Duration(days: 1)),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Kies de nieuwe datum',
+      cancelText: 'Annuleren',
+      confirmText: 'Kies datum',
+    );
+    if (targetDate == null || !context.mounted) return;
+
+    if (_dateKey(targetDate) == _dateKey(sourceDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kies een andere datum dan de brondag.')),
+      );
+      return;
+    }
+
+    var replaceExisting = false;
+    if (widget.controller.hasPlanFor(targetDate)) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Er staat al een dagplan'),
+          content: const Text(
+            'Wil je het bestaande dagplan op deze datum vervangen? De activiteiten uit de gekozen dag worden opnieuw klaargezet.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Annuleren'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Vervangen'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+      replaceExisting = true;
+    }
+
+    final copied = await widget.controller.copyDayPlan(
+      sourceDate,
+      targetDate,
+      replaceExisting: replaceExisting,
+    );
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          copied == 0
+              ? 'Er zijn geen activiteiten om te kopiëren.'
+              : copied.toString() + ' activiteiten gekopieerd naar ' +
+                  _formatDutchWeekday(targetDate) + ' ' +
+                  _formatDutchDate(targetDate) + '.',
+        ),
+      ),
+    );
+  }
+
   void _openDay(DateTime date) {
     widget.controller.selectDate(date);
     setState(() => _showWeek = false);
@@ -1664,6 +1769,15 @@ class _PlanningPageState extends State<PlanningPage> {
           ),
         ),
         const SizedBox(height: 15),
+        if (items.isNotEmpty)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => _copyDayToDate(context, date),
+              icon: const Icon(Icons.content_copy_rounded),
+              label: const Text('Kopieer dit dagplan naar een andere datum'),
+            ),
+          ),
         if (items.isNotEmpty)
           ReorderableListView.builder(
             shrinkWrap: true,
