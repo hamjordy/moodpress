@@ -1485,4 +1485,57 @@ void main() {
   });
 
 
+  test('chart point details include only matching measurements and sort newest first', () {
+    final measurements = [
+      PrikkelMeting(
+        id: 'morning',
+        level: 2,
+        createdAt: DateTime(2026, 11, 25, 8),
+        note: 'Rustig begonnen',
+      ),
+      PrikkelMeting(
+        id: 'evening',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 20),
+        note: 'Drukke dag',
+      ),
+      PrikkelMeting(
+        id: 'other-day',
+        level: 5,
+        createdAt: DateTime(2026, 11, 24, 12),
+        note: 'Andere dag',
+      ),
+    ];
+    final dayPoint = PrikkelGrafiekPunt(
+      date: DateTime(2026, 11, 25),
+      label: 'wo',
+      averageLevel: 3,
+      count: 2,
+    );
+
+    final dayMeasurements = prikkelMetingenVoorGrafiekPunt(
+      measurements,
+      dayPoint,
+      perMaand: false,
+    );
+
+    expect(dayMeasurements.map((item) => item.id), ['evening', 'morning']);
+    expect(dayMeasurements.first.note, 'Drukke dag');
+
+    final monthPoint = PrikkelGrafiekPunt(
+      date: DateTime(2026, 11, 1),
+      label: 'nov',
+      averageLevel: 3.7,
+      count: 3,
+    );
+    expect(
+      prikkelMetingenVoorGrafiekPunt(
+        measurements,
+        monthPoint,
+        perMaand: true,
+      ),
+      hasLength(3),
+    );
+  });
+
 }
