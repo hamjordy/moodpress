@@ -1538,6 +1538,43 @@ void main() {
     expect(trend.every((week) => week.count == 0), isTrue);
   });
 
+  test('weekly trend details return only that week newest first', () {
+    final week = PrikkelWeekTrendPunt(
+      weekStart: DateTime(2026, 11, 23),
+      averageLevel: 3,
+      count: 2,
+    );
+    final measurements = [
+      PrikkelMeting(
+        id: 'outside',
+        level: 5,
+        createdAt: DateTime(2026, 11, 30, 8),
+      ),
+      PrikkelMeting(
+        id: 'older',
+        level: 2,
+        createdAt: DateTime(2026, 11, 24, 9),
+        note: 'Ochtend',
+      ),
+      PrikkelMeting(
+        id: 'newer',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 18),
+        note: 'Avond',
+      ),
+      PrikkelMeting(
+        id: 'before',
+        level: 1,
+        createdAt: DateTime(2026, 11, 22, 23),
+      ),
+    ];
+
+    final result = prikkelMetingenVoorWeek(measurements, week);
+
+    expect(result.map((item) => item.id), ['newer', 'older']);
+    expect(result.first.note, 'Avond');
+  });
+
   test('prikkel week overview calculates daily averages for seven days', () {
     final today = DateTime(2026, 11, 25);
     final measurements = [
