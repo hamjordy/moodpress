@@ -293,6 +293,76 @@ void main() {
     expect(copied.first.photoPath, source.first.photoPath);
   });
 
+  test('moving an activity to another day preserves its details and status', () {
+    final source = [
+      DayActivity(
+        id: 'move-me',
+        title: 'Naar de winkel',
+        time: '10:30',
+        who: 'Samen met iemand',
+        what: 'Boodschappen doen',
+        where: 'De supermarkt',
+        how: 'Rustig stap voor stap',
+        note: 'Neem een tas mee',
+        symbol: '🛒',
+        photoPath: '/local/moodpress/winkel.jpg',
+        done: true,
+      ),
+      DayActivity(id: 'stay-here', title: 'Rustmoment', time: '12:00'),
+    ];
+    final destination = [
+      DayActivity(id: 'already-there', title: 'Ontbijt', time: '08:00'),
+    ];
+
+    final moved = moveDayActivityBetweenLists(
+      source,
+      destination,
+      activityId: 'move-me',
+    );
+
+    expect(moved, isTrue);
+    expect(source.map((item) => item.id).toList(), ['stay-here']);
+    expect(
+      destination.map((item) => item.id).toList(),
+      ['already-there', 'move-me'],
+    );
+    final activity = destination.last;
+    expect(activity.title, 'Naar de winkel');
+    expect(activity.time, '10:30');
+    expect(activity.who, 'Samen met iemand');
+    expect(activity.what, 'Boodschappen doen');
+    expect(activity.where, 'De supermarkt');
+    expect(activity.how, 'Rustig stap voor stap');
+    expect(activity.note, 'Neem een tas mee');
+    expect(activity.symbol, '🛒');
+    expect(activity.photoPath, '/local/moodpress/winkel.jpg');
+    expect(activity.done, isTrue);
+  });
+
+  test('moving an unknown activity or moving within the same day changes nothing', () {
+    final activities = [
+      DayActivity(id: 'one', title: 'Ontbijt', time: '08:00'),
+    ];
+
+    expect(
+      moveDayActivityBetweenLists(
+        activities,
+        activities,
+        activityId: 'one',
+      ),
+      isFalse,
+    );
+    expect(
+      moveDayActivityBetweenLists(
+        activities,
+        <DayActivity>[],
+        activityId: 'missing',
+      ),
+      isFalse,
+    );
+    expect(activities.map((item) => item.id).toList(), ['one']);
+  });
+
   test('day activities can be reordered without changing their data', () {
     final activities = [
       DayActivity(id: 'a', title: 'Ontbijt', time: '08:00'),

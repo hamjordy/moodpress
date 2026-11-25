@@ -305,6 +305,18 @@ List<DayActivity> copyDayActivities(
       ),
     );
 
+bool moveDayActivityBetweenLists(
+  List<DayActivity> source,
+  List<DayActivity> destination, {
+  required String activityId,
+}) {
+  if (identical(source, destination)) return false;
+  final index = source.indexWhere((activity) => activity.id == activityId);
+  if (index == -1) return false;
+  destination.add(source.removeAt(index));
+  return true;
+}
+
 void reorderDayActivities(List<DayActivity> activities, int oldIndex, int newIndex) {
   if (oldIndex < 0 || oldIndex >= activities.length ||
       newIndex < 0 || newIndex > activities.length) return;
@@ -638,6 +650,38 @@ class MoodPressController extends ChangeNotifier {
     await _saveDayPlans();
     notifyListeners();
     return source.length;
+  }
+
+  Future<bool> moveActivityToDate(
+    DateTime sourceDate,
+    String activityId,
+    DateTime targetDate,
+  ) async {
+    final sourceKey = _dateKey(sourceDate);
+    final targetKey = _dateKey(targetDate);
+    if (sourceKey == targetKey) return false;
+
+    final source = _plansByDate[sourceKey];
+    if (source == null) return false;
+
+    final destinationExisted = _plansByDate.containsKey(targetKey);
+    final destination = _plansByDate.putIfAbsent(
+      targetKey,
+      () => <DayActivity>[],
+    );
+    final moved = moveDayActivityBetweenLists(
+      source,
+      destination,
+      activityId: activityId,
+    );
+    if (!moved) {
+      if (!destinationExisted) _plansByDate.remove(targetKey);
+      return false;
+    }
+
+    await _saveDayPlans();
+    notifyListeners();
+    return true;
   }
 
   void selectDate(DateTime date) {
@@ -1451,6 +1495,49 @@ class _PlanningPageState extends State<PlanningPage> {
     );
   }
 
+  Future<void> _moveActivityToDate(
+    BuildContext context,
+    DateTime sourceDate,
+    DayActivity activity,
+  ) async {
+    final targetDate = await showDatePicker(
+      context: context,
+      initialDate: sourceDate.add(const Duration(days: 1)),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'Kies de nieuwe datum',
+      cancelText: 'Annuleren',
+      confirmText: 'Verplaatsen',
+    );
+    if (targetDate == null || !context.mounted) return;
+
+    if (_dateKey(targetDate) == _dateKey(sourceDate)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kies een andere datum dan de huidige dag.')),
+      );
+      return;
+    }
+
+    final moved = await widget.controller.moveActivityToDate(
+      sourceDate,
+      activity.id,
+      targetDate,
+    );
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          moved
+              ? 'Activiteit verplaatst naar ' +
+                  _formatDutchWeekday(targetDate) + ' ' +
+                  _formatDutchDate(targetDate) + '.'
+              : 'De activiteit kon niet worden verplaatst.',
+        ),
+      ),
+    );
+  }
+
   void _openDay(DateTime date) {
     widget.controller.selectDate(date);
     setState(() => _showWeek = false);
@@ -1796,6 +1883,7 @@ class _PlanningPageState extends State<PlanningPage> {
                   toggle: () => widget.controller.toggleActivity(item.id),
                   edit: () => editActivity(context, widget.controller, existing: item),
                   delete: () => confirmDelete(context, widget.controller, item),
+                  move: () => _moveActivityToDate(context, date, item),
                   reorderHandle: ReorderableDragStartListener(
                     index: index,
                     child: const Padding(
@@ -2159,12 +2247,13 @@ class _PlanningPageState extends State<PlanningPage> {
   }
 }
 class ActivityCard extends StatelessWidget {
-  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete, required this.reorderHandle});
+  const ActivityCard({super.key, required this.activity, required this.speechRate, required this.toggle, required this.edit, required this.delete, required this.move, required this.reorderHandle});
   final DayActivity activity;
   final double speechRate;
   final VoidCallback toggle;
   final VoidCallback edit;
   final VoidCallback delete;
+  final VoidCallback move;
   final Widget reorderHandle;
 
   @override
@@ -2196,8 +2285,16 @@ class ActivityCard extends StatelessWidget {
             IconButton(tooltip: activity.done ? 'Niet afgerond' : 'Markeer als afgerond', onPressed: toggle, icon: Icon(activity.done ? Icons.check_circle : Icons.circle_outlined, color: activity.done ? _green : _muted)),
             PopupMenuButton<String>(
               tooltip: 'Meer opties',
-              onSelected: (choice) { if (choice == 'edit') edit(); if (choice == 'delete') delete(); },
-              itemBuilder: (context) => const [PopupMenuItem(value: 'edit', child: Text('Bewerken')), PopupMenuItem(value: 'delete', child: Text('Verwijderen'))],
+              onSelected: (choice) {
+                if (choice == 'edit') edit();
+                if (choice == 'move') move();
+                if (choice == 'delete') delete();
+              },
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: 'edit', child: Text('Bewerken')),
+                PopupMenuItem(value: 'move', child: Text('Verplaatsen naar datum')),
+                PopupMenuItem(value: 'delete', child: Text('Verwijderen')),
+              ],
             ),
           ]),
         ),
