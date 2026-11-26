@@ -272,7 +272,7 @@ class DayActivity {
           ? json['id'] as String
           : DateTime.now().microsecondsSinceEpoch.toString(),
       title: json['title'] is String ? json['title'] as String : 'Nieuwe activiteit',
-      time: json['time'] is String ? json['time'] as String : '',
+      time: json['time'] is String ? json['time'] as String : '09:00',
       endTime: json['endTime'] is String ? json['endTime'] as String : '',
       who: json['who'] is String ? json['who'] as String : '',
       what: json['what'] is String ? json['what'] as String : '',
