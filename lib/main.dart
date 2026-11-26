@@ -5240,6 +5240,20 @@ class _ActivityEditorState extends State<ActivityEditor> {
                   if (repeat == 'weekly' && repeatWeekdays.isEmpty)
                     const Text('Selecteer minimaal één weekdag.', style: TextStyle(color: Colors.red, fontSize: 12)),
                 ],
+                const Padding(
+                  padding: EdgeInsets.only(top: 14),
+                  child: Text('Veelgebruikte activiteit', style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
+                ),
+                Wrap(spacing: 8, children: [
+                  ActionChip(
+                    avatar: const Text('💼'),
+                    label: const Text('Werken'),
+                    onPressed: () => setState(() {
+                      title.text = 'Werken';
+                      symbol = '💼';
+                    }),
+                  ),
+                ]),
                 field(title, 'Naam van de activiteit', 'Bijvoorbeeld: naar de winkel', required: true),
                 field(time, 'Wanneer?', 'Bijvoorbeeld: 10:30'),
                 field(who, 'Wie?', 'Wie is erbij?'),
