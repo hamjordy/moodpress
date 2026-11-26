@@ -5191,7 +5191,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
                   icon: const Icon(Icons.calendar_month_outlined),
                   label: const Text('Extra datum toevoegen'),
                 ),
-                Wrap(spacing: 8, children: extraDates.toList()..sort().map((date) => InputChip(
+                Wrap(spacing: 8, children: extraDates.map((date) => InputChip(
                   label: Text(_formatDutchDate(date)),
                   onDeleted: () => setState(() => extraDates.remove(date)),
                 )).toList()),
