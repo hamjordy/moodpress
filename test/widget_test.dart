@@ -32,6 +32,22 @@ void main() {
     );
   });
 
+  test('recurring activity without an end date gets a five-year horizon', () {
+    final work = DayActivity(
+      id: 'work',
+      title: 'Werken',
+      time: '09:00',
+      repeat: 'weekly',
+      repeatWeekdays: [1, 2, 3, 4, 5],
+    );
+
+    final dates = activityOccurrenceDateKeys(DateTime(2026, 11, 23), work);
+    expect(dates, contains('2026-11-23'));
+    expect(dates, contains('2031-11-21'));
+    expect(dates, isNot(contains('2031-11-22')));
+    expect(dates.length, greaterThan(1000));
+  });
+
   test('daily monthly and yearly recurrence respect their selected end date', () {
     final daily = DayActivity(
       id: 'daily',
