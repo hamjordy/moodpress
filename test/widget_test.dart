@@ -398,8 +398,15 @@ void main() {
     for (var index = 0; index < pages.length; index++) {
       await tester.pumpWidget(MaterialApp(home: pages[index]));
       await tester.pumpAndSettle();
+      final layoutError = tester.takeException();
+      if (layoutError is FlutterError) {
+        debugPrint('MOBILE LAYOUT DETAILS FOR ${names[index]}');
+        for (final diagnostic in layoutError.diagnostics) {
+          debugPrint(diagnostic.toString());
+        }
+      }
       expect(
-        tester.takeException(),
+        layoutError,
         isNull,
         reason: 'Het scherm "${names[index]}" mag niet buiten het telefoonscherm vallen.',
       );
