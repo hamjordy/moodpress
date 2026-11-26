@@ -381,9 +381,12 @@ List<String> activityOccurrenceDateKeys(DateTime startDate, DayActivity activity
   final start = DateTime(startDate.year, startDate.month, startDate.day);
   final dates = <String>{_dateKey(start), ...activity.extraDates};
   final until = DateTime.tryParse(activity.repeatUntil ?? '');
-  if (activity.repeat != 'none' && until != null) {
-    final last = DateTime(until.year, until.month, until.day);
-    if (!last.isBefore(start)) {
+  // Without an explicit end date, pre-create a five-year planning horizon.
+  // This keeps occurrences individually editable/checkable in the existing local plan store.
+  final last = until == null
+      ? DateTime(start.year + 5, start.month, start.day)
+      : DateTime(until.year, until.month, until.day);
+  if (activity.repeat != 'none' && !last.isBefore(start)) {
       for (var date = start; !date.isAfter(last); date = date.add(const Duration(days: 1))) {
         final matches = switch (activity.repeat) {
           'daily' => true,
@@ -394,7 +397,6 @@ List<String> activityOccurrenceDateKeys(DateTime startDate, DayActivity activity
         };
         if (matches) dates.add(_dateKey(date));
       }
-    }
   }
   return dates.toList()..sort();
 }
@@ -5103,8 +5105,8 @@ class _ActivityEditorState extends State<ActivityEditor> {
 
   void save() {
     if (!_formKey.currentState!.validate()) return;
-    if (repeat != 'none' && (repeatUntil == null || (repeat == 'weekly' && repeatWeekdays.isEmpty))) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kies een einddatum en, bij wekelijks herhalen, minimaal één weekdag.')));
+    if (repeat != 'none' && repeat == 'weekly' && repeatWeekdays.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Selecteer minimaal één weekdag.')));
       return;
     }
     final old = widget.existing;
@@ -5162,6 +5164,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
                     DropdownMenuItem(value: '👕', child: Text('👕  Aankleden')),
                     DropdownMenuItem(value: '🏠', child: Text('🏠  Thuis')),
                     DropdownMenuItem(value: '🚶', child: Text('🚶  Wandelen')),
+                    DropdownMenuItem(value: '💼', child: Text('💼  Werken')),
                     DropdownMenuItem(value: '🚌', child: Text('🚌  Reizen')),
                     DropdownMenuItem(value: '💊', child: Text('💊  Medicatie')),
                     DropdownMenuItem(value: '🧹', child: Text('🧹  Opruimen')),
@@ -5233,7 +5236,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
                     label: Text(repeatUntil == null ? 'Kies einddatum van herhaling' : 'Herhalen tot ${_formatDutchDate(repeatUntil!)}'),
                   ),
                   if (repeatUntil == null)
-                    const Text('Kies een einddatum om de herhalingen vast te leggen.', style: TextStyle(color: _muted, fontSize: 12)),
+                    const Text('Geen einddatum gekozen: MoodPress plant deze afspraak doorlopend in voor de komende vijf jaar. Je kunt later altijd een einddatum instellen.', style: TextStyle(color: _muted, fontSize: 12, height: 1.4)),
                   if (repeat == 'weekly' && repeatWeekdays.isEmpty)
                     const Text('Selecteer minimaal één weekdag.', style: TextStyle(color: Colors.red, fontSize: 12)),
                 ],
