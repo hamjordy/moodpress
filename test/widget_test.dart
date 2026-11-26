@@ -7,6 +7,25 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  test('activity supports multiple dates and recurring schedule metadata', () {
+    final activity = DayActivity(
+      id: 'recurring-1',
+      title: 'Therapie',
+      time: '10:00',
+      extraDates: ['2026-12-03', '2026-12-10'],
+      repeat: 'weekly',
+      repeatWeekdays: [1, 4],
+      repeatUntil: '2027-01-31',
+    );
+
+    final restored = DayActivity.fromJson(activity.toJson());
+
+    expect(restored.extraDates, ['2026-12-03', '2026-12-10']);
+    expect(restored.repeat, 'weekly');
+    expect(restored.repeatWeekdays, [1, 4]);
+    expect(restored.repeatUntil, '2027-01-31');
+  });
+
   test('planning search checks all saved days and activity details', () {
     final plans = <String, List<DayActivity>>{
       '2026-11-25': [
