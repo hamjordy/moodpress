@@ -14,13 +14,16 @@ import 'package:cryptography/helpers.dart' show randomBytes;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
-const _ink = Color(0xFF26383A);
-const _muted = Color(0xFF687779);
-const _paper = Color(0xFFF5F5F1);
-const _green = Color(0xFF54796E);
-const _greenPale = Color(0xFFE8F0EC);
-const _sand = Color(0xFFF1E9DC);
-const _line = Color(0xFFE3E8E4);
+const _ink = Color(0xFF28153F);
+const _muted = Color(0xFF766889);
+const _paper = Color(0xFFFAF7FF);
+const _brand = Color(0xFF6424D6);
+const _brandDark = Color(0xFF4612CF);
+const _brandBright = Color(0xFFA72FF5);
+const _brandPink = Color(0xFFEC4899);
+const _brandPale = Color(0xFFF0E8FF);
+const _sand = Color(0xFFFFEDF5);
+const _line = Color(0xFFE8DDF5);
 
 const _backupHeader = 'MOODPRESS_BACKUP_V1\n';
 const _backupKdfIterations = 150000;
@@ -2131,8 +2134,18 @@ class MoodPressApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = ColorScheme.fromSeed(seedColor: _green, brightness: Brightness.light)
-        .copyWith(primary: _green, onPrimary: Colors.white, onSurface: _ink);
+    final scheme = ColorScheme.fromSeed(
+      seedColor: _brand,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: _brand,
+      onPrimary: Colors.white,
+      secondary: _brandPink,
+      onSecondary: Colors.white,
+      tertiary: _brandBright,
+      surface: _paper,
+      onSurface: _ink,
+    );
     return AnimatedBuilder(
       animation: controller,
       builder: (context, _) => MaterialApp(
@@ -2154,18 +2167,66 @@ class MoodPressApp extends StatelessWidget {
           scaffoldBackgroundColor: _paper,
           fontFamily: 'Arial',
           textTheme: const TextTheme(
-            headlineLarge: TextStyle(color: _ink, fontSize: 32, fontWeight: FontWeight.w700, letterSpacing: -0.6),
-            headlineMedium: TextStyle(color: _ink, fontSize: 25, fontWeight: FontWeight.w700),
+            headlineLarge: TextStyle(color: _ink, fontSize: 30, fontWeight: FontWeight.w700, letterSpacing: -0.6),
+            headlineMedium: TextStyle(color: _ink, fontSize: 24, fontWeight: FontWeight.w700),
             titleLarge: TextStyle(color: _ink, fontSize: 19, fontWeight: FontWeight.w700),
             bodyLarge: TextStyle(color: _ink, fontSize: 16, height: 1.45),
             bodyMedium: TextStyle(color: _muted, fontSize: 14, height: 1.45),
           ),
           inputDecorationTheme: InputDecorationTheme(
             filled: true,
-            fillColor: const Color(0xFFFAFAF7),
+            fillColor: const Color(0xFFFCFAFF),
             contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 14),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: _line)),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _line),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _line),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: _brand, width: 1.7),
+            ),
+            labelStyle: const TextStyle(color: _muted),
+            floatingLabelStyle: const TextStyle(color: _brand),
+          ),
+          navigationBarTheme: NavigationBarThemeData(
+            height: 74,
+            backgroundColor: Colors.white,
+            indicatorColor: _brandPale,
+            labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>(
+              (states) => TextStyle(
+                color: states.contains(WidgetState.selected) ? _brand : _muted,
+                fontSize: 11,
+                fontWeight: states.contains(WidgetState.selected)
+                    ? FontWeight.w700
+                    : FontWeight.w500,
+              ),
+            ),
+            iconTheme: WidgetStateProperty.resolveWith<IconThemeData?>(
+              (states) => IconThemeData(
+                color: states.contains(WidgetState.selected) ? _brand : _muted,
+                size: 22,
+              ),
+            ),
+          ),
+          navigationRailTheme: const NavigationRailThemeData(
+            backgroundColor: _paper,
+            indicatorColor: _brandPale,
+            selectedIconTheme: IconThemeData(color: _brand),
+            unselectedIconTheme: IconThemeData(color: _muted),
+            selectedLabelTextStyle: TextStyle(
+              color: _brand,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+            unselectedLabelTextStyle: TextStyle(
+              color: _muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         home: !controller.ready
@@ -2195,13 +2256,17 @@ class MoodPressSplashScreen extends StatelessWidget {
                     width: 92,
                     height: 92,
                     decoration: BoxDecoration(
-                      color: _greenPale,
+                      gradient: const LinearGradient(
+                        colors: [_brandBright, _brandDark],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
                       borderRadius: BorderRadius.circular(28),
                     ),
                     child: const Icon(
-                      Icons.spa_rounded,
+                      Icons.calendar_month_rounded,
                       size: 48,
-                      color: _green,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 26),
@@ -2230,7 +2295,7 @@ class MoodPressSplashScreen extends StatelessWidget {
                     width: 54,
                     height: 4,
                     decoration: BoxDecoration(
-                      color: _green,
+                      color: _brand,
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
@@ -2274,10 +2339,10 @@ class MoodPressWelcomeScreen extends StatelessWidget {
                         width: 76,
                         height: 76,
                         decoration: BoxDecoration(
-                          color: _greenPale,
+                          color: _brandPale,
                           borderRadius: BorderRadius.circular(24),
                         ),
-                        child: const Icon(Icons.spa_rounded, color: _green, size: 40),
+                        child: const Icon(Icons.spa_rounded, color: _brand, size: 40),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -2365,7 +2430,7 @@ class _WelcomeFeature extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: _green, size: 25),
+            Icon(icon, color: _brand, size: 25),
             const SizedBox(width: 13),
             Expanded(
               child: Column(
@@ -2445,6 +2510,57 @@ class _MoodPressShellState extends State<MoodPressShell> {
   static const labels = ['Vandaag', 'Planning', 'Prikkelmeter', 'Mijn steun', 'Instellingen', 'Dagboek', 'Rustplan'];
   static const icons = [Icons.wb_sunny_outlined, Icons.calendar_month_outlined, Icons.monitor_heart_outlined, Icons.favorite_border, Icons.tune_rounded, Icons.menu_book_outlined, Icons.self_improvement_outlined];
 
+  Future<void> _showMoreNavigation() async {
+    final destination = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Padding(
+                padding: EdgeInsets.fromLTRB(12, 4, 12, 10),
+                child: Text(
+                  'Meer in MoodPress',
+                  style: TextStyle(
+                    color: _ink,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              for (final index in const [3, 4, 5, 6])
+                ListTile(
+                  leading: Icon(
+                    icons[index],
+                    color: selected == index ? _brand : _muted,
+                  ),
+                  title: Text(
+                    labels[index],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  trailing: selected == index
+                      ? const Icon(Icons.check_circle_rounded, color: _brand)
+                      : null,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onTap: () => Navigator.of(sheetContext).pop(index),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || destination == null) return;
+    setState(() => selected = destination);
+  }
+
   @override
   Widget build(BuildContext context) => Shortcuts(
         shortcuts: const <ShortcutActivator, Intent>{
@@ -2494,7 +2610,7 @@ class _MoodPressShellState extends State<MoodPressShell> {
             child: FocusTraversalGroup(
               policy: ReadingOrderTraversalPolicy(),
               child: LayoutBuilder(builder: (context, constraints) {
-        final desktop = constraints.maxWidth >= 850;
+        final desktop = constraints.maxWidth >= 900;
         final pages = [
           TodayPage(
             controller: widget.controller,
@@ -2512,20 +2628,63 @@ class _MoodPressShellState extends State<MoodPressShell> {
           body: Row(children: [
             if (desktop)
               NavigationRail(
-                backgroundColor: const Color(0xFFFBFBF8),
+                extended: true,
+                minExtendedWidth: 224,
                 selectedIndex: selected,
                 onDestinationSelected: (value) => setState(() => selected = value),
-                labelType: NavigationRailLabelType.all,
-                leading: const Padding(padding: EdgeInsets.fromLTRB(4, 22, 4, 28), child: BrandMark()),
-                destinations: List.generate(labels.length, (index) => NavigationRailDestination(icon: Icon(icons[index]), label: Text(labels[index]))),
+                leading: const Padding(
+                  padding: EdgeInsets.fromLTRB(8, 22, 8, 28),
+                  child: BrandMark(),
+                ),
+                destinations: List.generate(
+                  labels.length,
+                  (index) => NavigationRailDestination(
+                    icon: Icon(icons[index]),
+                    label: Text(
+                      labels[index],
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ),
               ),
             Expanded(child: IndexedStack(index: selected, children: pages)),
           ]),
-          bottomNavigationBar: desktop ? null : NavigationBar(
-            selectedIndex: selected,
-            onDestinationSelected: (value) => setState(() => selected = value),
-            destinations: List.generate(labels.length, (index) => NavigationDestination(icon: Icon(icons[index]), label: labels[index])),
-          ),
+          bottomNavigationBar: desktop
+              ? null
+              : NavigationBar(
+                  selectedIndex: selected <= 2 ? selected : 3,
+                  onDestinationSelected: (value) {
+                    if (value == 3) {
+                      unawaited(_showMoreNavigation());
+                    } else {
+                      setState(() => selected = value);
+                    }
+                  },
+                  destinations: const [
+                    NavigationDestination(
+                      icon: Icon(Icons.wb_sunny_outlined),
+                      selectedIcon: Icon(Icons.wb_sunny_rounded),
+                      label: 'Vandaag',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.calendar_month_outlined),
+                      selectedIcon: Icon(Icons.calendar_month_rounded),
+                      label: 'Planning',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.monitor_heart_outlined),
+                      selectedIcon: Icon(Icons.monitor_heart_rounded),
+                      label: 'Prikkels',
+                    ),
+                    NavigationDestination(
+                      icon: Icon(Icons.more_horiz_rounded),
+                      selectedIcon: Icon(Icons.more_horiz_rounded),
+                      label: 'Meer',
+                    ),
+                  ],
+                ),
         );
               }),
             ),
@@ -2541,8 +2700,15 @@ class BrandMark extends StatelessWidget {
         Container(
           width: 38,
           height: 38,
-          decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(12)),
-          child: const Icon(Icons.waves_rounded, color: Colors.white, size: 23),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [_brandBright, _brandDark],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 23),
         ),
         const SizedBox(width: 10),
         const Text('moodpress', style: TextStyle(color: _ink, fontSize: 21, fontWeight: FontWeight.w800, letterSpacing: -0.6)),
@@ -2557,33 +2723,56 @@ class PageFrame extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1120),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(26, 26, 26, 38),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (title != null) ...[
-                LayoutBuilder(builder: (context, constraints) {
-                  final heading = Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1120),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 16 : 26,
+            compact ? 18 : 26,
+            compact ? 16 : 26,
+            compact ? 28 : 38,
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (title != null) ...[
+              LayoutBuilder(builder: (context, constraints) {
+                final heading = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Semantics(
                       header: true,
                       child: Text(title!, style: Theme.of(context).textTheme.headlineMedium),
                     ),
-                    if (subtitle != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(subtitle!)),
-                  ]);
-                  if (action == null) return heading;
-                  if (constraints.maxWidth < 580) return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [heading, const SizedBox(height: 13), action!]);
-                  return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: heading), action!]);
-                }),
-                const SizedBox(height: 24),
-              ],
-              child,
-            ]),
-          ),
+                    if (subtitle != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6),
+                        child: Text(subtitle!, style: const TextStyle(height: 1.4)),
+                      ),
+                  ],
+                );
+                if (action == null) return heading;
+                if (constraints.maxWidth < 580) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [heading, const SizedBox(height: 13), action!],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [Expanded(child: heading), action!],
+                );
+              }),
+              const SizedBox(height: 24),
+            ],
+            child,
+          ]),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class FocusedActivityAnnouncement extends StatelessWidget {
@@ -2669,7 +2858,7 @@ class TodayPage extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.calendar_today_outlined, size: 16, color: _green),
+                const Icon(Icons.calendar_today_outlined, size: 16, color: _brand),
                 const SizedBox(width: 9),
                 Semantics(
                   label: 'Vandaag, $todayLabel',
@@ -2749,8 +2938,8 @@ class TodayPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CircleAvatar(
-                        backgroundColor: _greenPale,
-                        child: const Icon(Icons.monitor_heart_outlined, color: _green),
+                        backgroundColor: _brandPale,
+                        child: const Icon(Icons.monitor_heart_outlined, color: _brand),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -2960,7 +3149,7 @@ class _WeekOverviewDay extends StatelessWidget {
       button: true,
       label: label,
       child: Material(
-        color: isToday ? _greenPale : _paper,
+        color: isToday ? _brandPale : _paper,
         borderRadius: BorderRadius.circular(13),
         child: InkWell(
           key: ValueKey('week-day-${_dateKey(date)}'),
@@ -2971,14 +3160,14 @@ class _WeekOverviewDay extends StatelessWidget {
             padding: const EdgeInsets.symmetric(vertical: 11, horizontal: 5),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(13),
-              border: Border.all(color: isToday ? _green : _line),
+              border: Border.all(color: isToday ? _brand : _line),
             ),
             child: Column(
               children: [
                 Text(
                   weekday.substring(0, 2),
                   style: TextStyle(
-                    color: isToday ? _green : _muted,
+                    color: isToday ? _brand : _muted,
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
                   ),
@@ -2997,7 +3186,7 @@ class _WeekOverviewDay extends StatelessWidget {
                   constraints: const BoxConstraints(minWidth: 22),
                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
                   decoration: BoxDecoration(
-                    color: activities.isEmpty ? Colors.white : _green,
+                    color: activities.isEmpty ? Colors.white : _brand,
                     borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
@@ -3034,15 +3223,15 @@ class NextStepCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.all(23),
-        decoration: BoxDecoration(color: _green, borderRadius: BorderRadius.circular(23)),
+        decoration: BoxDecoration(color: _brand, borderRadius: BorderRadius.circular(23)),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('DIT IS JE VOLGENDE STAP', style: TextStyle(color: Color(0xFFE1ECE6), fontSize: 10, letterSpacing: 1.35, fontWeight: FontWeight.w800)),
+          const Text('DIT IS JE VOLGENDE STAP', style: TextStyle(color: Color(0xFFF0E7FF), fontSize: 10, letterSpacing: 1.35, fontWeight: FontWeight.w800)),
           const SizedBox(height: 17),
           Text(activity?.title ?? 'Je dag is klaar', style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.w700)),
           const SizedBox(height: 7),
-          Text(activity == null ? 'Goed gedaan. Neem de tijd voor jezelf.' : activity!.time + ' uur · ' + (activity!.note.isEmpty ? 'Je kunt dit stap voor stap doen.' : activity!.note), style: const TextStyle(color: Color(0xFFE9F0EB), height: 1.45)),
+          Text(activity == null ? 'Goed gedaan. Neem de tijd voor jezelf.' : activity!.time + ' uur · ' + (activity!.note.isEmpty ? 'Je kunt dit stap voor stap doen.' : activity!.note), style: const TextStyle(color: Color(0xFFF8F3FF), height: 1.45)),
           const SizedBox(height: 21),
-          FilledButton.icon(onPressed: openPlan, style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: _green), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Bekijk mijn planning')),
+          FilledButton.icon(onPressed: openPlan, style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: _brand), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('Bekijk mijn planning')),
         ]),
       );
 }
@@ -3063,7 +3252,7 @@ class ProgressCard extends StatelessWidget {
             const SizedBox(height: 16),
             Row(children: [
               SizedBox(width: 70, height: 70, child: Stack(alignment: Alignment.center, children: [
-                SizedBox.expand(child: CircularProgressIndicator(value: progress, strokeWidth: 7, backgroundColor: _greenPale, color: _green)),
+                SizedBox.expand(child: CircularProgressIndicator(value: progress, strokeWidth: 7, backgroundColor: _brandPale, color: _brand)),
                 Text((progress * 100).round().toString() + '%', style: const TextStyle(color: _ink, fontWeight: FontWeight.w800)),
               ])),
               const SizedBox(width: 14),
@@ -3095,14 +3284,14 @@ class FeelingChoice extends StatelessWidget {
         onTap: onTap,
         child: ExcludeSemantics(
           child: Material(
-            color: selected ? _greenPale : Colors.white,
+            color: selected ? _brandPale : Colors.white,
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               onTap: onTap,
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? _green : _line)),
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(14), border: Border.all(color: selected ? _brand : _line)),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [Text(emoji, style: const TextStyle(fontSize: 18)), const SizedBox(width: 8), Text(label, style: TextStyle(color: _ink, fontWeight: selected ? FontWeight.w700 : FontWeight.w500))]),
               ),
             ),
@@ -3454,7 +3643,7 @@ class _PlanningPageState extends State<PlanningPage> {
       child: Card(
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: _greenPale,
+            backgroundColor: _brandPale,
             child: Text(
               activity.symbol,
               style: const TextStyle(fontSize: 20),
@@ -3477,7 +3666,7 @@ class _PlanningPageState extends State<PlanningPage> {
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
           ),
-          trailing: const Icon(Icons.chevron_right_rounded, color: _green),
+          trailing: const Icon(Icons.chevron_right_rounded, color: _brand),
           onTap: () => _openSearchResult(result),
         ),
       ),
@@ -3542,7 +3731,7 @@ class _PlanningPageState extends State<PlanningPage> {
           Padding(
             padding: const EdgeInsets.only(top: 7, bottom: 8),
             child: Card(
-              color: _greenPale,
+              color: _brandPale,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -3581,7 +3770,7 @@ class _PlanningPageState extends State<PlanningPage> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.lightbulb_outline_rounded, color: _green),
+                  Icon(Icons.lightbulb_outline_rounded, color: _brand),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -3628,13 +3817,13 @@ class _PlanningPageState extends State<PlanningPage> {
       height: 42,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: _greenPale,
+        color: _brandPale,
         borderRadius: BorderRadius.circular(13),
       ),
       child: Text(
         date.day.toString(),
         style: const TextStyle(
-          color: _green,
+          color: _brand,
           fontWeight: FontWeight.w800,
           fontSize: 17,
         ),
@@ -3659,7 +3848,7 @@ class _PlanningPageState extends State<PlanningPage> {
             child: Text(
               'Vaste indeling beschikbaar',
               style: TextStyle(
-                color: _green,
+                color: _brand,
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
@@ -3684,7 +3873,7 @@ class _PlanningPageState extends State<PlanningPage> {
         PopupMenuButton<String>(
           tooltip: 'Dagindeling toepassen',
           enabled: widget.controller.templates.isNotEmpty,
-          icon: const Icon(Icons.copy_all_outlined, color: _green),
+          icon: const Icon(Icons.copy_all_outlined, color: _brand),
           onSelected: (templateId) =>
               _applyTemplateToDate(context, date, templateId),
           itemBuilder: (context) => widget.controller.templates
@@ -3752,7 +3941,7 @@ class _PlanningPageState extends State<PlanningPage> {
           Text(
             label,
             style: const TextStyle(
-              color: _green,
+              color: _brand,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
@@ -3802,7 +3991,7 @@ class _PlanningPageState extends State<PlanningPage> {
               child: Text(
                 activity.time,
                 style: const TextStyle(
-                  color: _green,
+                  color: _brand,
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
                 ),
@@ -4469,14 +4658,14 @@ class ActivityCard extends StatelessWidget {
         width: 55,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: _greenPale,
+          color: _brandPale,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           activity.time,
           textAlign: TextAlign.center,
           style: const TextStyle(
-            color: _green,
+            color: _brand,
             fontWeight: FontWeight.w800,
             fontSize: 12,
           ),
@@ -4539,7 +4728,7 @@ class ActivityCard extends StatelessWidget {
                 const Text(
                   'Tik om de vijf vragen te bekijken',
                   style: TextStyle(
-                    color: _green,
+                    color: _brand,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -4556,7 +4745,7 @@ class ActivityCard extends StatelessWidget {
                   activity.steps.length.toString() +
                   ' klaar',
               style: const TextStyle(
-                color: _green,
+                color: _brand,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
               ),
@@ -4606,7 +4795,7 @@ class ActivityCard extends StatelessWidget {
         onPressed: toggle,
         icon: Icon(
           activity.done ? Icons.check_circle : Icons.circle_outlined,
-          color: activity.done ? _green : _muted,
+          color: activity.done ? _brand : _muted,
         ),
       );
 
@@ -4928,7 +5117,7 @@ class _PrikkelInzichtCard extends StatelessWidget {
     ),
     child: Row(
       children: [
-        Icon(icon, color: _green, size: 20),
+        Icon(icon, color: _brand, size: 20),
         const SizedBox(width: 8),
         Expanded(
           child: Column(
@@ -5474,37 +5663,35 @@ class _CalmPageState extends State<CalmPage> {
           ),
         ),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<int>(
-                value: _prikkelFilterNiveau,
-                decoration: const InputDecoration(labelText: 'Prikkelniveau', border: OutlineInputBorder()),
-                items: const [
-                  DropdownMenuItem(value: 0, child: Text('Alle niveaus')),
-                  DropdownMenuItem(value: 1, child: Text('1 · Helemaal rustig')),
-                  DropdownMenuItem(value: 2, child: Text('2 · Een beetje prikkels')),
-                  DropdownMenuItem(value: 3, child: Text('3 · Best veel prikkels')),
-                  DropdownMenuItem(value: 4, child: Text('4 · Erg veel prikkels')),
-                  DropdownMenuItem(value: 5, child: Text('5 · Overprikkeld')),
-                ],
-                onChanged: (value) => setState(() => _prikkelFilterNiveau = value ?? 0),
-              ),
-            ),
-            if (heeftFilters) ...[
-              const SizedBox(width: 8),
-              TextButton.icon(
-                onPressed: () => setState(() {
-                  _prikkelZoekterm = '';
-                  _prikkelFilterNiveau = 0;
-                  _prikkelFilterPeriode = 0;
-                }),
-                icon: const Icon(Icons.filter_alt_off),
-                label: const Text('Wissen'),
-              ),
-            ],
+        DropdownButtonFormField<int>(
+          value: _prikkelFilterNiveau,
+          decoration: const InputDecoration(
+            labelText: 'Prikkelniveau',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 0, child: Text('Alle niveaus')),
+            DropdownMenuItem(value: 1, child: Text('1 · Helemaal rustig')),
+            DropdownMenuItem(value: 2, child: Text('2 · Een beetje prikkels')),
+            DropdownMenuItem(value: 3, child: Text('3 · Best veel prikkels')),
+            DropdownMenuItem(value: 4, child: Text('4 · Erg veel prikkels')),
+            DropdownMenuItem(value: 5, child: Text('5 · Overprikkeld')),
           ],
+          onChanged: (value) => setState(() => _prikkelFilterNiveau = value ?? 0),
         ),
+        if (heeftFilters)
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => setState(() {
+                _prikkelZoekterm = '';
+                _prikkelFilterNiveau = 0;
+                _prikkelFilterPeriode = 0;
+              }),
+              icon: const Icon(Icons.filter_alt_off),
+              label: const Text('Filters wissen'),
+            ),
+          ),
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
           value: _prikkelFilterPeriode,
@@ -5542,7 +5729,7 @@ class _CalmPageState extends State<CalmPage> {
                   children: [
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: CircleAvatar(backgroundColor: _greenPale, child: Text('${measurement.level}', style: const TextStyle(color: _green, fontWeight: FontWeight.w700))),
+                      leading: CircleAvatar(backgroundColor: _brandPale, child: Text('${measurement.level}', style: const TextStyle(color: _brand, fontWeight: FontWeight.w700))),
                       title: Text(prikkelNiveaus[measurement.level - 1]),
                       subtitle: Text(measurement.note.isEmpty ? dateLabel : '$dateLabel\\n${measurement.note}'),
                       isThreeLine: measurement.note.isNotEmpty,
@@ -5734,7 +5921,7 @@ class _CalmPageState extends State<CalmPage> {
                                           height: barHeight,
                                           alignment: Alignment.topCenter,
                                           decoration: BoxDecoration(
-                                            color: _green,
+                                            color: _brand,
                                             borderRadius: BorderRadius.circular(5),
                                           ),
                                           child: _prikkelPeriode == 0
@@ -5811,15 +5998,15 @@ class _CalmPageState extends State<CalmPage> {
                 style: OutlinedButton.styleFrom(
                   alignment: Alignment.centerLeft,
                   padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 13),
-                  backgroundColor: selectedLevel == level ? _greenPale : Colors.white,
-                  side: BorderSide(color: selectedLevel == level ? _green : _line, width: selectedLevel == level ? 2 : 1),
+                  backgroundColor: selectedLevel == level ? _brandPale : Colors.white,
+                  side: BorderSide(color: selectedLevel == level ? _brand : _line, width: selectedLevel == level ? 2 : 1),
                 ),
                 onPressed: () => setState(() => selectedLevel = level),
                 child: Row(children: [
-                  CircleAvatar(radius: 14, backgroundColor: _greenPale, child: Text('$level', style: const TextStyle(color: _green, fontWeight: FontWeight.w700))),
+                  CircleAvatar(radius: 14, backgroundColor: _brandPale, child: Text('$level', style: const TextStyle(color: _brand, fontWeight: FontWeight.w700))),
                   const SizedBox(width: 12),
                   Expanded(child: Text(prikkelNiveaus[index], style: const TextStyle(color: _ink))),
-                  if (selectedLevel == level) const Icon(Icons.check_circle, color: _green),
+                  if (selectedLevel == level) const Icon(Icons.check_circle, color: _brand),
                 ]),
               ),
             ),
@@ -5852,17 +6039,17 @@ class _CalmPageState extends State<CalmPage> {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(26),
-          decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(23)),
+          decoration: BoxDecoration(color: _brandPale, borderRadius: BorderRadius.circular(23)),
           child: Column(children: [
-            CircleAvatar(radius: 33, backgroundColor: Colors.white, child: Icon(steps[step].icon, color: _green, size: 29)),
+            CircleAvatar(radius: 33, backgroundColor: Colors.white, child: Icon(steps[step].icon, color: _brand, size: 29)),
             const SizedBox(height: 18),
-            Text('STAP ${step + 1} VAN 3', style: const TextStyle(color: _green, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w800)),
+            Text('STAP ${step + 1} VAN 3', style: const TextStyle(color: _brand, fontSize: 10, letterSpacing: 1.4, fontWeight: FontWeight.w800)),
             const SizedBox(height: 11),
             Text(steps[step].title, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineMedium),
             const SizedBox(height: 10),
             Text(steps[step].description, textAlign: TextAlign.center, style: const TextStyle(color: _ink, fontSize: 16, height: 1.5)),
             const SizedBox(height: 23),
-            Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _green : _line, borderRadius: BorderRadius.circular(5)))))),
+            Row(children: List.generate(3, (index) => Expanded(child: Container(height: 5, margin: EdgeInsets.only(right: index == 2 ? 0 : 7), decoration: BoxDecoration(color: index <= step ? _brand : _line, borderRadius: BorderRadius.circular(5)))))),
             const SizedBox(height: 22),
             Row(children: [
               Expanded(child: OutlinedButton(onPressed: step == 0 ? null : () => setState(() => step--), child: const Text('Vorige'))),
@@ -6350,8 +6537,8 @@ class _DagboekPageState extends State<DagboekPage> {
             ...widget.controller.dagboekNotities.map((entry) => Card(
               child: ListTile(
                 leading: const CircleAvatar(
-                  backgroundColor: _greenPale,
-                  child: Icon(Icons.bookmark_border_rounded, color: _green),
+                  backgroundColor: _brandPale,
+                  child: Icon(Icons.bookmark_border_rounded, color: _brand),
                 ),
                 title: Text(
                   _formatDutchWeekday(entry.date)[0].toUpperCase() +
@@ -6423,11 +6610,11 @@ class RustplanPage extends StatelessWidget {
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(18)),
+          decoration: BoxDecoration(color: _brandPale, borderRadius: BorderRadius.circular(18)),
           child: const Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.spa_outlined, color: _green, size: 26),
+              Icon(Icons.spa_outlined, color: _brand, size: 26),
               SizedBox(width: 12),
               Expanded(child: Text(
                 'Maak je eigen lijst met kleine dingen die voor jou prettig werken. Je kunt je rustplan op elk moment aanpassen.',
@@ -6444,7 +6631,7 @@ class RustplanPage extends StatelessWidget {
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18), border: Border.all(color: _line)),
             child: const Column(
               children: [
-                Icon(Icons.self_improvement_outlined, color: _green, size: 38),
+                Icon(Icons.self_improvement_outlined, color: _brand, size: 38),
                 SizedBox(height: 10),
                 Text('Je rustplan is nog leeg', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 SizedBox(height: 6),
@@ -6466,14 +6653,14 @@ class RustplanPage extends StatelessWidget {
           ...controller.rustplanActiviteiten.map((item) => Card(
             child: ListTile(
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              leading: const CircleAvatar(backgroundColor: _greenPale, child: Icon(Icons.spa_outlined, color: _green)),
+              leading: const CircleAvatar(backgroundColor: _brandPale, child: Icon(Icons.spa_outlined, color: _brand)),
               title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Padding(
                 padding: const EdgeInsets.only(top: 5),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.category, style: const TextStyle(color: _green, fontWeight: FontWeight.w600)),
+                    Text(item.category, style: const TextStyle(color: _brand, fontWeight: FontWeight.w600)),
                     if (item.description.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(item.description),
@@ -6608,7 +6795,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.text_fields_rounded, color: _green),
+                  Icon(Icons.text_fields_rounded, color: _brand),
                   SizedBox(width: 10),
                   Text('Tekstgrootte', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
@@ -6634,7 +6821,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.motion_photos_off_outlined, color: _green),
+                  Icon(Icons.motion_photos_off_outlined, color: _brand),
                   SizedBox(width: 10),
                   Expanded(child: Text('Minder beweging', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
@@ -6656,7 +6843,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.notifications_none_rounded, color: _green),
+                  Icon(Icons.notifications_none_rounded, color: _brand),
                   SizedBox(width: 10),
                   Text('Herinneringen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
@@ -6678,7 +6865,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.privacy_tip_outlined, color: _green),
+                  Icon(Icons.privacy_tip_outlined, color: _brand),
                   SizedBox(width: 10),
                   Text('Privacy en jouw gegevens', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
@@ -6706,7 +6893,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.info_outline_rounded, color: _green),
+                  Icon(Icons.info_outline_rounded, color: _brand),
                   SizedBox(width: 10),
                   Text('Waar MoodPress niet voor is', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
@@ -6729,7 +6916,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.backup_outlined, color: _green),
+                  Icon(Icons.backup_outlined, color: _brand),
                   SizedBox(width: 10),
                   Text('Back-up en terugzetten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
@@ -6765,7 +6952,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.volume_up_outlined, color: _green),
+                  Icon(Icons.volume_up_outlined, color: _brand),
                   SizedBox(width: 10),
                   Text('Voorleessnelheid', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
                 ]),
@@ -6810,7 +6997,7 @@ class SettingsPage extends StatelessWidget {
               padding: const EdgeInsets.all(19),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 const Row(children: [
-                  Icon(Icons.delete_forever_outlined, color: _green),
+                  Icon(Icons.delete_forever_outlined, color: _brand),
                   SizedBox(width: 10),
                   Text('Jouw gegevens verwijderen', style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w700)),
                 ]),
@@ -6917,14 +7104,14 @@ class SupportCard extends StatelessWidget {
   Widget build(BuildContext context) => Card(child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(children: [
-          Container(width: 42, height: 42, decoration: BoxDecoration(color: _greenPale, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: _green)),
+          Container(width: 42, height: 42, decoration: BoxDecoration(color: _brandPale, borderRadius: BorderRadius.circular(12)), child: Icon(icon, color: _brand)),
           const SizedBox(width: 12),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(title, style: const TextStyle(color: _ink, fontWeight: FontWeight.w700)),
             const SizedBox(height: 4),
             Text(value.isEmpty ? 'Nog niet ingevuld' : value, style: const TextStyle(color: _muted, fontSize: 13, height: 1.35)),
           ])),
-          IconButton(tooltip: 'Aanpassen', onPressed: edit, icon: const Icon(Icons.edit_outlined, color: _green)),
+          IconButton(tooltip: 'Aanpassen', onPressed: edit, icon: const Icon(Icons.edit_outlined, color: _brand)),
         ]),
       ));
 }
@@ -6950,7 +7137,7 @@ class SimpleStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 9), child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        CircleAvatar(radius: 13, backgroundColor: _greenPale, child: Text(number, style: const TextStyle(color: _green, fontSize: 12, fontWeight: FontWeight.w800))),
+        CircleAvatar(radius: 13, backgroundColor: _brandPale, child: Text(number, style: const TextStyle(color: _brand, fontSize: 12, fontWeight: FontWeight.w800))),
         const SizedBox(width: 11),
         Expanded(child: Padding(padding: const EdgeInsets.only(top: 3), child: Text(text, style: const TextStyle(color: _ink)))),
       ]));
@@ -7041,7 +7228,7 @@ class _SpeakButtonState extends State<SpeakButton> {
               : speaking
                   ? Icons.stop_circle_outlined
                   : Icons.volume_up_outlined,
-          color: widget.enabled ? _green : _muted,
+          color: widget.enabled ? _brand : _muted,
         ),
       );
 }
