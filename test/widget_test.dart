@@ -90,6 +90,7 @@ void main() {
       id: 'recurring-1',
       title: 'Therapie',
       time: '10:00',
+      endTime: '15:00',
       extraDates: ['2026-12-03', '2026-12-10'],
       repeat: 'weekly',
       repeatWeekdays: [1, 4],
@@ -102,6 +103,31 @@ void main() {
     expect(restored.repeat, 'weekly');
     expect(restored.repeatWeekdays, [1, 4]);
     expect(restored.repeatUntil, '2027-01-31');
+    expect(restored.endTime, '15:00');
+    expect(activityTimeLabel(restored), '10:00 – 15:00');
+  });
+
+  test('activity times are optional and formatted with a 24-hour clock', () {
+    expect(format24HourTime(const TimeOfDay(hour: 9, minute: 0)), '09:00');
+    expect(format24HourTime(const TimeOfDay(hour: 15, minute: 5)), '15:05');
+    expect(parse24HourTime('09:00'), const TimeOfDay(hour: 9, minute: 0));
+    expect(parse24HourTime('15:05'), const TimeOfDay(hour: 15, minute: 5));
+    expect(parse24HourTime('25:00'), isNull);
+    expect(parse24HourTime('09:60'), isNull);
+
+    final noTimes = DayActivity(
+      id: 'without-time',
+      title: 'Werken',
+      time: '',
+    );
+    expect(activityTimeLabel(noTimes), 'Geen vast tijdstip');
+    final endOnly = DayActivity(
+      id: 'end-only',
+      title: 'Beschikbaar tot',
+      time: '',
+      endTime: '15:00',
+    );
+    expect(activityTimeLabel(endOnly), 'Tot 15:00');
   });
 
   test('planning search checks all saved days and activity details', () {
