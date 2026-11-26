@@ -1650,8 +1650,12 @@ class MoodPressController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> saveActivity(DayActivity activity) async {
-    final start = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+  Future<void> saveActivity(
+    DayActivity activity, {
+    DateTime? plannedDate,
+  }) async {
+    final date = plannedDate ?? selectedDate;
+    final start = DateTime(date.year, date.month, date.day);
     final sortedDates = activityOccurrenceDateKeys(start, activity);
     final isNewSeries = activity.repeat != 'none' || activity.extraDates.isNotEmpty;
     if (isNewSeries) {
@@ -5019,8 +5023,21 @@ class ActivityCard extends StatelessWidget {
 }
 
 Future<void> editActivity(BuildContext context, MoodPressController controller, {DayActivity? existing}) async {
-  final result = await showDialog<DayActivity>(context: context, builder: (context) => ActivityEditor(existing: existing, initialDate: controller.selectedDate));
-  if (result != null) await controller.saveActivity(result);
+  final plannedDate = DateTime(
+    controller.selectedDate.year,
+    controller.selectedDate.month,
+    controller.selectedDate.day,
+  );
+  final result = await showDialog<DayActivity>(
+    context: context,
+    builder: (context) => ActivityEditor(
+      existing: existing,
+      initialDate: plannedDate,
+    ),
+  );
+  if (result != null) {
+    await controller.saveActivity(result, plannedDate: plannedDate);
+  }
 }
 
 Future<void> confirmDelete(BuildContext context, MoodPressController controller, DayActivity activity) async {
@@ -5238,56 +5255,131 @@ class _ActivityEditorState extends State<ActivityEditor> {
                   padding: EdgeInsets.only(top: 18),
                   child: Text('Wanneer staat deze afspraak gepland?', style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
                 ),
-                Text('Eerste datum: ${_formatDutchDate(initialDate)}'),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final picked = await showDatePicker(context: context, initialDate: initialDate, firstDate: DateTime(2000), lastDate: DateTime(2100), helpText: 'Kies een extra datum');
-                    if (picked != null) setState(() { final day = DateTime(picked.year, picked.month, picked.day); if (day != initialDate) extraDates.add(day); });
-                  },
-                  icon: const Icon(Icons.calendar_month_outlined),
-                  label: const Text('Extra datum toevoegen'),
-                ),
-                Wrap(spacing: 8, children: extraDates.map((date) => InputChip(
-                  label: Text(_formatDutchDate(date)),
-                  onDeleted: () => setState(() => extraDates.remove(date)),
-                )).toList()),
-                DropdownButtonFormField<String>(
-                  value: repeat,
-                  decoration: const InputDecoration(labelText: 'Herhalen'),
-                  items: const [
-                    DropdownMenuItem(value: 'none', child: Text('Niet herhalen')),
-                    DropdownMenuItem(value: 'daily', child: Text('Iedere dag')),
-                    DropdownMenuItem(value: 'weekly', child: Text('Iedere week')),
-                    DropdownMenuItem(value: 'monthly', child: Text('Iedere maand')),
-                    DropdownMenuItem(value: 'yearly', child: Text('Ieder jaar')),
-                  ],
-                  onChanged: (value) => setState(() { repeat = value ?? 'none'; if (repeat == 'weekly' && repeatWeekdays.isEmpty) repeatWeekdays.add(initialDate.weekday); }),
-                ),
-                if (repeat == 'weekly') ...[
-                  const Padding(padding: EdgeInsets.only(top: 8), child: Text('Op welke dagen?', style: TextStyle(color: _ink, fontWeight: FontWeight.w600))),
-                  Wrap(spacing: 2, children: List<Widget>.generate(7, (index) {
-                    final day = index + 1;
-                    return FilterChip(
-                      label: Text(['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'][index]),
-                      selected: repeatWeekdays.contains(day),
-                      onSelected: (selected) => setState(() { if (selected) { repeatWeekdays.add(day); } else { repeatWeekdays.remove(day); } }),
-                    );
-                  })),
-                ],
-                if (repeat != 'none') ...[
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final picked = await showDatePicker(context: context, initialDate: repeatUntil ?? initialDate.add(const Duration(days: 365)), firstDate: initialDate, lastDate: DateTime(2100), helpText: 'Laatste herhalingsdatum');
-                      if (picked != null) setState(() => repeatUntil = picked);
-                    },
-                    icon: const Icon(Icons.event_repeat_rounded),
-                    label: Text(repeatUntil == null ? 'Kies einddatum van herhaling' : 'Herhalen tot ${_formatDutchDate(repeatUntil!)}'),
+                Text('Deze afspraak staat alleen op: ${_formatDutchWeekday(initialDate)} ${_formatDutchDate(initialDate)}'),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  initiallyExpanded: extraDates.isNotEmpty || repeat != 'none',
+                  title: const Text('Andere dagen toevoegen (optioneel)'),
+                  subtitle: Text(
+                    extraDates.isEmpty && repeat == 'none'
+                        ? 'Standaard alleen de gekozen dag'
+                        : '${extraDates.length} extra datum(s) · ${repeat == 'none' ? 'geen herhaling' : 'herhaling ingesteld'}',
+                    style: const TextStyle(color: _muted, fontSize: 12),
                   ),
-                  if (repeatUntil == null)
-                    const Text('Geen einddatum gekozen: MoodPress plant deze afspraak doorlopend in voor de komende vijf jaar. Je kunt later altijd een einddatum instellen.', style: TextStyle(color: _muted, fontSize: 12, height: 1.4)),
-                  if (repeat == 'weekly' && repeatWeekdays.isEmpty)
-                    const Text('Selecteer minimaal één weekdag.', style: TextStyle(color: Colors.red, fontSize: 12)),
-                ],
+                  children: [
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Gebruik dit alleen als dezelfde activiteit ook op andere dagen moet staan.',
+                        style: TextStyle(color: _muted, fontSize: 12, height: 1.4),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: initialDate.add(const Duration(days: 1)),
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                            helpText: 'Kies een extra datum',
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              final day = DateTime(picked.year, picked.month, picked.day);
+                              if (day != initialDate) extraDates.add(day);
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.calendar_month_outlined),
+                        label: const Text('Ook op een andere datum'),
+                      ),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 8,
+                        children: extraDates.map((date) => InputChip(
+                          label: Text(_formatDutchDate(date)),
+                          onDeleted: () => setState(() => extraDates.remove(date)),
+                        )).toList(),
+                      ),
+                    ),
+                    DropdownButtonFormField<String>(
+                      value: repeat,
+                      decoration: const InputDecoration(labelText: 'Herhaling'),
+                      items: const [
+                        DropdownMenuItem(value: 'none', child: Text('Niet herhalen')),
+                        DropdownMenuItem(value: 'daily', child: Text('Iedere dag')),
+                        DropdownMenuItem(value: 'weekly', child: Text('Iedere week')),
+                        DropdownMenuItem(value: 'monthly', child: Text('Iedere maand')),
+                        DropdownMenuItem(value: 'yearly', child: Text('Ieder jaar')),
+                      ],
+                      onChanged: (value) => setState(() {
+                        repeat = value ?? 'none';
+                        if (repeat == 'weekly' && repeatWeekdays.isEmpty) {
+                          repeatWeekdays.add(initialDate.weekday);
+                        }
+                      }),
+                    ),
+                    if (repeat == 'weekly') ...[
+                      const Padding(
+                        padding: EdgeInsets.only(top: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text('Herhaal alleen op deze weekdagen:', style: TextStyle(color: _ink, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      Wrap(
+                        spacing: 2,
+                        children: List<Widget>.generate(7, (index) {
+                          final day = index + 1;
+                          return FilterChip(
+                            label: Text(['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'][index]),
+                            selected: repeatWeekdays.contains(day),
+                            onSelected: (selected) => setState(() {
+                              if (selected) {
+                                repeatWeekdays.add(day);
+                              } else {
+                                repeatWeekdays.remove(day);
+                              }
+                            }),
+                          );
+                        }),
+                      ),
+                    ],
+                    if (repeat != 'none') ...[
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: repeatUntil ?? initialDate.add(const Duration(days: 365)),
+                            firstDate: initialDate,
+                            lastDate: DateTime(2100),
+                            helpText: 'Laatste herhalingsdatum',
+                          );
+                          if (picked != null) setState(() => repeatUntil = picked);
+                        },
+                        icon: const Icon(Icons.event_repeat_rounded),
+                        label: Text(repeatUntil == null
+                            ? 'Kies einddatum van herhaling'
+                            : 'Herhalen tot ${_formatDutchDate(repeatUntil!)}'),
+                      ),
+                      if (repeatUntil == null)
+                        const Text(
+                          'Geen einddatum gekozen: MoodPress plant deze afspraak voor de komende vijf jaar.',
+                          style: TextStyle(color: _muted, fontSize: 12, height: 1.4),
+                        ),
+                      if (repeat == 'weekly' && repeatWeekdays.isEmpty)
+                        const Text(
+                          'Selecteer minimaal één weekdag.',
+                          style: TextStyle(color: Colors.red, fontSize: 12),
+                        ),
+                    ],
+                    const SizedBox(height: 8),
+                  ],
+                ),
                 const Padding(
                   padding: EdgeInsets.only(top: 14),
                   child: Text('Veelgebruikte activiteit', style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
