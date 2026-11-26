@@ -377,6 +377,28 @@ String _dateKey(DateTime date) =>
     date.month.toString().padLeft(2, '0') + '-' +
     date.day.toString().padLeft(2, '0');
 
+List<String> activityOccurrenceDateKeys(DateTime startDate, DayActivity activity) {
+  final start = DateTime(startDate.year, startDate.month, startDate.day);
+  final dates = <String>{_dateKey(start), ...activity.extraDates};
+  final until = DateTime.tryParse(activity.repeatUntil ?? '');
+  if (activity.repeat != 'none' && until != null) {
+    final last = DateTime(until.year, until.month, until.day);
+    if (!last.isBefore(start)) {
+      for (var date = start; !date.isAfter(last); date = date.add(const Duration(days: 1))) {
+        final matches = switch (activity.repeat) {
+          'daily' => true,
+          'weekly' => activity.repeatWeekdays.contains(date.weekday),
+          'monthly' => date.day == start.day,
+          'yearly' => date.month == start.month && date.day == start.day,
+          _ => false,
+        };
+        if (matches) dates.add(_dateKey(date));
+      }
+    }
+  }
+  return dates.toList()..sort();
+}
+
 const _dutchWeekdays = [
   'maandag', 'dinsdag', 'woensdag', 'donderdag',
   'vrijdag', 'zaterdag', 'zondag',
@@ -1605,24 +1627,7 @@ class MoodPressController extends ChangeNotifier {
 
   Future<void> saveActivity(DayActivity activity) async {
     final start = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
-    final dates = <String>{_dateKey(start), ...activity.extraDates};
-    final until = DateTime.tryParse(activity.repeatUntil ?? '');
-    if (activity.repeat != 'none' && until != null) {
-      final last = DateTime(until.year, until.month, until.day);
-      if (!last.isBefore(start)) {
-        for (var date = start; !date.isAfter(last); date = date.add(const Duration(days: 1))) {
-          final matches = switch (activity.repeat) {
-            'daily' => true,
-            'weekly' => activity.repeatWeekdays.contains(date.weekday),
-            'monthly' => date.day == start.day,
-            'yearly' => date.month == start.month && date.day == start.day,
-            _ => false,
-          };
-          if (matches) dates.add(_dateKey(date));
-        }
-      }
-    }
-    final sortedDates = dates.toList()..sort();
+    final sortedDates = activityOccurrenceDateKeys(start, activity);
     final isNewSeries = activity.repeat != 'none' || activity.extraDates.isNotEmpty;
     if (isNewSeries) {
       for (final dateKey in sortedDates) {
