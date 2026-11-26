@@ -369,6 +369,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('all main pages fit a narrow phone viewport', (tester) async {
+    tester.view.physicalSize = const Size(360, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    final pages = <Widget>[
+      TodayPage(controller: controller, openPlan: () {}, openPrikkel: () {}),
+      PlanningPage(controller: controller),
+      CalmPage(controller: controller),
+      SupportPage(controller: controller),
+      SettingsPage(controller: controller),
+      DagboekPage(controller: controller),
+      RustplanPage(controller: controller),
+    ];
+    const names = [
+      'Vandaag',
+      'Planning',
+      'Prikkelmeter',
+      'Mijn steun',
+      'Instellingen',
+      'Dagboek',
+      'Rustplan',
+    ];
+
+    for (var index = 0; index < pages.length; index++) {
+      await tester.pumpWidget(MaterialApp(home: pages[index]));
+      await tester.pumpAndSettle();
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Het scherm "${names[index]}" mag niet buiten het telefoonscherm vallen.',
+      );
+    }
+  });
+
   testWidgets('in-app reminder switch can be enabled and disabled in settings', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
