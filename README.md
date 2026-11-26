@@ -2,9 +2,9 @@
 
 **Rust en overzicht in je dag.** Een zelfstandige, Nederlandstalige dagstructuur-app voor Android en Windows 11.
 
-MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te plannen. Bij het opstarten verschijnt een rustig, herkenbaar splash screen terwijl de lokale gegevens worden geladen. Bij het eerste gebruik legt een kort welkomstscherm de belangrijkste functies uit; je kunt dit overslaan en het wordt daarna niet opnieuw getoond. De eerste versie bevat:
+MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te plannen. Bij het opstarten verschijnt een rustig, herkenbaar splash screen terwijl de lokale gegevens worden geladen. Bij het eerste gebruik legt een kort welkomstscherm de belangrijkste functies uit; je kunt dit overslaan en het wordt daarna niet opnieuw getoond. De belangrijkste functies zijn:
 
-- **Vandaag** — eerstvolgende stap, voortgang en een vrijwillige check-in.
+- **Vandaag** — eerstvolgende stap, voortgang, een vrijwillige check-in en een compact weekoverzicht met activiteiten en voortgang per dag.
 - **Planning** — weekoverzicht, een apart dagplan per datum, activiteiten afronden en de volgorde zelf verslepen.
 - **Dagindelingen** — bewaar een dag als sjabloon en gebruik die opnieuw op een andere datum.
 - **Vast weekritme** — bewaar een vaste indeling per weekdag en vul daarmee lege dagen in.
@@ -17,11 +17,16 @@ MoodPress helpt gebruikers om activiteiten voorspelbaar en in kleine stappen te 
 - **Vijf verduidelijkingsvragen** — wie, wat, waar, wanneer en hoe.
 - **Voorlezen** — Nederlandse tekst-naar-spraak met instelbare snelheid.
 - **Instellingen** — kies normale, grotere of extra grote tekst, pas de voorleessnelheid aan, schakel animaties uit en zet optionele herinneringen aan of uit. Lees ook waarvoor MoodPress niet bedoeld is en wat je kunt doen bij direct gevaar.
-- **Toetsenbordbediening** — op Windows wissel je met Ctrl + 1 tot en met Ctrl + 5 (ook via het numerieke toetsenblok) tussen Vandaag, Planning, Even rust, Mijn steun en Instellingen. De focusvolgorde volgt de leesvolgorde. De app houdt de toetsenbordfocus vast zodat meerdere sneltoetsen achter elkaar werken.
+- **Prikkelmeter** — registreer hoe rustig of prikkelvol je je voelt op vijf niveaus, met een optionele notitie.
+- **Prikkelgeschiedenis** — bekijk week-, maand- en jaaroverzichten, een trend over acht weken, persoonlijke samenvattingen en vergelijkingen met eerdere perioden. Tik op een grafiekperiode voor de bijbehorende metingen en notities. Zoek en filter de geschiedenis, bewerk of verwijder metingen en exporteer ze als CSV.
+- **Persoonlijke inzichten** — zie onder meer gemiddelden en terugkerende patronen in je eigen registraties. Dit zijn beschrijvingen van ingevoerde gegevens, geen voorspellingen of medische conclusies.
+- **Toetsenbordbediening** — op Windows wissel je met Ctrl + 1 tot en met Ctrl + 7 (ook via het numerieke toetsenblok) tussen Vandaag, Planning, Even rust, Mijn steun, Instellingen, Dagboek en Rustplan. De focusvolgorde volgt de leesvolgorde. De app houdt de toetsenbordfocus vast zodat meerdere sneltoetsen achter elkaar werken.
 - **Rustige herinneringen** — een melding op het geplande tijdstip zolang MoodPress open is; standaard uit en altijd uit te zetten.
-- **Back-up en terugzetten** — bewaar al je dagplannen, sjablonen, weekritme, steunplan, instellingen en activiteitfoto’s in één wachtwoord-beveiligd bestand. Je kunt dit lokaal bewaren of naar een ander toestel meenemen.
+- **Back-up en terugzetten** — bewaar je dagplannen, sjablonen, weekritme, steunplan, instellingen, activiteitfoto’s, prikkelmetingen, dagboeknotities en rustplan in één wachtwoord-beveiligd bestand. Je kunt dit lokaal bewaren of naar een ander toestel meenemen.
 - **Even rust** — een korte, optionele oriëntatieoefening die altijd kan worden overgeslagen.
 - **Mijn steun** — een persoonlijk plan met wat helpt, een fijne plek en een vertrouwd persoon.
+- **Dagboek** — leg per datum een gevoel en persoonlijke notitie vast en bekijk eerdere notities.
+- **Rustplan** — maak een persoonlijke lijst met activiteiten die kunnen helpen om rust te vinden, ingedeeld in categorieën en met extra uitleg.
 - **Volledig zelfstandig** — geen account, advertenties, analytics, cloudbackend, begeleidersportaal, server of betaalde hosting. Persoonlijke informatie blijft lokaal op het apparaat.
 
 ## Doelgroep en grenzen
@@ -72,7 +77,7 @@ De platformmappen `android/` en `windows/` worden door `flutter create` gegenere
 
 ## Privacy en veiligheid
 
-De prototypecode bewaart dagplannen per datum, herbruikbare dagindelingen, vaste weekritmes, het steunplan en toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. Een export-back-up wordt met AES-256-GCM versleuteld; het wachtwoord wordt via PBKDF2 omgezet naar een sleutel. MoodPress bewaart het back-upwachtwoord niet. Wie het wachtwoord kwijtraakt, kan die back-up niet meer openen. Bewaar het bestand en wachtwoord daarom zorgvuldig. Bestaande dagplannen uit versie 0.2.0 worden bij de eerste start gemigreerd. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
+De prototypecode bewaart dagplannen per datum, herbruikbare dagindelingen, vaste weekritmes, het steunplan, prikkelmetingen, dagboeknotities, rustplanactiviteiten en toegankelijkheidsvoorkeuren lokaal via platformgebonden secure storage. Een export-back-up wordt met AES-256-GCM versleuteld; het wachtwoord wordt via PBKDF2 omgezet naar een sleutel. MoodPress bewaart het back-upwachtwoord niet. Wie het wachtwoord kwijtraakt, kan die back-up niet meer openen. Bewaar het bestand en wachtwoord daarom zorgvuldig. Bestaande dagplannen uit versie 0.2.0 worden bij de eerste start gemigreerd. De stemming-check-in wordt alleen tijdelijk in het geheugen bijgehouden en niet opgeslagen. Dit is geen volledige AVG-conformiteitsverklaring of garantie voor ieder toestel.
 
 Gebruik geen herleidbare cliëntgegevens in ontwikkel- of testomgevingen. Voor een pilot zijn onder meer een privacy- en beveiligingsbeoordeling, beoordeling van de gegevensverwerking (waaronder een DPIA indien vereist), toegangs- en verwijderbeleid, gebruikerstesten en professionele toetsing nodig. Lees [veiligheid en privacy](docs/SAFETY_AND_PRIVACY.md).
 

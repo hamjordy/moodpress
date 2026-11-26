@@ -7,6 +7,375 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  test('a new one-off activity stays on the exact selected date', () {
+    final activity = DayActivity(
+      id: 'one-day',
+      title: 'Afspraak op woensdag',
+      time: '09:00',
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), activity),
+      ['2026-11-25'],
+    );
+  });
+
+  test('one-off activity only adds extra dates explicitly selected by the user', () {
+    final activity = DayActivity(
+      id: 'selected-dates',
+      title: 'Afspraak op woensdag en vrijdag',
+      time: '10:00',
+      extraDates: ['2026-11-27'],
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), activity),
+      ['2026-11-25', '2026-11-27'],
+    );
+  });
+
+  test('weekly recurring activity expands to every selected weekday and extra date', () {
+    final activity = DayActivity(
+      id: 'weekly',
+      title: 'Afspraak',
+      time: '10:00',
+      extraDates: ['2026-12-12'],
+      repeat: 'weekly',
+      repeatWeekdays: [1, 4],
+      repeatUntil: '2026-12-10',
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), activity),
+      [
+        '2026-11-25',
+        '2026-11-26',
+        '2026-11-30',
+        '2026-12-03',
+        '2026-12-07',
+        '2026-12-10',
+        '2026-12-12',
+      ],
+    );
+  });
+
+  test('recurring activity without an end date gets a five-year horizon', () {
+    final work = DayActivity(
+      id: 'work',
+      title: 'Werken',
+      time: '09:00',
+      repeat: 'weekly',
+      repeatWeekdays: [1, 2, 3, 4, 5],
+    );
+
+    final dates = activityOccurrenceDateKeys(DateTime(2026, 11, 23), work);
+    expect(dates, contains('2026-11-23'));
+    expect(dates, contains('2031-11-21'));
+    expect(dates, isNot(contains('2031-11-22')));
+    expect(dates.length, greaterThan(1000));
+  });
+
+  test('daily monthly and yearly recurrence respect their selected end date', () {
+    final daily = DayActivity(
+      id: 'daily',
+      title: 'Dagelijks',
+      time: '08:00',
+      repeat: 'daily',
+      repeatUntil: '2026-11-27',
+    );
+    final monthly = DayActivity(
+      id: 'monthly',
+      title: 'Maandelijks',
+      time: '08:00',
+      repeat: 'monthly',
+      repeatUntil: '2027-02-25',
+    );
+    final yearly = DayActivity(
+      id: 'yearly',
+      title: 'Jaarlijks',
+      time: '08:00',
+      repeat: 'yearly',
+      repeatUntil: '2028-11-25',
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), daily),
+      ['2026-11-25', '2026-11-26', '2026-11-27'],
+    );
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), monthly),
+      ['2026-11-25', '2026-12-25', '2027-01-25', '2027-02-25'],
+    );
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), yearly),
+      ['2026-11-25', '2027-11-25', '2028-11-25'],
+    );
+  });
+
+  test('activity supports multiple dates and recurring schedule metadata', () {
+    final activity = DayActivity(
+      id: 'recurring-1',
+      title: 'Therapie',
+      time: '10:00',
+      endTime: '15:00',
+      extraDates: ['2026-12-03', '2026-12-10'],
+      repeat: 'weekly',
+      repeatWeekdays: [1, 4],
+      repeatUntil: '2027-01-31',
+    );
+
+    final restored = DayActivity.fromJson(activity.toJson());
+
+    expect(restored.extraDates, ['2026-12-03', '2026-12-10']);
+    expect(restored.repeat, 'weekly');
+    expect(restored.repeatWeekdays, [1, 4]);
+    expect(restored.repeatUntil, '2027-01-31');
+    expect(restored.endTime, '15:00');
+    expect(activityTimeLabel(restored), '10:00 – 15:00');
+  });
+
+  test('activity times are optional and formatted with a 24-hour clock', () {
+    expect(format24HourTime(const TimeOfDay(hour: 9, minute: 0)), '09:00');
+    expect(format24HourTime(const TimeOfDay(hour: 15, minute: 5)), '15:05');
+    expect(parse24HourTime('09:00'), const TimeOfDay(hour: 9, minute: 0));
+    expect(parse24HourTime('15:05'), const TimeOfDay(hour: 15, minute: 5));
+    expect(parse24HourTime('25:00'), isNull);
+    expect(parse24HourTime('09:60'), isNull);
+
+    final noTimes = DayActivity(
+      id: 'without-time',
+      title: 'Werken',
+      time: '',
+    );
+    expect(activityTimeLabel(noTimes), 'Geen vast tijdstip');
+    final endOnly = DayActivity(
+      id: 'end-only',
+      title: 'Beschikbaar tot',
+      time: '',
+      endTime: '15:00',
+    );
+    expect(activityTimeLabel(endOnly), 'Tot 15:00');
+  });
+
+  test('planning search checks all saved days and activity details', () {
+    final plans = <String, List<DayActivity>>{
+      '2026-11-25': [
+        DayActivity(
+          id: 'pharmacy',
+          title: 'Apotheek bezoeken',
+          time: '10:30',
+          who: 'Samen met Sam',
+          what: 'Medicatie ophalen',
+          where: 'Apotheek in de buurt',
+          how: 'Rustig wandelen',
+          note: 'Neem de boodschappenlijst mee',
+          steps: ['Sleutels pakken', 'Naar buiten gaan'],
+        ),
+      ],
+      '2026-11-26': [
+        DayActivity(
+          id: 'meeting',
+          title: 'Werkafspraak',
+          time: '13:00',
+          who: 'Met het team',
+          what: 'Overleg over de planning',
+          where: 'Op kantoor',
+          how: 'Aantekeningen meenemen',
+        ),
+      ],
+    };
+
+    expect(
+      searchPlanningActivities(plans, 'APOTHEEK')
+          .map((result) => result.activity.id)
+          .toList(),
+      ['pharmacy'],
+    );
+    expect(
+      searchPlanningActivities(plans, 'medicatie boodschappenlijst')
+          .map((result) => result.activity.id)
+          .toList(),
+      ['pharmacy'],
+    );
+    expect(
+      searchPlanningActivities(plans, 'donderdag 26 november')
+          .map((result) => result.activity.id)
+          .toList(),
+      ['meeting'],
+    );
+    expect(
+      searchPlanningActivities(plans, '13:00')
+          .single.activity.id,
+      'meeting',
+    );
+    expect(searchPlanningActivities(plans, '   '), isEmpty);
+    expect(searchPlanningActivities(plans, 'bestaat niet'), isEmpty);
+  });
+
+  testWidgets('dashboard week overview summarizes days and opens selected date', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final today = DateTime.now();
+    final monday = DateTime(today.year, today.month, today.day)
+        .subtract(Duration(days: today.weekday - 1));
+    final tuesday = monday.add(const Duration(days: 1));
+    final controller = MoodPressController(
+      initialPlans: {
+        monday: [
+          DayActivity(
+            id: 'monday-1',
+            title: 'Ontbijten',
+            time: '08:00',
+            done: true,
+          ),
+        ],
+        tuesday: [
+          DayActivity(
+            id: 'tuesday-1',
+            title: 'Wandelen',
+            time: '10:00',
+          ),
+          DayActivity(
+            id: 'tuesday-2',
+            title: 'Boodschappen',
+            time: '14:00',
+          ),
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Deze week'), findsOneWidget);
+    expect(find.text('3 activiteiten verdeeld over 2 dagen.'), findsOneWidget);
+    expect(find.text('1/1'), findsOneWidget);
+    expect(find.text('0/2'), findsOneWidget);
+
+    final dateKey =
+        '${tuesday.year.toString().padLeft(4, '0')}-'
+        '${tuesday.month.toString().padLeft(2, '0')}-'
+        '${tuesday.day.toString().padLeft(2, '0')}';
+    await tester.tap(find.byKey(ValueKey('week-day-$dateKey')));
+    await tester.pumpAndSettle();
+
+    expect(controller.selectedDate, DateTime(tuesday.year, tuesday.month, tuesday.day));
+    expect(find.text('Mijn planning').last, findsOneWidget);
+  });
+
+  test('diary note keeps its date, feeling and text when serialized', () {
+    final note = DagboekNotitie(
+      date: DateTime(2026, 11, 25),
+      feeling: 'Goed',
+      text: 'Vandaag rustig gewandeld.',
+      updatedAt: DateTime(2026, 11, 25, 18, 30),
+    );
+
+    final restored = DagboekNotitie.fromJson(note.toJson());
+
+    expect(restored.date, DateTime(2026, 11, 25));
+    expect(restored.feeling, 'Goed');
+    expect(restored.text, 'Vandaag rustig gewandeld.');
+    expect(restored.updatedAt, DateTime(2026, 11, 25, 18, 30));
+  });
+
+  testWidgets('diary page opens from navigation and loads a saved note', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final date = DateTime(2026, 11, 24);
+    final controller = MoodPressController(
+      initialJournalEntries: [
+        DagboekNotitie(
+          date: date,
+          feeling: 'Goed',
+          text: 'Ik heb een fijne wandeling gemaakt.',
+          updatedAt: date,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit6);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit6);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mijn dagboek'), findsOneWidget);
+    expect(find.text('Eerdere notities'), findsOneWidget);
+    expect(find.textContaining('Ik heb een fijne wandeling gemaakt.'), findsOneWidget);
+
+    await tester.tap(find.textContaining('Dinsdag 24 november'));
+    await tester.pumpAndSettle();
+
+    final textField = tester.widget<TextField>(find.descendant(of: find.byType(DagboekPage), matching: find.byType(TextField)).first);
+    expect(textField.controller!.text, 'Ik heb een fijne wandeling gemaakt.');
+  });
+
+  test('rest plan activity keeps its details when serialized', () {
+    const item = RustplanActiviteit(
+      id: 'rust-1',
+      title: 'Even naar buiten',
+      category: 'Beweging',
+      description: 'Een klein rondje wandelen.',
+    );
+    final restored = RustplanActiviteit.fromJson(item.toJson());
+    expect(restored.id, 'rust-1');
+    expect(restored.title, 'Even naar buiten');
+    expect(restored.category, 'Beweging');
+    expect(restored.description, 'Een klein rondje wandelen.');
+  });
+
+  testWidgets('rest plan opens from navigation and allows adding an activity', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(MaterialApp(
+      home: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) => MoodPressShell(controller: controller),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.digit7);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.digit7);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mijn rustplan'), findsOneWidget);
+    expect(find.text('Je rustplan is nog leeg'), findsOneWidget);
+
+    await tester.tap(find.text('Rustactiviteit toevoegen'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'Even naar buiten');
+    await tester.enterText(find.byType(TextField).last, 'Een klein rondje wandelen.');
+    await tester.tap(find.text('Opslaan'));
+    await tester.pumpAndSettle();
+
+    expect(controller.rustplanActiviteiten, hasLength(1));
+    expect(controller.rustplanActiviteiten.single.title, 'Even naar buiten');
+    expect(controller.rustplanActiviteiten.single.description, 'Een klein rondje wandelen.');
+    expect(find.text('Even naar buiten'), findsOneWidget);
+    expect(find.text('Ontspanning'), findsOneWidget);
+  });
+
   testWidgets('branded splash screen is shown while local data loads', (tester) async {
     final controller = MoodPressController()
       ..preferences = const MoodPressPreferences(hasSeenWelcome: true);
@@ -114,6 +483,84 @@ void main() {
 
     await pressControlNumber(LogicalKeyboardKey.digit1);
     expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
+  });
+
+  testWidgets('mobile navigation stays compact and opens secondary pages from More', (tester) async {
+    tester.view.physicalSize = const Size(360, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vandaag'), findsOneWidget);
+    expect(find.text('Planning'), findsOneWidget);
+    expect(find.text('Prikkels'), findsOneWidget);
+    expect(find.text('Meer'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Meer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Meer in MoodPress'), findsOneWidget);
+    expect(find.text('Mijn steun'), findsOneWidget);
+    expect(find.text('Instellingen'), findsOneWidget);
+    expect(find.text('Dagboek'), findsOneWidget);
+    expect(find.text('Rustplan'), findsOneWidget);
+
+    await tester.tap(find.text('Dagboek').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Mijn dagboek'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('all main pages fit a narrow phone viewport', (tester) async {
+    tester.view.physicalSize = const Size(360, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    final pages = <Widget>[
+      TodayPage(controller: controller, openPlan: () {}, openPrikkel: () {}),
+      PlanningPage(controller: controller),
+      CalmPage(controller: controller),
+      SupportPage(controller: controller),
+      SettingsPage(controller: controller),
+      DagboekPage(controller: controller),
+      RustplanPage(controller: controller),
+    ];
+    const names = [
+      'Vandaag',
+      'Planning',
+      'Prikkelmeter',
+      'Mijn steun',
+      'Instellingen',
+      'Dagboek',
+      'Rustplan',
+    ];
+
+    for (var index = 0; index < pages.length; index++) {
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: pages[index])));
+      await tester.pumpAndSettle();
+      final layoutError = tester.takeException();
+      if (layoutError is FlutterError) {
+        debugPrint('MOBILE LAYOUT DETAILS FOR ${names[index]}');
+        for (final diagnostic in layoutError.diagnostics) {
+          debugPrint(diagnostic.toString());
+        }
+      }
+      expect(
+        layoutError,
+        isNull,
+        reason: 'Het scherm "${names[index]}" mag niet buiten het telefoonscherm vallen.',
+      );
+    }
   });
 
   testWidgets('in-app reminder switch can be enabled and disabled in settings', (tester) async {
@@ -1085,6 +1532,618 @@ void main() {
     expect(controller.preferences.inAppRemindersEnabled, isFalse);
     expect(controller.preferences.speechEnabled, isTrue);
     expect(controller.preferences.hasSeenWelcome, isTrue);
+  });
+
+
+  testWidgets('mood check-in choices expose selected state to screen readers', (tester) async {
+    final semanticsHandle = tester.ensureSemantics();
+    var selected = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) => FeelingChoice(
+              label: 'Rustig',
+              emoji: '🙂',
+              selected: selected,
+              onTap: () => setState(() => selected = !selected),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    var node = tester.getSemantics(find.byType(FeelingChoice));
+    expect(node.label, 'Rustig');
+    expect(node.flagsCollection.isButton, isTrue);
+    expect(node.flagsCollection.isSelected.toBoolOrNull(), isFalse);
+    // Button semantics are verified by the isButton flag above.
+
+    await tester.tap(find.text('Rustig'));
+    await tester.pump();
+
+    node = tester.getSemantics(find.byType(FeelingChoice));
+    expect(node.flagsCollection.isSelected.toBoolOrNull(), isTrue);
+    semanticsHandle.dispose();
+  });
+
+  testWidgets('today screen shows a clear date header and calm overview', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: TodayPage(
+          controller: controller,
+          openPlan: () {},
+          openPrikkel: () {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.calendar_today_outlined), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp(r'^Vandaag,')), findsOneWidget);
+    expect(find.text('We doen het rustig aan. Eén ding tegelijk.'), findsOneWidget);
+    expect(find.text('DIT IS JE VOLGENDE STAP'), findsOneWidget);
+    expect(find.text('Hoe is het nu met je?'), findsOneWidget);
+    expect(find.text('Prikkelmeter'), findsOneWidget);
+    expect(find.text('Open prikkelmeter'), findsOneWidget);
+  });
+
+
+  testWidgets('planning activity text uses the available width on compact screens', (tester) async {
+    tester.view.physicalSize = const Size(360, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    const activityTitle =
+        'Een lange activiteitstitel die netjes moet doorlopen';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 360,
+              child: ActivityCard(
+                activity: DayActivity(
+                  id: 'responsive-test',
+                  title: activityTitle,
+                  time: '09:00',
+                  note:
+                      'Deze extra uitleg moet de beschikbare ruimte gebruiken en normaal doorlopen.',
+                ),
+                speechRate: 1,
+                speechEnabled: false,
+                toggle: () {},
+                toggleStep: (_) {},
+                edit: () {},
+                delete: () {},
+                copy: () {},
+                move: () {},
+                reorderHandle: const SizedBox(width: 24, height: 24),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final titleSize = tester.getSize(find.text(activityTitle));
+    expect(titleSize.width, greaterThan(150));
+  });
+
+
+  testWidgets('planning search opens the matching activity', (tester) async {
+    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController(
+      initialPlans: {
+        DateTime(2026, 11, 26): [
+          DayActivity(
+            id: 'search-ui-activity',
+            title: 'Medicatie ophalen',
+            time: '09:45',
+            who: 'Zelf',
+            what: 'Medicatie ophalen bij de apotheek',
+            where: 'Apotheek',
+            how: 'Rustig wandelen',
+            note: 'Neem de herhaalbrief mee',
+          ),
+        ],
+      },
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: PlanningPage(controller: controller)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final searchField = find.byType(TextField).first;
+    await tester.enterText(searchField, 'herhaalbrief');
+    await tester.pumpAndSettle();
+
+    expect(find.text('1 resultaat gevonden'), findsOneWidget);
+    expect(find.text('Medicatie ophalen'), findsOneWidget);
+
+    await tester.tap(find.text('Medicatie ophalen'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Medicatie ophalen'), findsOneWidget);
+    expect(find.text('Apotheek'), findsOneWidget);
+    expect(find.text('Herhaalbrief'), findsNothing);
+    expect(find.text('Neem de herhaalbrief mee'), findsOneWidget);
+  });
+
+
+  test('prikkel history search matches notes, dates and levels and sorts newest first', () {
+    final measurements = [
+      PrikkelMeting(id: 'older', level: 5, createdAt: DateTime(2026, 11, 20, 9), note: 'Veel geluid op kantoor'),
+      PrikkelMeting(id: 'newer', level: 5, createdAt: DateTime(2026, 11, 25, 18), note: 'Veel geluid thuis'),
+      PrikkelMeting(id: 'quiet', level: 1, createdAt: DateTime(2026, 11, 25, 8), note: 'Rustige ochtend'),
+    ];
+    expect(filterPrikkelMetingen(measurements, query: 'veel geluid').map((item) => item.id), ['newer', 'older']);
+    expect(filterPrikkelMetingen(measurements, query: '25-11-2026').map((item) => item.id), ['newer', 'quiet']);
+    expect(filterPrikkelMetingen(measurements, niveau: 5).map((item) => item.id), ['newer', 'older']);
+    expect(filterPrikkelMetingen(measurements, query: 'thuis', niveau: 5).map((item) => item.id), ['newer']);
+    expect(filterPrikkelMetingen(measurements, query: 'bestaat niet'), isEmpty);
+  });
+
+  test('prikkel meter levels and measurement data are safely represented', () {
+    expect(prikkelNiveaus, [
+      'Helemaal rustig',
+      'Een beetje prikkels',
+      'Best veel prikkels',
+      'Erg veel prikkels',
+      'Overprikkeld',
+    ]);
+
+    final measurement = PrikkelMeting(
+      id: 'meter-test',
+      level: 4,
+      createdAt: DateTime(2026, 11, 25, 18, 30),
+      note: 'Veel geluid',
+    );
+    final restored = PrikkelMeting.fromJson(measurement.toJson());
+
+    expect(restored.id, 'meter-test');
+    expect(restored.level, 4);
+    expect(restored.createdAt, DateTime(2026, 11, 25, 18, 30));
+    expect(restored.note, 'Veel geluid');
+  });
+
+  test('prikkel meter rejects invalid levels when saving', () async {
+    final controller = MoodPressController();
+    await controller.savePrikkelMeting(0, 'Ongeldig');
+    await controller.savePrikkelMeting(6, 'Ongeldig');
+    expect(controller.prikkelMetingen, isEmpty);
+  });
+
+
+  test('prikkel month overview contains thirty daily buckets', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'month-one',
+        level: 2,
+        createdAt: DateTime(2026, 11, 25, 9),
+      ),
+      PrikkelMeting(
+        id: 'month-two',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 18),
+      ),
+      PrikkelMeting(
+        id: 'month-old',
+        level: 5,
+        createdAt: DateTime(2026, 10, 25, 12),
+      ),
+    ];
+
+    final month = maakPrikkelGrafiekPunten(
+      measurements,
+      periode: 1,
+      vandaag: today,
+    );
+
+    expect(month, hasLength(30));
+    expect(month.last.date, DateTime(2026, 11, 25));
+    expect(month.last.count, 2);
+    expect(month.last.averageLevel, 3);
+    expect(month.first.count, 0);
+  });
+
+  test('prikkel year overview groups measurements into twelve months', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'year-one',
+        level: 4,
+        createdAt: DateTime(2026, 11, 12),
+      ),
+      PrikkelMeting(
+        id: 'year-two',
+        level: 2,
+        createdAt: DateTime(2026, 10, 4),
+      ),
+      PrikkelMeting(
+        id: 'year-old',
+        level: 5,
+        createdAt: DateTime(2025, 11, 25),
+      ),
+    ];
+
+    final year = maakPrikkelGrafiekPunten(
+      measurements,
+      periode: 2,
+      vandaag: today,
+    );
+
+    expect(year, hasLength(12));
+    expect(year.first.date, DateTime(2025, 12, 1));
+    expect(year.last.date, DateTime(2026, 11, 1));
+    expect(year.last.count, 1);
+    expect(year.last.averageLevel, 4);
+    expect(year[10].count, 1);
+    expect(year[10].averageLevel, 2);
+  });
+
+  test('prikkel period comparison compares with previous equal period', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'current-one',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 9),
+      ),
+      PrikkelMeting(
+        id: 'current-two',
+        level: 2,
+        createdAt: DateTime(2026, 11, 24, 9),
+      ),
+      PrikkelMeting(
+        id: 'previous-one',
+        level: 1,
+        createdAt: DateTime(2026, 11, 18, 9),
+      ),
+      PrikkelMeting(
+        id: 'outside',
+        level: 5,
+        createdAt: DateTime(2026, 11, 10, 9),
+      ),
+    ];
+
+    final comparison = vergelijkPrikkelPeriodes(
+      measurements,
+      periode: 0,
+      vandaag: today,
+    );
+
+    expect(comparison.huidigAantal, 2);
+    expect(comparison.huidigGemiddelde, 3);
+    expect(comparison.vorigAantal, 1);
+    expect(comparison.vorigGemiddelde, 1);
+  });
+
+  test('highest prikkel chart point ignores empty periods', () {
+    final points = [
+      PrikkelGrafiekPunt(
+        date: DateTime(2026, 11, 23),
+        label: 'ma',
+        averageLevel: null,
+        count: 0,
+      ),
+      PrikkelGrafiekPunt(
+        date: DateTime(2026, 11, 24),
+        label: 'di',
+        averageLevel: 3,
+        count: 2,
+      ),
+      PrikkelGrafiekPunt(
+        date: DateTime(2026, 11, 25),
+        label: 'wo',
+        averageLevel: 4.5,
+        count: 2,
+      ),
+    ];
+
+    final highest = hoogstePrikkelGrafiekPunt(points);
+
+    expect(highest, points.last);
+    expect(hoogstePrikkelGrafiekPunt(const []), isNull);
+  });
+
+  test('personal prikkel insights summarize levels, weekdays and weekly trend', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(id: 'mon-low', level: 2, createdAt: DateTime(2026, 11, 23, 9)),
+      PrikkelMeting(id: 'tue-high', level: 5, createdAt: DateTime(2026, 11, 24, 9)),
+      PrikkelMeting(id: 'tue-mid', level: 5, createdAt: DateTime(2026, 11, 24, 18)),
+      PrikkelMeting(id: 'prev-week', level: 4, createdAt: DateTime(2026, 11, 17, 9)),
+    ];
+
+    final insights = berekenPrikkelInzichten(measurements, vandaag: today);
+
+    expect(insights.totalMeasurements, 4);
+    expect(insights.averageLevel, 4.0);
+    expect(insights.mostCommonLevel, 5);
+    expect(insights.highestAverageWeekday, DateTime.tuesday);
+    expect(insights.highestAverageWeekdayLevel, closeTo(14 / 3, 0.0001));
+    expect(insights.highestAverageWeekdayCount, 3);
+    expect(insights.recentAverage, 4);
+    expect(insights.previousAverage, 4);
+  });
+
+  test('personal prikkel insights handle an empty history', () {
+    final insights = berekenPrikkelInzichten(
+      const [],
+      vandaag: DateTime(2026, 11, 25),
+    );
+
+    expect(insights.totalMeasurements, 0);
+    expect(insights.averageLevel, isNull);
+    expect(insights.mostCommonLevel, isNull);
+    expect(insights.highestAverageWeekday, isNull);
+    expect(insights.recentAverage, isNull);
+    expect(insights.previousAverage, isNull);
+  });
+
+  test('prikkel history period filter keeps selected recent days and combines filters', () {
+    final today = DateTime(2026, 11, 25, 12);
+    final measurements = [
+      PrikkelMeting(
+        id: 'today',
+        level: 5,
+        createdAt: DateTime(2026, 11, 25, 9),
+        note: 'Vandaag',
+      ),
+      PrikkelMeting(
+        id: 'week',
+        level: 4,
+        createdAt: DateTime(2026, 11, 19, 10),
+        note: 'Deze week',
+      ),
+      PrikkelMeting(
+        id: 'outside-week',
+        level: 5,
+        createdAt: DateTime(2026, 11, 18, 10),
+        note: 'Buiten week',
+      ),
+      PrikkelMeting(
+        id: 'month',
+        level: 3,
+        createdAt: DateTime(2026, 10, 30, 10),
+        note: 'Deze maand',
+      ),
+      PrikkelMeting(
+        id: 'future',
+        level: 5,
+        createdAt: DateTime(2026, 11, 26, 10),
+        note: 'Toekomstige datum',
+      ),
+    ];
+
+    final lastSevenDays = filterPrikkelMetingen(
+      measurements,
+      periodeDagen: 7,
+      vandaag: today,
+    );
+    expect(lastSevenDays.map((item) => item.id), ['today', 'week']);
+
+    final combined = filterPrikkelMetingen(
+      measurements,
+      niveau: 5,
+      periodeDagen: 30,
+      vandaag: today,
+    );
+    expect(combined.map((item) => item.id), ['today', 'outside-week']);
+    expect(lastSevenDays.any((item) => item.id == 'future'), isFalse);
+
+    final all = filterPrikkelMetingen(measurements, vandaag: today);
+    expect(all, hasLength(5));
+  });
+
+  test('prikkel CSV export includes headers, sorts newest first and escapes notes', () {
+    final measurements = [
+      PrikkelMeting(
+        id: 'older',
+        level: 2,
+        createdAt: DateTime(2026, 11, 24, 8, 5),
+        note: 'Rustige ochtend',
+      ),
+      PrikkelMeting(
+        id: 'newer',
+        level: 5,
+        createdAt: DateTime(2026, 11, 25, 19, 30),
+        note: 'Druk; zei "te veel"\nEven rust',
+      ),
+    ];
+
+    final csv = maakPrikkelCsv(measurements);
+
+    expect(csv.split('\r\n').first, 'Datum;Tijd;Niveau;Omschrijving;Notitie');
+    expect(
+      csv,
+      contains('2026-11-25;19:30;5;Overprikkeld;"Druk; zei ""te veel""\nEven rust"'),
+    );
+    expect(csv.indexOf('2026-11-25'), lessThan(csv.indexOf('2026-11-24')));
+  });
+
+  test('prikkel CSV export returns a header for an empty history', () {
+    expect(
+      maakPrikkelCsv(const []),
+      'Datum;Tijd;Niveau;Omschrijving;Notitie\r\n',
+    );
+  });
+
+  test('eight-week prikkel trend groups measurements by Monday-based weeks', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(id: 'before', level: 5, createdAt: DateTime(2026, 10, 4, 23)),
+      PrikkelMeting(id: 'first-a', level: 2, createdAt: DateTime(2026, 10, 6, 9)),
+      PrikkelMeting(id: 'first-b', level: 4, createdAt: DateTime(2026, 10, 8, 18)),
+      PrikkelMeting(id: 'middle', level: 5, createdAt: DateTime(2026, 10, 20, 12)),
+      PrikkelMeting(id: 'current', level: 3, createdAt: DateTime(2026, 11, 25, 10)),
+      PrikkelMeting(id: 'future', level: 1, createdAt: DateTime(2026, 11, 30, 10)),
+    ];
+
+    final trend = maakPrikkelWeekTrend(measurements, vandaag: today);
+
+    expect(trend, hasLength(8));
+    expect(trend.first.weekStart, DateTime(2026, 10, 5));
+    expect(trend.first.averageLevel, 3);
+    expect(trend.first.count, 2);
+    expect(trend[2].averageLevel, 5);
+    expect(trend[2].count, 1);
+    expect(trend[6].averageLevel, isNull);
+    expect(trend[6].count, 0);
+    expect(trend.last.weekStart, DateTime(2026, 11, 23));
+    expect(trend.last.averageLevel, 3);
+    expect(trend.last.count, 1);
+  });
+
+  test('eight-week prikkel trend returns empty weeks without measurements', () {
+    final trend = maakPrikkelWeekTrend(
+      const [],
+      vandaag: DateTime(2026, 11, 25),
+    );
+
+    expect(trend, hasLength(8));
+    expect(trend.every((week) => week.averageLevel == null), isTrue);
+    expect(trend.every((week) => week.count == 0), isTrue);
+  });
+
+  test('weekly trend details return only that week newest first', () {
+    final week = PrikkelWeekTrendPunt(
+      weekStart: DateTime(2026, 11, 23),
+      averageLevel: 3,
+      count: 2,
+    );
+    final measurements = [
+      PrikkelMeting(
+        id: 'outside',
+        level: 5,
+        createdAt: DateTime(2026, 11, 30, 8),
+      ),
+      PrikkelMeting(
+        id: 'older',
+        level: 2,
+        createdAt: DateTime(2026, 11, 24, 9),
+        note: 'Ochtend',
+      ),
+      PrikkelMeting(
+        id: 'newer',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 18),
+        note: 'Avond',
+      ),
+      PrikkelMeting(
+        id: 'before',
+        level: 1,
+        createdAt: DateTime(2026, 11, 22, 23),
+      ),
+    ];
+
+    final result = prikkelMetingenVoorWeek(measurements, week);
+
+    expect(result.map((item) => item.id), ['newer', 'older']);
+    expect(result.first.note, 'Avond');
+  });
+
+  test('prikkel week overview calculates daily averages for seven days', () {
+    final today = DateTime(2026, 11, 25);
+    final measurements = [
+      PrikkelMeting(
+        id: 'one',
+        level: 2,
+        createdAt: DateTime(2026, 11, 25, 9),
+      ),
+      PrikkelMeting(
+        id: 'two',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 18),
+      ),
+      PrikkelMeting(
+        id: 'three',
+        level: 5,
+        createdAt: DateTime(2026, 11, 24, 12),
+      ),
+    ];
+
+    final week = maakPrikkelWeekOverzicht(measurements, vandaag: today);
+
+    expect(week, hasLength(7));
+    expect(week.last.date, DateTime(2026, 11, 25));
+    expect(week.last.count, 2);
+    expect(week.last.averageLevel, 3);
+    expect(week[5].count, 1);
+    expect(week[5].averageLevel, 5);
+    expect(week.first.averageLevel, isNull);
+  });
+
+
+  test('chart point details include only matching measurements and sort newest first', () {
+    final measurements = [
+      PrikkelMeting(
+        id: 'morning',
+        level: 2,
+        createdAt: DateTime(2026, 11, 25, 8),
+        note: 'Rustig begonnen',
+      ),
+      PrikkelMeting(
+        id: 'evening',
+        level: 4,
+        createdAt: DateTime(2026, 11, 25, 20),
+        note: 'Drukke dag',
+      ),
+      PrikkelMeting(
+        id: 'other-day',
+        level: 5,
+        createdAt: DateTime(2026, 11, 24, 12),
+        note: 'Andere dag',
+      ),
+    ];
+    final dayPoint = PrikkelGrafiekPunt(
+      date: DateTime(2026, 11, 25),
+      label: 'wo',
+      averageLevel: 3,
+      count: 2,
+    );
+
+    final dayMeasurements = prikkelMetingenVoorGrafiekPunt(
+      measurements,
+      dayPoint,
+      perMaand: false,
+    );
+
+    expect(dayMeasurements.map((item) => item.id), ['evening', 'morning']);
+    expect(dayMeasurements.first.note, 'Drukke dag');
+
+    final monthPoint = PrikkelGrafiekPunt(
+      date: DateTime(2026, 11, 1),
+      label: 'nov',
+      averageLevel: 3.7,
+      count: 3,
+    );
+    expect(
+      prikkelMetingenVoorGrafiekPunt(
+        measurements,
+        monthPoint,
+        perMaand: true,
+      ),
+      hasLength(3),
+    );
   });
 
 }

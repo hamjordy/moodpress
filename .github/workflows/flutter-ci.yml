@@ -35,10 +35,29 @@ jobs:
       - run: flutter create --platforms=windows .
       - run: flutter pub get
       - run: flutter build windows --release
+      - name: Create unsigned MSIX package for Microsoft Store
+        run: dart run msix:create
+      - name: Locate Microsoft Store package
+        shell: pwsh
+        run: |
+          $package = Get-ChildItem -Path . -Filter "*.msix" -Recurse | Select-Object -First 1
+          if (-not $package) {
+            throw "MSIX package was not created."
+          }
+          Copy-Item $package.FullName "moodpress-store.msix" -Force
       - uses: actions/upload-artifact@v4
         with:
-          name: moodpress-windows-x64
-          path: build/windows/x64/runner/Release/
+          name: moodpress-windows-msix-store
+          path: moodpress-store.msix
+          if-no-files-found: error
+      - name: Package Windows release as ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "build/windows/x64/runner/Release/*" -DestinationPath "moodpress-windows-x64.zip" -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moodpress-windows-x64-zip
+          path: moodpress-windows-x64.zip
           if-no-files-found: error
 
   build-android:
@@ -50,42 +69,131 @@ jobs:
           channel: stable
           cache: true
       - run: flutter create --platforms=android .
-      - name: Configure Android API and text-to-speech visibility
+      - name: Apply MoodPress Android launcher icon
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64
+          from pathlib import Path
+
+          encoded_icon = Path("assets/android/moodpress_launcher_foreground.png.b64").read_text(encoding="ascii").strip()
+          icon_bytes = base64.b64decode(encoded_icon, validate=True)
+          if icon_bytes[:8] != bytes([137, 80, 78, 71, 13, 10, 26, 10]):
+              raise SystemExit("MoodPress launcher icon is not a valid PNG file")
+
+          resources = Path("android/app/src/main/res")
+          foreground = resources / "drawable-nodpi" / "ic_launcher_foreground.png"
+          foreground.parent.mkdir(parents=True, exist_ok=True)
+          foreground.write_bytes(icon_bytes)
+
+          # Fallback icons for Android versions that do not support adaptive icons.
+          legacy = resources / "mipmap-xxxhdpi"
+          legacy.mkdir(parents=True, exist_ok=True)
+          (legacy / "ic_launcher.png").write_bytes(icon_bytes)
+          (legacy / "ic_launcher_round.png").write_bytes(icon_bytes)
+
+          # Adaptive icons are used by Android 8.0 and newer.
+          adaptive = resources / "mipmap-anydpi-v26"
+          adaptive.mkdir(parents=True, exist_ok=True)
+          adaptive_xml = """<?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          """
+          (adaptive / "ic_launcher.xml").write_text(adaptive_xml, encoding="utf-8")
+          (adaptive / "ic_launcher_round.xml").write_text(adaptive_xml, encoding="utf-8")
+
+          values = resources / "values"
+          values.mkdir(parents=True, exist_ok=True)
+          (values / "ic_launcher_background.xml").write_text(
+              """<?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#4612CF</color>
+          </resources>
+          """,
+              encoding="utf-8",
+          )
+          print("MoodPress launcher icon installed in Android resources.")
+          PY
+      - name: Set permanent Android application ID and configure API
         shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
           import re
 
+          app_id = "nl.moodpress.app"
           gradle_files = [
               Path("android/app/build.gradle.kts"),
               Path("android/app/build.gradle"),
           ]
-          updated_gradle = False
+          configured = False
           for path in gradle_files:
               if not path.exists():
                   continue
               content = path.read_text()
-              next_content = re.sub(
-                  r"minSdk\s*=\s*flutter\.minSdkVersion",
-                  "minSdk = 23",
-                  content,
-              )
-              next_content = re.sub(
-                  r"minSdkVersion\s+flutter\.minSdkVersion",
-                  "minSdkVersion 23",
-                  next_content,
-              )
-              if next_content != content:
-                  path.write_text(next_content)
-                  updated_gradle = True
-              elif re.search(r"minSdk\s*=\s*([0-9]+)", content):
-                  updated_gradle = True
-              elif re.search(r"minSdkVersion\s+([0-9]+)", content):
-                  updated_gradle = True
+              if path.suffix == ".kts":
+                  content, ns_count = re.subn(
+                      r'(?m)^(\s*namespace\s*=\s*)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content, app_count = re.subn(
+                      r'(?m)^(\s*applicationId\s*=\s*)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content = re.sub(
+                      r"minSdk\s*=\s*flutter\.minSdkVersion",
+                      "minSdk = 24",
+                      content,
+                  )
+                  if ns_count and app_count:
+                      configured = True
+              else:
+                  content, ns_count = re.subn(
+                      r'(?m)^(\s*namespace\s+)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content, app_count = re.subn(
+                      r'(?m)^(\s*applicationId\s+)["\'][^"\']+["\']',
+                      rf'\1"{app_id}"',
+                      content,
+                  )
+                  content = re.sub(
+                      r"minSdkVersion\s+flutter\.minSdkVersion",
+                      "minSdkVersion 24",
+                      content,
+                  )
+                  if ns_count and app_count:
+                      configured = True
+              path.write_text(content)
 
-          if not updated_gradle:
-              raise SystemExit("Could not confirm Android minSdk configuration.")
+          if not configured:
+              raise SystemExit("Could not set Android namespace and applicationId to " + app_id)
+
+          # flutter create generates MainActivity with the temporary example package.
+          # The manifest resolves .MainActivity against the namespace above, so the
+          # Kotlin package must be changed to the same permanent application ID.
+          activity_files = list(Path("android/app/src/main").rglob("MainActivity.kt"))
+          if len(activity_files) != 1:
+              raise SystemExit(
+                  "Expected exactly one generated MainActivity.kt, found "
+                  + str(len(activity_files))
+              )
+          activity = activity_files[0]
+          activity_content = activity.read_text()
+          activity_content, package_count = re.subn(
+              r"(?m)^package\s+[^\s]+",
+              "package " + app_id,
+              activity_content,
+              count=1,
+          )
+          if package_count != 1:
+              raise SystemExit("Could not update the generated MainActivity package")
+          activity.write_text(activity_content)
 
           manifest = Path("android/app/src/main/AndroidManifest.xml")
           xml = manifest.read_text()
@@ -99,10 +207,77 @@ jobs:
               xml = xml.replace("<application", query + "    <application", 1)
               manifest.write_text(xml)
           PY
+      - name: Configure secure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANDROID_KEYSTORE_BASE64}" || -z "${ANDROID_KEYSTORE_PASSWORD}" || -z "${ANDROID_KEY_ALIAS}" || -z "${ANDROID_KEY_PASSWORD}" ]]; then
+            echo "Android signing secrets are missing. Configure all four repository secrets."
+            exit 1
+          fi
+          mkdir -p "$HOME/.moodpress-signing"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$HOME/.moodpress-signing/moodpress-upload.jks"
+          cat > android/key.properties <<EOF
+          storePassword=${ANDROID_KEYSTORE_PASSWORD}
+          keyPassword=${ANDROID_KEY_PASSWORD}
+          keyAlias=${ANDROID_KEY_ALIAS}
+          storeFile=$HOME/.moodpress-signing/moodpress-upload.jks
+          EOF
+          python - <<'PY'
+          from pathlib import Path
+          path = Path("android/app/build.gradle.kts")
+          if not path.exists():
+              raise SystemExit("Expected generated android/app/build.gradle.kts was not found")
+          content = path.read_text()
+          if "import java.util.Properties" not in content:
+              content = "import java.util.Properties\nimport java.io.FileInputStream\n\n" + content
+          marker = "android {"
+          if marker not in content:
+              raise SystemExit("Could not find android block in generated Gradle file")
+          loader = """val keystoreProperties = Properties()
+          val keystorePropertiesFile = rootProject.file("key.properties")
+          if (keystorePropertiesFile.exists()) {
+              keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+          }
+
+          """
+          if "val keystoreProperties = Properties()" not in content:
+              content = content.replace(marker, loader + marker, 1)
+          signing = """    signingConfigs {
+                  create("release") {
+                      keyAlias = keystoreProperties["keyAlias"] as String
+                      keyPassword = keystoreProperties["keyPassword"] as String
+                      storeFile = file(keystoreProperties["storeFile"] as String)
+                      storePassword = keystoreProperties["storePassword"] as String
+                  }
+              }
+          """
+          if 'create("release")' not in content:
+              content = content.replace("    buildTypes {", signing + "    buildTypes {", 1)
+          content = content.replace(
+              'signingConfig = signingConfigs.getByName("debug")',
+              'signingConfig = signingConfigs.getByName("release")',
+          )
+          if 'signingConfig = signingConfigs.getByName("release")' not in content:
+              raise SystemExit("Could not configure release signing")
+          path.write_text(content)
+          PY
       - run: flutter pub get
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
-          name: moodpress-android-apk
+          name: moodpress-android-apk-signed
           path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+      - name: Build signed Android App Bundle for Google Play
+        run: flutter build appbundle --release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moodpress-android-aab-signed
+          path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
