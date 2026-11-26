@@ -7,6 +7,68 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  test('weekly recurring activity expands to every selected weekday and extra date', () {
+    final activity = DayActivity(
+      id: 'weekly',
+      title: 'Afspraak',
+      time: '10:00',
+      extraDates: ['2026-12-12'],
+      repeat: 'weekly',
+      repeatWeekdays: [1, 4],
+      repeatUntil: '2026-12-10',
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), activity),
+      [
+        '2026-11-25',
+        '2026-11-26',
+        '2026-11-30',
+        '2026-12-03',
+        '2026-12-07',
+        '2026-12-10',
+        '2026-12-12',
+      ],
+    );
+  });
+
+  test('daily monthly and yearly recurrence respect their selected end date', () {
+    final daily = DayActivity(
+      id: 'daily',
+      title: 'Dagelijks',
+      time: '08:00',
+      repeat: 'daily',
+      repeatUntil: '2026-11-27',
+    );
+    final monthly = DayActivity(
+      id: 'monthly',
+      title: 'Maandelijks',
+      time: '08:00',
+      repeat: 'monthly',
+      repeatUntil: '2027-02-25',
+    );
+    final yearly = DayActivity(
+      id: 'yearly',
+      title: 'Jaarlijks',
+      time: '08:00',
+      repeat: 'yearly',
+      repeatUntil: '2028-11-25',
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), daily),
+      ['2026-11-25', '2026-11-26', '2026-11-27'],
+    );
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), monthly),
+      ['2026-11-25', '2026-12-25', '2027-01-25', '2027-02-25'],
+    );
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), yearly),
+      ['2026-11-25', '2027-11-25', '2028-11-25'],
+    );
+  });
+
   test('activity supports multiple dates and recurring schedule metadata', () {
     final activity = DayActivity(
       id: 'recurring-1',
