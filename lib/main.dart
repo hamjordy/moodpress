@@ -6855,7 +6855,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.text_fields_rounded, color: _brand),
                   SizedBox(width: 10),
-                  Text('Tekstgrootte', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Tekstgrootte', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 5),
                 const Text('Kies tekst die prettig leesbaar is.', style: TextStyle(color: _muted)),
@@ -6903,7 +6903,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.notifications_none_rounded, color: _brand),
                   SizedBox(width: 10),
-                  Text('Herinneringen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Herinneringen', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 5),
                 const Text('Krijg op het geplande tijdstip een rustige melding zolang MoodPress open is. Je kunt dit altijd uitzetten.', style: TextStyle(color: _muted)),
@@ -6925,7 +6925,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.privacy_tip_outlined, color: _brand),
                   SizedBox(width: 10),
-                  Text('Privacy en jouw gegevens', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Privacy en jouw gegevens', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 8),
                 const Text(
@@ -6953,7 +6953,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.info_outline_rounded, color: _brand),
                   SizedBox(width: 10),
-                  Text('Waar MoodPress niet voor is', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Waar MoodPress niet voor is', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 8),
                 const Text(
@@ -6976,7 +6976,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.backup_outlined, color: _brand),
                   SizedBox(width: 10),
-                  Text('Back-up en terugzetten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Back-up en terugzetten', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 5),
                 const Text(
@@ -7012,7 +7012,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.volume_up_outlined, color: _brand),
                   SizedBox(width: 10),
-                  Text('Voorleessnelheid', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Voorleessnelheid', style: TextStyle(color: _ink, fontSize: 17, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 5),
                 const Text('Kies of je voorlezen wilt gebruiken en stel daarna de snelheid in.', style: TextStyle(color: _muted)),
@@ -7057,7 +7057,7 @@ class SettingsPage extends StatelessWidget {
                 const Row(children: [
                   Icon(Icons.delete_forever_outlined, color: _brand),
                   SizedBox(width: 10),
-                  Text('Jouw gegevens verwijderen', style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w700)),
+                  Expanded(child: Text('Jouw gegevens verwijderen', style: TextStyle(color: _ink, fontSize: 16, fontWeight: FontWeight.w700))),
                 ]),
                 const SizedBox(height: 7),
                 const Text(
