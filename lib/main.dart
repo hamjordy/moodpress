@@ -3777,7 +3777,7 @@ class _PlanningPageState extends State<PlanningPage> {
           subtitle: Text(
             _formatDutchWeekday(result.date) + ' ' +
                 _formatDutchDate(result.date) + ' ' +
-                result.date.year.toString() + ' · ' + activity.time +
+                result.date.year.toString() + ' · ' + (activity.time.isEmpty ? 'Geen vast tijdstip' : activity.time) +
                 '\n' + detail,
             maxLines: 3,
             overflow: TextOverflow.ellipsis,
@@ -4105,7 +4105,7 @@ class _PlanningPageState extends State<PlanningPage> {
             const SizedBox(height: 8),
             Center(
               child: Text(
-                activity.time,
+                activity.time.isEmpty ? 'Geen vast tijdstip' : activity.time,
                 style: const TextStyle(
                   color: _brand,
                   fontSize: 15,
@@ -4213,7 +4213,7 @@ class _PlanningPageState extends State<PlanningPage> {
                   ),
                 ),
                 SpeakButton(
-                  text: activity.title + '. ' + activity.time +
+                  text: activity.title + '. ' + (activity.time.isEmpty ? 'Geen vast tijdstip' : activity.time) +
                       '. Wie: ' + activity.who +
                       '. Wat: ' + activity.what +
                       '. Waar: ' + activity.where +
@@ -4778,7 +4778,7 @@ class ActivityCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          activity.time,
+          activity.time.isEmpty ? '—' : activity.time,
           textAlign: TextAlign.center,
           style: const TextStyle(
             color: _brand,
@@ -4891,7 +4891,7 @@ class ActivityCard extends StatelessWidget {
 
   String get _speechText =>
       activity.title +
-      '. ' + activity.time +
+      '. ' + (activity.time.isEmpty ? 'Geen vast tijdstip' : activity.time) +
       '. Wie: ' + activity.who +
       '. Wat: ' + activity.what +
       '. Waar: ' + activity.where +
@@ -5052,7 +5052,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
     repeatWeekdays.addAll(item?.repeatWeekdays ?? const <int>[]);
     repeatUntil = DateTime.tryParse(item?.repeatUntil ?? '');
     title = TextEditingController(text: item?.title ?? '');
-    time = TextEditingController(text: item?.time ?? '09:00');
+    time = TextEditingController(text: item?.time ?? '');
     who = TextEditingController(text: item?.who ?? 'Ik');
     what = TextEditingController(text: item?.what ?? '');
     where = TextEditingController(text: item?.where ?? '');
@@ -5122,7 +5122,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
     Navigator.pop(context, DayActivity(
       id: old?.id ?? DateTime.now().microsecondsSinceEpoch.toString(),
       title: title.text.trim(),
-      time: time.text.trim().isEmpty ? '09:00' : time.text.trim(),
+      time: time.text.trim(),
       who: who.text.trim(),
       what: what.text.trim(),
       where: where.text.trim(),
@@ -5255,7 +5255,7 @@ class _ActivityEditorState extends State<ActivityEditor> {
                   ),
                 ]),
                 field(title, 'Naam van de activiteit', 'Bijvoorbeeld: naar de winkel', required: true),
-                field(time, 'Wanneer?', 'Bijvoorbeeld: 10:30'),
+                field(time, 'Tijdstip (optioneel)', 'Bijvoorbeeld: 09:00 — laat leeg als er geen vast tijdstip is'),
                 field(who, 'Wie?', 'Wie is erbij?'),
                 field(what, 'Wat?', 'Wat ga je doen?'),
                 field(where, 'Waar?', 'Waar gebeurt het?'),
