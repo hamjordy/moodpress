@@ -335,6 +335,40 @@ void main() {
     expect(find.text('DIT IS JE VOLGENDE STAP').last, findsOneWidget);
   });
 
+  testWidgets('mobile navigation stays compact and opens secondary pages from More', (tester) async {
+    tester.view.physicalSize = const Size(360, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    final controller = MoodPressController()..ready = true;
+    await tester.pumpWidget(
+      MaterialApp(home: MoodPressShell(controller: controller)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Vandaag'), findsOneWidget);
+    expect(find.text('Planning'), findsOneWidget);
+    expect(find.text('Prikkels'), findsOneWidget);
+    expect(find.text('Meer'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(find.text('Meer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Meer in MoodPress'), findsOneWidget);
+    expect(find.text('Mijn steun'), findsOneWidget);
+    expect(find.text('Instellingen'), findsOneWidget);
+    expect(find.text('Dagboek'), findsOneWidget);
+    expect(find.text('Rustplan'), findsOneWidget);
+
+    await tester.tap(find.text('Dagboek').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Schrijf op hoe je dag was'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('in-app reminder switch can be enabled and disabled in settings', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;
