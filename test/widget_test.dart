@@ -365,7 +365,7 @@ void main() {
     await tester.tap(find.text('Dagboek').last);
     await tester.pumpAndSettle();
 
-    expect(find.text('Schrijf op hoe je dag was'), findsNothing);
+    expect(find.text('Mijn dagboek'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
