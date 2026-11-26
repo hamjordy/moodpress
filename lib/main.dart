@@ -2860,14 +2860,18 @@ class TodayPage extends StatelessWidget {
               children: [
                 const Icon(Icons.calendar_today_outlined, size: 16, color: _brand),
                 const SizedBox(width: 9),
-                Semantics(
-                  label: 'Vandaag, $todayLabel',
-                  child: Text(
-                    todayLabel,
-                    style: const TextStyle(
-                      color: _ink,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                Flexible(
+                  child: Semantics(
+                    label: 'Vandaag, $todayLabel',
+                    child: Text(
+                      todayLabel,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: _ink,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ),
@@ -3069,16 +3073,17 @@ class WeekOverviewCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            runSpacing: 4,
             children: [
-              const Expanded(
-                child: Text(
-                  'Deze week',
-                  style: TextStyle(
-                    color: _ink,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
+              const Text(
+                'Deze week',
+                style: TextStyle(
+                  color: _ink,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
               TextButton(
@@ -3250,18 +3255,69 @@ class ProgressCard extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('JOUW DAG', style: TextStyle(fontSize: 10, letterSpacing: 1.3, fontWeight: FontWeight.w800, color: _muted)),
             const SizedBox(height: 16),
-            Row(children: [
-              SizedBox(width: 70, height: 70, child: Stack(alignment: Alignment.center, children: [
-                SizedBox.expand(child: CircularProgressIndicator(value: progress, strokeWidth: 7, backgroundColor: _brandPale, color: _brand)),
-                Text((progress * 100).round().toString() + '%', style: const TextStyle(color: _ink, fontWeight: FontWeight.w800)),
-              ])),
-              const SizedBox(width: 14),
-              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(done.toString() + ' van ' + total.toString() + ' gedaan', style: const TextStyle(fontSize: 15, color: _ink, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                const Text('Elke stap telt. Ook een kleine stap.', style: TextStyle(color: _muted, fontSize: 12)),
-              ])),
-            ]),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final indicator = SizedBox(
+                  width: 70,
+                  height: 70,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox.expand(
+                        child: CircularProgressIndicator(
+                          value: progress,
+                          strokeWidth: 7,
+                          backgroundColor: _brandPale,
+                          color: _brand,
+                        ),
+                      ),
+                      Text(
+                        (progress * 100).round().toString() + '%',
+                        style: const TextStyle(
+                          color: _ink,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+                final details = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      done.toString() + ' van ' + total.toString() + ' gedaan',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: _ink,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Elke stap telt. Ook een kleine stap.',
+                      style: TextStyle(color: _muted, fontSize: 12),
+                    ),
+                  ],
+                );
+                if (constraints.maxWidth < 320) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      indicator,
+                      const SizedBox(height: 12),
+                      details,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    indicator,
+                    const SizedBox(width: 14),
+                    Expanded(child: details),
+                  ],
+                );
+              },
+            ),
             const SizedBox(height: 12),
             TextButton.icon(onPressed: openPlan, icon: const Icon(Icons.list_alt_outlined), label: const Text('Mijn weekplanning')),
           ]),
