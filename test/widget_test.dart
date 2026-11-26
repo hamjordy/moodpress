@@ -7,6 +7,33 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:moodpress/main.dart';
 
 void main() {
+  test('a new one-off activity stays on the exact selected date', () {
+    final activity = DayActivity(
+      id: 'one-day',
+      title: 'Afspraak op woensdag',
+      time: '09:00',
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), activity),
+      ['2026-11-25'],
+    );
+  });
+
+  test('one-off activity only adds extra dates explicitly selected by the user', () {
+    final activity = DayActivity(
+      id: 'selected-dates',
+      title: 'Afspraak op woensdag en vrijdag',
+      time: '10:00',
+      extraDates: ['2026-11-27'],
+    );
+
+    expect(
+      activityOccurrenceDateKeys(DateTime(2026, 11, 25), activity),
+      ['2026-11-25', '2026-11-27'],
+    );
+  });
+
   test('weekly recurring activity expands to every selected weekday and extra date', () {
     final activity = DayActivity(
       id: 'weekly',
