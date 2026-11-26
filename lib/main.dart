@@ -4794,7 +4794,7 @@ class ActivityCard extends StatelessWidget {
   final Widget reorderHandle;
 
   Widget _timeBadge() => Container(
-        width: 55,
+        width: activity.endTime.isNotEmpty ? 112 : 55,
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
           color: _brandPale,
