@@ -5721,6 +5721,7 @@ class _CalmPageState extends State<CalmPage> {
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
           value: _prikkelFilterNiveau,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Prikkelniveau',
             border: OutlineInputBorder(),
@@ -5751,6 +5752,7 @@ class _CalmPageState extends State<CalmPage> {
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
           value: _prikkelFilterPeriode,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Periode',
             border: OutlineInputBorder(),
