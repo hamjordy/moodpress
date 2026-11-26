@@ -396,7 +396,7 @@ void main() {
     ];
 
     for (var index = 0; index < pages.length; index++) {
-      await tester.pumpWidget(MaterialApp(home: pages[index]));
+      await tester.pumpWidget(MaterialApp(home: Scaffold(body: pages[index])));
       await tester.pumpAndSettle();
       final layoutError = tester.takeException();
       if (layoutError is FlutterError) {
