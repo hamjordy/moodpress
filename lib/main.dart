@@ -204,6 +204,10 @@ class DayActivity {
     this.done = false,
     this.steps = const <String>[],
     this.stepDone = const <bool>[],
+    this.extraDates = const <String>[],
+    this.repeat = 'none',
+    this.repeatWeekdays = const <int>[],
+    this.repeatUntil,
   });
 
   final String id;
@@ -219,6 +223,10 @@ class DayActivity {
   bool done;
   List<String> steps;
   List<bool> stepDone;
+  List<String> extraDates;
+  String repeat;
+  List<int> repeatWeekdays;
+  String? repeatUntil;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -234,6 +242,10 @@ class DayActivity {
         'done': done,
         'steps': steps,
         'stepDone': _normalizeStepProgress(steps, stepDone),
+        'extraDates': extraDates,
+        'repeat': repeat,
+        'repeatWeekdays': repeatWeekdays,
+        'repeatUntil': repeatUntil,
       };
 
   factory DayActivity.fromJson(Map<String, dynamic> json) {
@@ -268,6 +280,10 @@ class DayActivity {
       done: json['done'] is bool ? json['done'] as bool : false,
       steps: steps,
       stepDone: _normalizeStepProgress(steps, progress),
+      extraDates: json['extraDates'] is List ? (json['extraDates'] as List).whereType<String>().toList() : <String>[],
+      repeat: json['repeat'] is String ? json['repeat'] as String : 'none',
+      repeatWeekdays: json['repeatWeekdays'] is List ? (json['repeatWeekdays'] as List).whereType<int>().where((day) => day >= 1 && day <= 7).toList() : <int>[],
+      repeatUntil: json['repeatUntil'] is String ? json['repeatUntil'] as String : null,
     );
   }
 
@@ -292,6 +308,10 @@ class DayActivity {
         stepDone: resetSteps
             ? List<bool>.filled(steps.length, false)
             : List<bool>.from(_normalizeStepProgress(steps, stepDone)),
+        extraDates: List<String>.from(extraDates),
+        repeat: repeat,
+        repeatWeekdays: List<int>.from(repeatWeekdays),
+        repeatUntil: repeatUntil,
       );
 }
 
@@ -1584,12 +1604,45 @@ class MoodPressController extends ChangeNotifier {
   }
 
   Future<void> saveActivity(DayActivity activity) async {
-    final dayActivities = _mutableActivitiesFor(selectedDate);
-    final index = dayActivities.indexWhere((item) => item.id == activity.id);
-    if (index == -1) {
-      dayActivities.add(activity);
+    final start = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    final dates = <String>{_dateKey(start), ...activity.extraDates};
+    final until = DateTime.tryParse(activity.repeatUntil ?? '');
+    if (activity.repeat != 'none' && until != null) {
+      final last = DateTime(until.year, until.month, until.day);
+      if (!last.isBefore(start)) {
+        for (var date = start; !date.isAfter(last); date = date.add(const Duration(days: 1))) {
+          final matches = switch (activity.repeat) {
+            'daily' => true,
+            'weekly' => activity.repeatWeekdays.contains(date.weekday),
+            'monthly' => date.day == start.day,
+            'yearly' => date.month == start.month && date.day == start.day,
+            _ => false,
+          };
+          if (matches) dates.add(_dateKey(date));
+        }
+      }
+    }
+    final sortedDates = dates.toList()..sort();
+    final isNewSeries = activity.repeat != 'none' || activity.extraDates.isNotEmpty;
+    if (isNewSeries) {
+      for (final dateKey in sortedDates) {
+        final occurrence = activity.copyWith(
+          id: dateKey == _dateKey(start) ? activity.id : '${activity.id}-$dateKey',
+          done: dateKey == _dateKey(start) ? activity.done : false,
+          resetSteps: dateKey != _dateKey(start),
+        );
+        occurrence.extraDates = <String>[];
+        occurrence.repeat = 'none';
+        occurrence.repeatWeekdays = <int>[];
+        occurrence.repeatUntil = null;
+        final list = _plansByDate.putIfAbsent(dateKey, () => <DayActivity>[]);
+        final index = list.indexWhere((item) => item.id == occurrence.id);
+        if (index == -1) list.add(occurrence); else list[index] = occurrence;
+      }
     } else {
-      dayActivities[index] = activity;
+      final dayActivities = _mutableActivitiesFor(selectedDate);
+      final index = dayActivities.indexWhere((item) => item.id == activity.id);
+      if (index == -1) dayActivities.add(activity); else dayActivities[index] = activity;
     }
     await _saveDayPlans();
     notifyListeners();
@@ -4936,7 +4989,7 @@ class ActivityCard extends StatelessWidget {
 }
 
 Future<void> editActivity(BuildContext context, MoodPressController controller, {DayActivity? existing}) async {
-  final result = await showDialog<DayActivity>(context: context, builder: (context) => ActivityEditor(existing: existing));
+  final result = await showDialog<DayActivity>(context: context, builder: (context) => ActivityEditor(existing: existing, initialDate: controller.selectedDate));
   if (result != null) await controller.saveActivity(result);
 }
 
@@ -4956,8 +5009,9 @@ Future<void> confirmDelete(BuildContext context, MoodPressController controller,
 }
 
 class ActivityEditor extends StatefulWidget {
-  const ActivityEditor({super.key, this.existing});
+  const ActivityEditor({super.key, this.existing, required this.initialDate});
   final DayActivity? existing;
+  final DateTime initialDate;
 
   @override
   State<ActivityEditor> createState() => _ActivityEditorState();
@@ -4975,11 +5029,21 @@ class _ActivityEditorState extends State<ActivityEditor> {
   late final TextEditingController stepsText;
   String symbol = '📌';
   String photoPath = '';
+  late DateTime initialDate;
+  final Set<DateTime> extraDates = <DateTime>{};
+  String repeat = 'none';
+  final Set<int> repeatWeekdays = <int>{};
+  DateTime? repeatUntil;
 
   @override
   void initState() {
     super.initState();
     final item = widget.existing;
+    initialDate = DateTime(widget.initialDate.year, widget.initialDate.month, widget.initialDate.day);
+    extraDates.addAll((item?.extraDates ?? const <String>[]).map(DateTime.tryParse).whereType<DateTime>());
+    repeat = item?.repeat ?? 'none';
+    repeatWeekdays.addAll(item?.repeatWeekdays ?? const <int>[]);
+    repeatUntil = DateTime.tryParse(item?.repeatUntil ?? '');
     title = TextEditingController(text: item?.title ?? '');
     time = TextEditingController(text: item?.time ?? '09:00');
     who = TextEditingController(text: item?.who ?? 'Ik');
@@ -5034,6 +5098,10 @@ class _ActivityEditorState extends State<ActivityEditor> {
 
   void save() {
     if (!_formKey.currentState!.validate()) return;
+    if (repeat != 'none' && (repeatUntil == null || (repeat == 'weekly' && repeatWeekdays.isEmpty))) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kies een einddatum en, bij wekelijks herhalen, minimaal één weekdag.')));
+      return;
+    }
     final old = widget.existing;
     final nextSteps = parseActivitySteps(stepsText.text);
     final nextStepDone = nextSteps.map((step) {
@@ -5058,6 +5126,10 @@ class _ActivityEditorState extends State<ActivityEditor> {
       done: old?.done ?? false,
       steps: nextSteps,
       stepDone: nextStepDone,
+      extraDates: extraDates.map(_dateKey).toList(),
+      repeat: repeat,
+      repeatWeekdays: repeatWeekdays.toList()..sort(),
+      repeatUntil: repeatUntil == null ? null : _dateKey(repeatUntil!),
     ));
   }
 
@@ -5106,6 +5178,60 @@ class _ActivityEditorState extends State<ActivityEditor> {
                   OutlinedButton.icon(onPressed: choosePhoto, icon: const Icon(Icons.add_photo_alternate_outlined), label: const Text('Foto kiezen')),
                   if (photoPath.isNotEmpty) TextButton.icon(onPressed: () => setState(() => photoPath = ''), icon: const Icon(Icons.close), label: const Text('Foto weghalen')),
                 ]),
+                const Padding(
+                  padding: EdgeInsets.only(top: 18),
+                  child: Text('Wanneer staat deze afspraak gepland?', style: TextStyle(color: _ink, fontWeight: FontWeight.w700)),
+                ),
+                Text('Eerste datum: ${_formatDutchDate(initialDate)}'),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(context: context, initialDate: initialDate, firstDate: DateTime(2000), lastDate: DateTime(2100), helpText: 'Kies een extra datum');
+                    if (picked != null) setState(() { final day = DateTime(picked.year, picked.month, picked.day); if (day != initialDate) extraDates.add(day); });
+                  },
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: const Text('Extra datum toevoegen'),
+                ),
+                Wrap(spacing: 8, children: extraDates.toList()..sort().map((date) => InputChip(
+                  label: Text(_formatDutchDate(date)),
+                  onDeleted: () => setState(() => extraDates.remove(date)),
+                )).toList()),
+                DropdownButtonFormField<String>(
+                  value: repeat,
+                  decoration: const InputDecoration(labelText: 'Herhalen'),
+                  items: const [
+                    DropdownMenuItem(value: 'none', child: Text('Niet herhalen')),
+                    DropdownMenuItem(value: 'daily', child: Text('Iedere dag')),
+                    DropdownMenuItem(value: 'weekly', child: Text('Iedere week')),
+                    DropdownMenuItem(value: 'monthly', child: Text('Iedere maand')),
+                    DropdownMenuItem(value: 'yearly', child: Text('Ieder jaar')),
+                  ],
+                  onChanged: (value) => setState(() { repeat = value ?? 'none'; if (repeat == 'weekly' && repeatWeekdays.isEmpty) repeatWeekdays.add(initialDate.weekday); }),
+                ),
+                if (repeat == 'weekly') ...[
+                  const Padding(padding: EdgeInsets.only(top: 8), child: Text('Op welke dagen?', style: TextStyle(color: _ink, fontWeight: FontWeight.w600))),
+                  Wrap(spacing: 2, children: List<Widget>.generate(7, (index) {
+                    final day = index + 1;
+                    return FilterChip(
+                      label: Text(['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'][index]),
+                      selected: repeatWeekdays.contains(day),
+                      onSelected: (selected) => setState(() { if (selected) { repeatWeekdays.add(day); } else { repeatWeekdays.remove(day); } }),
+                    );
+                  })),
+                ],
+                if (repeat != 'none') ...[
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final picked = await showDatePicker(context: context, initialDate: repeatUntil ?? initialDate.add(const Duration(days: 365)), firstDate: initialDate, lastDate: DateTime(2100), helpText: 'Laatste herhalingsdatum');
+                      if (picked != null) setState(() => repeatUntil = picked);
+                    },
+                    icon: const Icon(Icons.event_repeat_rounded),
+                    label: Text(repeatUntil == null ? 'Kies einddatum van herhaling' : 'Herhalen tot ${_formatDutchDate(repeatUntil!)}'),
+                  ),
+                  if (repeatUntil == null)
+                    const Text('Kies een einddatum om de herhalingen vast te leggen.', style: TextStyle(color: _muted, fontSize: 12)),
+                  if (repeat == 'weekly' && repeatWeekdays.isEmpty)
+                    const Text('Selecteer minimaal één weekdag.', style: TextStyle(color: Colors.red, fontSize: 12)),
+                ],
                 field(title, 'Naam van de activiteit', 'Bijvoorbeeld: naar de winkel', required: true),
                 field(time, 'Wanneer?', 'Bijvoorbeeld: 10:30'),
                 field(who, 'Wie?', 'Wie is erbij?'),
